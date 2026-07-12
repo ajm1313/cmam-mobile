@@ -8,15 +8,17 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
-import { useSyncStore } from '../../lib/sync-store';
+import { useSyncStore, type SyncQueueItem } from '../../lib/sync-store';
 import EmptyState from '../../components/EmptyState';
+import ConflictResolutionModal from '../../components/ConflictResolutionModal';
 
 export default function OfflineSyncScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { queue, isSyncing, lastSyncAt, sync, removeItem, clear } = useSyncStore();
+  const { queue, isSyncing, lastSyncAt, sync, removeItem, clear, resolveConflict } = useSyncStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [conflictItem, setConflictItem] = useState<SyncQueueItem | null>(null);
 
   const handleSync = useCallback(async () => {
     if (queue.length === 0) {
@@ -114,12 +116,17 @@ export default function OfflineSyncScreen() {
               ]}
             >
               {item.conflict && (
-                <View style={[styles.conflictBanner, { backgroundColor: colors.danger + '12' }]}>
+                <TouchableOpacity
+                  style={[styles.conflictBanner, { backgroundColor: colors.danger + '12' }]}
+                  onPress={() => setConflictItem(item)}
+                  activeOpacity={0.75}
+                >
                   <Ionicons name="alert-circle-outline" size={14} color={colors.danger} />
                   <Text style={[styles.conflictText, { color: colors.danger }]}>
-                    Conflict: {item.conflictMessage ?? 'Record changed remotely. Remove this item and refresh to see latest data.'}
+                    Conflict detected — tap to review and resolve
                   </Text>
-                </View>
+                  <Ionicons name="chevron-forward" size={14} color={colors.danger} />
+                </TouchableOpacity>
               )}
               <View style={styles.queueHeader}>
                 <View style={[styles.methodBadge, { backgroundColor: item.method === 'DELETE' ? colors.danger + '15' : item.method === 'PATCH' ? colors.warning + '15' : colors.success + '15' }]}>
@@ -150,6 +157,12 @@ export default function OfflineSyncScreen() {
           ))
         )}
       </ScrollView>
+
+      <ConflictResolutionModal
+        item={conflictItem}
+        onResolve={resolveConflict}
+        onClose={() => setConflictItem(null)}
+      />
     </View>
   );
 }

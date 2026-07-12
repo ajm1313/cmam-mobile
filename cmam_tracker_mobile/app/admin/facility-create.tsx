@@ -36,6 +36,7 @@ export default function FacilityCreateScreen() {
     name: '', facility_type: '', district_id: '', sub_district_id: '',
     contact_person: '', contact_phone: '', contact_email: '',
     address: '', capacity: '', region_id: '', opc_day: '',
+    population: '', sam_prevalence: '',
   });
 
   useEffect(() => {
@@ -71,6 +72,8 @@ export default function FacilityCreateScreen() {
         contact_email: form.contact_email, address: form.address,
         capacity: form.capacity ? parseInt(form.capacity) : undefined,
         opc_day: form.facility_type === 'OPC' && form.opc_day !== '' ? parseInt(form.opc_day) : null,
+        population: form.population ? parseInt(form.population) : undefined,
+        sam_prevalence: form.sam_prevalence ? parseFloat(form.sam_prevalence) : undefined,
       });
       Alert.alert('Success', 'Facility created', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e: any) {
@@ -101,6 +104,8 @@ export default function FacilityCreateScreen() {
             <PickerField label="OPC Visit Day *" value={form.opc_day} options={OPC_DAY_OPTIONS} onSelect={(v: string) => update('opc_day', v)} colors={colors} hint="Weekly day when SAM & MAM OPC visits are scheduled" />
           )}
           <Field label="Capacity" value={form.capacity} onChangeText={(v: string) => update('capacity', v)} keyboardType="numeric" colors={colors} />
+          <Field label="Catchment Population" value={form.population} onChangeText={(v: string) => update('population', v)} keyboardType="numeric" colors={colors} hint="Total population served by this facility" />
+          <Field label="SAM Prevalence (%)" value={form.sam_prevalence} onChangeText={(v: string) => update('sam_prevalence', v)} keyboardType="decimal-pad" colors={colors} hint="Regional SAM prevalence rate from nutrition surveys" />
         </View>
 
         <SectionHeader title="Location" icon="location-outline" colors={colors} />
@@ -140,7 +145,7 @@ function SectionHeader({ title, icon, colors }: { title: string; icon: string; c
   );
 }
 
-function Field({ label, value, onChangeText, keyboardType, autoCapitalize, multiline, colors }: any) {
+function Field({ label, value, onChangeText, keyboardType, autoCapitalize, multiline, colors, hint }: any) {
   return (
     <View style={styles.fieldWrap}>
       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
@@ -149,6 +154,7 @@ function Field({ label, value, onChangeText, keyboardType, autoCapitalize, multi
         value={value} onChangeText={onChangeText} placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
       />
+      {hint && <Text style={[styles.hintText, { color: colors.textMuted }]}>{hint}</Text>}
     </View>
   );
 }

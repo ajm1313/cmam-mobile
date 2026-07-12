@@ -136,6 +136,7 @@ export interface OpcCaseDetail extends OpcCase {
   created_by_name: string;
   visits: OpcVisit[];
   created_at: string;
+  updated_at: string;
 }
 
 export interface OpcVisit {

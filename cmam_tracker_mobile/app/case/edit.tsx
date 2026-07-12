@@ -21,6 +21,7 @@ export default function CaseEditScreen() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fetchedUpdatedAt, setFetchedUpdatedAt] = useState<string | null>(null);
   const [form, setForm] = useState({
     child_name: '', child_gender: '', date_of_birth: '', age_months: '',
     caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', address: '',
@@ -34,6 +35,7 @@ export default function CaseEditScreen() {
       try {
         const res = await api.get(`/v1/cases/${id}/`);
         const c: OpcCaseDetail = res.data.data;
+        setFetchedUpdatedAt(c.updated_at ?? null);
         setForm({
           child_name: c.child_name || '',
           child_gender: c.child_gender || '',
@@ -73,6 +75,7 @@ export default function CaseEditScreen() {
         weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : undefined,
         height_cm: form.height_cm ? parseFloat(form.height_cm) : undefined,
         muac_cm: form.muac_cm ? parseFloat(form.muac_cm) : undefined,
+        ...(fetchedUpdatedAt ? { _updated_at: fetchedUpdatedAt } : {}),
       });
       Alert.alert('Success', 'Case updated successfully', [
         { text: 'OK', onPress: () => router.back() },

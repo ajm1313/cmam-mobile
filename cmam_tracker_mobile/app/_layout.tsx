@@ -63,7 +63,7 @@ function RootLayoutInner() {
           if (data?.caseId && (
             data.type === 'visit_reminder' || data.type === 'visit_today' ||
             data.type === 'new_case' || data.type === 'discharge_eligible' ||
-            data.type === 'sam_transition'
+            data.type === 'sam_transition' || data.type === 'visit_overdue'
           )) {
             router.push({ pathname: '/case/[id]', params: { id: String(data.caseId) } });
           } else if (data?.type === 'stock_critical' || data?.type === 'stock_low') {

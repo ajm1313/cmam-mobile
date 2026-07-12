@@ -43,6 +43,7 @@ export default function VisitEditScreen() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fetchedUpdatedAt, setFetchedUpdatedAt] = useState<string | null>(null);
   const [form, setForm] = useState({
     visit_date: '', weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     diarrhoea_days: '', vomiting_days: '', fever_days: '', cough_days: '',
@@ -58,6 +59,7 @@ export default function VisitEditScreen() {
         const visits = res.data.data || [];
         const visit = visits.find((v: any) => v.id === parseInt(visitId));
         if (visit) {
+          setFetchedUpdatedAt(visit.updated_at ?? null);
           setForm({
             visit_date: visit.visit_date || '',
             weight_kg: visit.weight_kg?.toString() || '',
@@ -101,6 +103,7 @@ export default function VisitEditScreen() {
         fever_days: form.fever_days ? parseInt(form.fever_days) : undefined,
         cough_days: form.cough_days ? parseInt(form.cough_days) : undefined,
         rutf_sachets_given: form.rutf_sachets_given ? parseInt(form.rutf_sachets_given) : undefined,
+        ...(fetchedUpdatedAt ? { _updated_at: fetchedUpdatedAt } : {}),
       });
       Alert.alert('Success', 'Visit updated', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e: any) {
