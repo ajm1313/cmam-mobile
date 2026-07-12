@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -54,7 +54,24 @@ export default function VisitFormScreen() {
   const [step, setStep] = useState<Step>('anthropometry');
   const [submitting, setSubmitting] = useState(false);
   const [automationAlert, setAutomationAlert] = useState<AutomationResult | null>(null);
+  const [rutfStock, setRutfStock] = useState<number | null>(null);
   const isSAM = caseType === 'SAM';
+
+  // Fetch RUTF stock level for the case's facility
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const res = await api.get('/stock-levels/', { params: { facility_id: undefined } });
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          const rutfItem = res.data.data.find((s: any) => 
+            s.item_name?.toLowerCase().includes('rutf') || s.item_code?.toLowerCase().includes('rutf')
+          );
+          if (rutfItem) setRutfStock(rutfItem.available_stock ?? rutfItem.current_stock ?? 0);
+        }
+      } catch { /* stock check is advisory only */ }
+    };
+    fetchStock();
+  }, []);
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
@@ -113,6 +130,21 @@ export default function VisitFormScreen() {
       setStep('anthropometry');
       return;
     }
+    // Stock-out warning for RUTF
+    if (form.rutf_sachets_given && rutfStock !== null) {
+      const qty = parseInt(form.rutf_sachets_given);
+      if (qty > rutfStock) {
+        Alert.alert('Stock Warning', `Only ${rutfStock} RUTF sachets in stock. You are dispensing ${qty}. Continue anyway?`, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', style: 'destructive', onPress: () => doSubmit() },
+        ]);
+        return;
+      }
+    }
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
     setSubmitting(true);
     try {
       const payload: any = {
@@ -273,6 +305,11 @@ export default function VisitFormScreen() {
                   </View>
                   {form.weight_kg && calcRutf(parseFloat(form.weight_kg)) && (
                     <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 6 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
+                  )}
+                  {rutfStock !== null && (
+                    <Text style={{ fontSize: 11, color: rutfStock > 0 ? colors.textMuted : '#dc2626', marginBottom: 4 }}>
+                      In stock: {rutfStock} sachets{rutfStock === 0 ? ' — STOCK OUT!' : ''}
+                    </Text>
                   )}
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.rutf_sachets_given} onChangeText={v => set('rutf_sachets_given', v)} keyboardType="number-pad" placeholder="e.g. 14" placeholderTextColor={colors.textMuted} />
                 </>

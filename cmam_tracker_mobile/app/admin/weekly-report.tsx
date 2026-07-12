@@ -30,7 +30,8 @@ interface WeeklySummary {
   new_males_6_59: number; new_females_6_59: number;
 }
 interface FacilityRow { facility_name: string; facility_code: string; new_admissions: number; total_visits: number; active: number; cured: number; defaulted: number; deaths: number; }
-interface WeeklyData { report_type: string; date_from: string; date_to: string; summary: WeeklySummary; facilities: FacilityRow[]; }
+interface CommodityData { rutf_start: number; rutf_received: number; rutf_issued_sam: number; rutf_issued_mam: number; rutf_balance: number; }
+interface WeeklyData { report_type: string; date_from: string; date_to: string; summary: WeeklySummary; facilities: FacilityRow[]; commodity?: CommodityData; }
 interface Loc { id: number; name: string; }
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -320,21 +321,21 @@ export default function WeeklyReportScreen() {
                 <>
                   <TallyAddlRow label={`Number of new males with SAM 6-59 months (B2m + B3m)`} value={s?.new_males_6_59 ?? 0} colors={colors} />
                   <TallyAddlRow label={`Number of new females with SAM 6-59 months (B2f + B3f)`} value={s?.new_females_6_59 ?? 0} colors={colors} />
-                  <TallyAddlRow label="RUTF quantity at start of week" value="—" colors={colors} />
-                  <TallyAddlRow label="RUTF quantity received" value="—" colors={colors} />
-                  <TallyAddlRow label="RUTF issued (SAM) — in packets" value="—" colors={colors} />
-                  <TallyAddlRow label="RUTF issued (MAM) — in packets" value="—" colors={colors} />
-                  <TallyAddlRow label="RUTF balance at end of week" value="—" colors={colors} last />
+                  <TallyAddlRow label="RUTF quantity at start of week" value={data?.commodity ? String(data.commodity.rutf_start) : '—'} colors={colors} />
+                  <TallyAddlRow label="RUTF quantity received" value={data?.commodity ? String(data.commodity.rutf_received) : '—'} colors={colors} />
+                  <TallyAddlRow label="RUTF issued (SAM) — in packets" value={data?.commodity ? String(data.commodity.rutf_issued_sam) : '—'} colors={colors} />
+                  <TallyAddlRow label="RUTF issued (MAM) — in packets" value={data?.commodity ? String(data.commodity.rutf_issued_mam) : '—'} colors={colors} />
+                  <TallyAddlRow label="RUTF balance at end of week" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} last />
                 </>
               ) : (
                 <>
                   <TallyAddlRow label="Number of Male high-risk MAM (Bm + Cm)" value={s?.new_males_6_59 ?? 0} colors={colors} />
                   <TallyAddlRow label="Number of Female high-risk MAM (Bf + Cf)" value={s?.new_females_6_59 ?? 0} colors={colors} />
-                  <TallyAddlRow label="RUTF MAM quantity at start" value="—" colors={colors} />
-                  <TallyAddlRow label="RUTF MAM received" value="—" colors={colors} />
-                  <TallyAddlRow label="RUTF MAM issued — in packets" value="—" colors={colors} />
-                  <TallyAddlRow label="Other commodities issued — in packets" value="—" colors={colors} />
-                  <TallyAddlRow label="Balance at end of week" value="—" colors={colors} last />
+                  <TallyAddlRow label="RUTF MAM quantity at start" value={data?.commodity ? String(data.commodity.rutf_start) : '—'} colors={colors} />
+                  <TallyAddlRow label="RUTF MAM received" value={data?.commodity ? String(data.commodity.rutf_received) : '—'} colors={colors} />
+                  <TallyAddlRow label="RUTF MAM issued — in packets" value={data?.commodity ? String(data.commodity.rutf_issued_mam) : '—'} colors={colors} />
+                  <TallyAddlRow label="Other commodities issued — in packets" value={data?.commodity ? String(data.commodity.rutf_issued_sam) : '—'} colors={colors} />
+                  <TallyAddlRow label="Balance at end of week" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} last />
                 </>
               )}
             </View>

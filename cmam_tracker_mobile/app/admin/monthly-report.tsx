@@ -301,8 +301,8 @@ export default function MonthlyReportScreen() {
       {/* ── Target / Coverage Estimation ── */}
       <SecHdr title="Target / Coverage Estimation" colors={colors} />
       <View style={[styles.listCard, { backgroundColor: colors.surface }]}>
-        <LRow label="Estimated SAM cases in catchment area" value={data?.coverage ? String(data.coverage.expected_sam_cases) : '—'} colors={colors} />
-        <LRow label="Estimated MAM cases in catchment area" value={data?.coverage ? String(data.coverage.expected_mam_cases) : '—'} colors={colors} />
+        <LRow label="Estimated target with SAM" value={data?.coverage ? String(data.coverage.sam_target) : '—'} colors={colors} />
+        <LRow label="Estimated target with MAM" value={data?.coverage ? String(data.coverage.mam_target) : '—'} colors={colors} />
         <LRow label="SAM Programme Coverage (%)" value={data?.coverage ? `${data.coverage.sam_coverage.toFixed(1)}%` : '—'} colors={colors} />
         <LRow label="MAM Programme Coverage (%)" value={data?.coverage ? `${data.coverage.mam_coverage.toFixed(1)}%` : '—'} colors={colors} last />
       </View>

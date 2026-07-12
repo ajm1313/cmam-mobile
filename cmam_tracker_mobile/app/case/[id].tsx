@@ -271,6 +271,22 @@ export default function CaseDetailScreen() {
         </SectionCard>
       )}
 
+      {/* Enrollment Medicines & RUTF */}
+      {(caseData.rutf_sachets_given || caseData.amoxicillin_date || caseData.vitamin_a_date || caseData.deworming_date || caseData.measles_vaccine_date || caseData.folic_acid_date || caseData.malaria_test_date || caseData.antimalarial_date) && (
+        <SectionCard title="Enrollment Medicines & RUTF" icon="medkit-outline" colors={colors}>
+          {caseData.rutf_sachets_given ? <InfoRow label="RUTF Sachets" value={`${caseData.rutf_sachets_given}`} colors={colors} /> : null}
+          {caseData.rutf_ration_per_day ? <InfoRow label="RUTF Ration/day" value={`${caseData.rutf_ration_per_day}`} colors={colors} /> : null}
+          {caseData.amoxicillin_date ? <InfoRow label="Amoxicillin" value={`${formatDate(caseData.amoxicillin_date)}${caseData.amoxicillin_dosage ? ' — ' + caseData.amoxicillin_dosage : ''}`} colors={colors} /> : null}
+          {caseData.vitamin_a_date ? <InfoRow label="Vitamin A" value={`${formatDate(caseData.vitamin_a_date)}${caseData.vitamin_a_dosage ? ' — ' + caseData.vitamin_a_dosage : ''}`} colors={colors} /> : null}
+          {caseData.folic_acid_date ? <InfoRow label="Folic Acid" value={`${formatDate(caseData.folic_acid_date)}${caseData.folic_acid_dosage ? ' — ' + caseData.folic_acid_dosage : ''}`} colors={colors} /> : null}
+          {caseData.deworming_date ? <InfoRow label="Deworming" value={`${formatDate(caseData.deworming_date)}${caseData.deworming_dosage ? ' — ' + caseData.deworming_dosage : ''}`} colors={colors} /> : null}
+          {caseData.measles_vaccine_date ? <InfoRow label="Measles Vaccine" value={`${formatDate(caseData.measles_vaccine_date)}${caseData.measles_vaccine_dosage ? ' — ' + caseData.measles_vaccine_dosage : ''}`} colors={colors} /> : null}
+          {caseData.malaria_test_date ? <InfoRow label="Malaria Test" value={`${formatDate(caseData.malaria_test_date)}${caseData.malaria_test_result ? ' — ' + caseData.malaria_test_result : ''}`} colors={colors} /> : null}
+          {caseData.antimalarial_date ? <InfoRow label="Antimalarial" value={`${formatDate(caseData.antimalarial_date)}${caseData.antimalarial_dosage ? ' — ' + caseData.antimalarial_dosage : ''}`} colors={colors} /> : null}
+          {caseData.additional_notes ? <InfoRow label="Notes" value={caseData.additional_notes} colors={colors} /> : null}
+        </SectionCard>
+      )}
+
       {/* Visit History Timeline */}
       {caseData.visits && caseData.visits.length > 0 && (
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
@@ -312,6 +328,14 @@ export default function CaseDetailScreen() {
                   )}
                   <MiniMetric label="Status" value={v.visit_outcome || '—'} textColor={colors.textPrimary} mutedColor={colors.textMuted} />
                 </View>
+                {(v.rutf_sachets_given || v.csb_plus_given || v.oil_given || v.food_product_type) && (
+                  <View style={[styles.timelineMetrics, { marginTop: 6, paddingTop: 6, borderTopColor: colors.border, borderTopWidth: 1 }]}>
+                    {v.rutf_sachets_given ? <MiniMetric label="RUTF" value={`${v.rutf_sachets_given}`} textColor={colors.textPrimary} mutedColor={colors.textMuted} /> : null}
+                    {v.csb_plus_given ? <MiniMetric label="CSB+" value={`${v.csb_plus_given}`} textColor={colors.textPrimary} mutedColor={colors.textMuted} /> : null}
+                    {v.oil_given ? <MiniMetric label="Oil" value={`${v.oil_given}`} textColor={colors.textPrimary} mutedColor={colors.textMuted} /> : null}
+                    {v.food_product_type ? <MiniMetric label="FP" value={v.food_product_type} textColor={colors.textPrimary} mutedColor={colors.textMuted} /> : null}
+                  </View>
+                )}
                 <View style={[styles.visitTapHint, { borderTopColor: colors.border }]}>
                   <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
                   <Text style={[styles.visitTapText, { color: colors.textMuted }]}>Tap to view/edit</Text>

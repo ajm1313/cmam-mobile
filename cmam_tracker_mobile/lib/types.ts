@@ -135,6 +135,23 @@ export interface OpcCaseDetail extends OpcCase {
   facility_code: string;
   created_by_name: string;
   visits: OpcVisit[];
+  rutf_sachets_given: number | null;
+  rutf_ration_per_day: number | null;
+  amoxicillin_date: string | null;
+  amoxicillin_dosage: string | null;
+  vitamin_a_date: string | null;
+  vitamin_a_dosage: string | null;
+  folic_acid_date: string | null;
+  folic_acid_dosage: string | null;
+  deworming_date: string | null;
+  deworming_dosage: string | null;
+  measles_vaccine_date: string | null;
+  measles_vaccine_dosage: string | null;
+  malaria_test_date: string | null;
+  malaria_test_result: string | null;
+  antimalarial_date: string | null;
+  antimalarial_dosage: string | null;
+  additional_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -168,6 +185,9 @@ export interface OpcVisit {
   complications_notes: string;
   medical_notes: string;
   rutf_sachets_given: number | null;
+  csb_plus_given: number | null;
+  oil_given: number | null;
+  food_product_quantity: string | null;
   visit_outcome: string;
   outcome_notes: string;
   weight_change: number | null;
