@@ -30,7 +30,29 @@ interface PeriodStats {
   new_males_6_59: number; new_females_6_59: number;
 }
 interface FacilityReport { facility_name: string; facility_code: string; sam: PeriodStats; mam: PeriodStats; }
-interface MonthlyData { month: number; year: number; date_from: string; date_to: string; facilities: FacilityReport[]; }
+interface CoverageData {
+  expected_sam_cases: number;
+  expected_mam_cases: number;
+  sam_target: number;
+  mam_target: number;
+  sam_total: number;
+  mam_total: number;
+  sam_coverage: number;
+  mam_coverage: number;
+}
+interface CommodityData {
+  rutf_start: number;
+  rutf_received: number;
+  rutf_issued_sam: number;
+  rutf_issued_mam: number;
+  rutf_balance: number;
+}
+interface MonthlyData {
+  month: number; year: number; date_from: string; date_to: string;
+  facilities: FacilityReport[];
+  coverage?: CoverageData;
+  commodity?: CommodityData;
+}
 interface Loc { id: number; name: string; }
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -279,20 +301,20 @@ export default function MonthlyReportScreen() {
       {/* ── Target / Coverage Estimation ── */}
       <SecHdr title="Target / Coverage Estimation" colors={colors} />
       <View style={[styles.listCard, { backgroundColor: colors.surface }]}>
-        <LRow label="Estimated SAM cases in catchment area" value="—" colors={colors} />
-        <LRow label="Estimated MAM cases in catchment area" value="—" colors={colors} />
-        <LRow label="SAM Programme Coverage (%)" value="—" colors={colors} />
-        <LRow label="MAM Programme Coverage (%)" value="—" colors={colors} last />
+        <LRow label="Estimated SAM cases in catchment area" value={data?.coverage ? String(data.coverage.expected_sam_cases) : '—'} colors={colors} />
+        <LRow label="Estimated MAM cases in catchment area" value={data?.coverage ? String(data.coverage.expected_mam_cases) : '—'} colors={colors} />
+        <LRow label="SAM Programme Coverage (%)" value={data?.coverage ? `${data.coverage.sam_coverage.toFixed(1)}%` : '—'} colors={colors} />
+        <LRow label="MAM Programme Coverage (%)" value={data?.coverage ? `${data.coverage.mam_coverage.toFixed(1)}%` : '—'} colors={colors} last />
       </View>
 
       {/* ── Commodity Management ── */}
       <SecHdr title="Commodity Management (RUTF)" colors={colors} />
       <View style={[styles.listCard, { backgroundColor: colors.surface }]}>
-        <LRow label="Opening Stock (packets)" value="—" colors={colors} />
-        <LRow label="Received during month" value="—" colors={colors} />
-        <LRow label="Issued for SAM (packets)" value="—" colors={colors} />
-        <LRow label="Issued for MAM (packets)" value="—" colors={colors} />
-        <LRow label="Closing Balance (packets)" value="—" colors={colors} last />
+        <LRow label="Opening Stock (packets)" value={data?.commodity ? String(data.commodity.rutf_start) : '—'} colors={colors} />
+        <LRow label="Received during month" value={data?.commodity ? String(data.commodity.rutf_received) : '—'} colors={colors} />
+        <LRow label="Issued for SAM (packets)" value={data?.commodity ? String(data.commodity.rutf_issued_sam) : '—'} colors={colors} />
+        <LRow label="Issued for MAM (packets)" value={data?.commodity ? String(data.commodity.rutf_issued_mam) : '—'} colors={colors} />
+        <LRow label="Closing Balance (packets)" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} last />
       </View>
 
       {/* ── Per-Facility Breakdown ── */}
