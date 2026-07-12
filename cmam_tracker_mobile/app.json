@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "CMAM Tracker",
+    "slug": "cmam-tracker",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "cmamtracker",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e3a8a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.pharn.cmamtracker",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CMAM Tracker needs camera access to take photos of children during case registration.",
+        "NSPhotoLibraryUsageDescription": "CMAM Tracker needs photo library access to attach child photos during case registration."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e3a8a"
+      },
+      "package": "org.pharn.cmamtracker",
+      "usesCleartextTraffic": true,
+      "versionCode": 2,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CMAM Tracker needs photo library access to attach child photos.",
+          "cameraPermission": "CMAM Tracker needs camera access to take photos of children."
+        }
+      ]
+    ],
+    "extra": {
+      "environment": "production",
+      "router": {},
+      "eas": {
+        "projectId": "6f11dab2-a8cb-44e6-a955-9d97a62d3ca9"
+      }
+    },
+    "owner": "ajmsolution13"
+  }
+}
