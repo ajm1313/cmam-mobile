@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Alert,
+  RefreshControl, ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -199,6 +199,13 @@ export default function CaseDetailScreen() {
           <Text style={[styles.mgmtBtnText, { color: colors.danger }]}>Close</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Child Photo */}
+      {caseData.child_photo ? (
+        <View style={[styles.photoCard, { backgroundColor: colors.surface }]}>
+          <Image source={{ uri: caseData.child_photo }} style={styles.childPhoto} resizeMode="cover" />
+        </View>
+      ) : null}
 
       {/* Child Information */}
       <SectionCard title="Child Information" icon="person-outline" colors={colors}>
@@ -529,6 +536,8 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 14, color: COLORS.textMuted, marginTop: 8 },
   errorText: { fontSize: 16, color: COLORS.danger, fontWeight: '600' },
+  photoCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, overflow: 'hidden', alignItems: 'center' },
+  childPhoto: { width: '100%', height: 200, borderRadius: 16 },
 
   // Hero
   heroCard: {

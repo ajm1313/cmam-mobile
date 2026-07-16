@@ -44,12 +44,22 @@ export default function VisitEditScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fetchedUpdatedAt, setFetchedUpdatedAt] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Record<string, string>>({
     visit_date: '', weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     diarrhoea_days: '', vomiting_days: '', fever_days: '', cough_days: '',
     temperature: '', respiratory_rate: '',
     appetite: '', rutf_test: '', rutf_sachets_given: '',
     visit_outcome: '', outcome_notes: '', medical_notes: '',
+    // Commodity fields
+    csb_plus_given: '', oil_given: '', other_supplies: '', other_medication: '',
+    food_product_type: '', food_product_quantity: '',
+    // Clinical fields
+    z_score_wfh: '', z_score_wfa: '', z_score_hfa: '',
+    breastfeeding_status: '', general_condition: '', complications_notes: '',
+    counseling_topics: '', caregiver_understanding: '', next_visit_date: '',
+    treatment_response: '', staff_name: '',
+    weight_lost: '', dehydrated: '', anaemia_palmar_pallor: '', skin_infection: '',
+    has_complications: '',
   });
 
   useEffect(() => {
@@ -78,6 +88,28 @@ export default function VisitEditScreen() {
             visit_outcome: visit.visit_outcome || '',
             outcome_notes: visit.outcome_notes || '',
             medical_notes: visit.medical_notes || '',
+            csb_plus_given: visit.csb_plus_given?.toString() || '',
+            oil_given: visit.oil_given?.toString() || '',
+            other_supplies: visit.other_supplies || '',
+            other_medication: visit.other_medication || '',
+            food_product_type: visit.food_product_type || '',
+            food_product_quantity: visit.food_product_quantity?.toString() || '',
+            z_score_wfh: visit.z_score_wfh?.toString() || '',
+            z_score_wfa: visit.z_score_wfa?.toString() || '',
+            z_score_hfa: visit.z_score_hfa?.toString() || '',
+            breastfeeding_status: visit.breastfeeding_status || '',
+            general_condition: visit.general_condition || '',
+            complications_notes: visit.complications_notes || '',
+            counseling_topics: visit.counseling_topics || '',
+            caregiver_understanding: visit.caregiver_understanding || '',
+            next_visit_date: visit.next_visit_date || '',
+            treatment_response: visit.treatment_response || '',
+            staff_name: visit.staff_name || '',
+            weight_lost: visit.weight_lost?.toString() || '',
+            dehydrated: visit.dehydrated?.toString() || '',
+            anaemia_palmar_pallor: visit.anaemia_palmar_pallor?.toString() || '',
+            skin_infection: visit.skin_infection?.toString() || '',
+            has_complications: visit.has_complications?.toString() || '',
           });
         }
       } catch {
@@ -91,20 +123,17 @@ export default function VisitEditScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put(`/v1/cases/${caseId}/visits/${visitId}/edit/`, {
-        ...form,
-        weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : undefined,
-        height_cm: form.height_cm ? parseFloat(form.height_cm) : undefined,
-        muac_cm: form.muac_cm ? parseFloat(form.muac_cm) : undefined,
-        temperature: form.temperature ? parseFloat(form.temperature) : undefined,
-        respiratory_rate: form.respiratory_rate ? parseInt(form.respiratory_rate) : undefined,
-        diarrhoea_days: form.diarrhoea_days ? parseInt(form.diarrhoea_days) : undefined,
-        vomiting_days: form.vomiting_days ? parseInt(form.vomiting_days) : undefined,
-        fever_days: form.fever_days ? parseInt(form.fever_days) : undefined,
-        cough_days: form.cough_days ? parseInt(form.cough_days) : undefined,
-        rutf_sachets_given: form.rutf_sachets_given ? parseInt(form.rutf_sachets_given) : undefined,
-        ...(fetchedUpdatedAt ? { _updated_at: fetchedUpdatedAt } : {}),
-      });
+      const payload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(form)) {
+        if (v !== '' && v != null) {
+          if (['weight_kg','height_cm','muac_cm','temperature','csb_plus_given','oil_given','food_product_quantity','z_score_wfh','z_score_wfa','z_score_hfa'].includes(k)) payload[k] = parseFloat(v);
+          else if (['diarrhoea_days','vomiting_days','fever_days','cough_days','respiratory_rate','rutf_sachets_given'].includes(k)) payload[k] = parseInt(v);
+          else if (['weight_lost','dehydrated','anaemia_palmar_pallor','skin_infection','has_complications'].includes(k)) payload[k] = v === 'true' || v === 'True' || v === '1';
+          else payload[k] = v;
+        }
+      }
+      if (fetchedUpdatedAt) payload._updated_at = fetchedUpdatedAt;
+      await api.put(`/v1/cases/${caseId}/visits/${visitId}/edit/`, payload);
       Alert.alert('Success', 'Visit updated', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to update visit');
@@ -175,7 +204,28 @@ export default function VisitEditScreen() {
             <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 4 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
           )}
           <Field label="" value={form.rutf_sachets_given} onChangeText={(v: string) => update('rutf_sachets_given', v)} keyboardType="numeric" colors={colors} />
+          <Field label="CSB+ Given" value={form.csb_plus_given} onChangeText={(v: string) => update('csb_plus_given', v)} keyboardType="decimal-pad" colors={colors} />
+          <Field label="Oil Given" value={form.oil_given} onChangeText={(v: string) => update('oil_given', v)} keyboardType="decimal-pad" colors={colors} />
+          <Field label="Other Supplies" value={form.other_supplies} onChangeText={(v: string) => update('other_supplies', v)} colors={colors} />
+          <Field label="Other Medication" value={form.other_medication} onChangeText={(v: string) => update('other_medication', v)} colors={colors} />
+          <Field label="Food Product Type" value={form.food_product_type} onChangeText={(v: string) => update('food_product_type', v)} colors={colors} />
+          <Field label="Food Product Quantity" value={form.food_product_quantity} onChangeText={(v: string) => update('food_product_quantity', v)} keyboardType="numeric" colors={colors} />
           <Field label="Medical Notes" value={form.medical_notes} onChangeText={(v: string) => update('medical_notes', v)} multiline colors={colors} />
+        </View>
+
+        <SectionHeader title="Clinical Assessment" icon="pulse-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Field label="Z-Score WFH" value={form.z_score_wfh} onChangeText={(v: string) => update('z_score_wfh', v)} keyboardType="decimal-pad" colors={colors} />
+          <Field label="Z-Score WFA" value={form.z_score_wfa} onChangeText={(v: string) => update('z_score_wfa', v)} keyboardType="decimal-pad" colors={colors} />
+          <Field label="Z-Score HFA" value={form.z_score_hfa} onChangeText={(v: string) => update('z_score_hfa', v)} keyboardType="decimal-pad" colors={colors} />
+          <Field label="Breastfeeding Status" value={form.breastfeeding_status} onChangeText={(v: string) => update('breastfeeding_status', v)} colors={colors} />
+          <Field label="General Condition" value={form.general_condition} onChangeText={(v: string) => update('general_condition', v)} colors={colors} />
+          <Field label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => update('complications_notes', v)} multiline colors={colors} />
+          <Field label="Counseling Topics" value={form.counseling_topics} onChangeText={(v: string) => update('counseling_topics', v)} multiline colors={colors} />
+          <Field label="Caregiver Understanding" value={form.caregiver_understanding} onChangeText={(v: string) => update('caregiver_understanding', v)} colors={colors} />
+          <Field label="Treatment Response" value={form.treatment_response} onChangeText={(v: string) => update('treatment_response', v)} colors={colors} />
+          <Field label="Next Visit Date" value={form.next_visit_date} onChangeText={(v: string) => update('next_visit_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <Field label="Staff Name" value={form.staff_name} onChangeText={(v: string) => update('staff_name', v)} colors={colors} />
         </View>
 
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>

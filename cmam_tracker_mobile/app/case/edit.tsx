@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
@@ -22,13 +22,39 @@ export default function CaseEditScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fetchedUpdatedAt, setFetchedUpdatedAt] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Record<string, string>>({
     child_name: '', child_gender: '', date_of_birth: '', age_months: '',
     caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', address: '',
     weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     admission_criteria: '', admission_type: '', appetite_test: '',
     complications_notes: '',
+    z_score_wfh: '', z_score_wfa: '', z_score_hfa: '',
+    // Medical History
+    diarrhoea: '', stool_frequency: '', vomiting: '', cough: '', passing_urine: '',
+    oedema_duration_days: '', breastfeeding_status: '', breastfeeding_prospect: '',
+    immunization_status: '', g6pd_status: '', additional_medical_history: '',
+    // Physical Examination
+    respiratory_rate: '', temperature_celsius: '', chest_indrawing: '',
+    eyes_condition: '', conjunctiva: '', ears_condition: '', mouth_condition: '',
+    lymph_nodes: '', hands_feet: '', skin_changes: '',
+    disability: '', disability_details: '', physical_exam_notes: '',
+    // Medicines
+    amoxicillin_date: '', amoxicillin_dosage: '',
+    vitamin_a_date: '', vitamin_a_dosage: '',
+    folic_acid_date: '', folic_acid_dosage: '',
+    deworming_date: '', deworming_dosage: '',
+    measles_vaccine_date: '', measles_vaccine_dosage: '',
+    malaria_test_date: '', malaria_test_result: '',
+    antimalarial_date: '', antimalarial_dosage: '',
+    // RUTF
+    rutf_sachets_given: '', rutf_ration_per_day: '', next_visit_date: '',
+    // Other drugs
+    other_drug_1: '', other_drug_1_date: '', other_drug_1_dosage: '',
+    other_drug_2: '', other_drug_2_date: '', other_drug_2_dosage: '',
+    other_drug_3: '', other_drug_3_date: '', other_drug_3_dosage: '',
+    additional_notes: '',
   });
+  const s = useCallback((k: string, v: string) => setForm((p) => ({ ...p, [k]: v })), []);
 
   useEffect(() => {
     (async () => {
@@ -36,24 +62,32 @@ export default function CaseEditScreen() {
         const res = await api.get(`/v1/cases/${id}/`);
         const c: OpcCaseDetail = res.data.data;
         setFetchedUpdatedAt(c.updated_at ?? null);
-        setForm({
-          child_name: c.child_name || '',
-          child_gender: c.child_gender || '',
-          date_of_birth: c.date_of_birth || '',
-          age_months: c.age_months?.toString() || '',
-          caregiver_name: c.caregiver_name || '',
-          caregiver_phone: c.caregiver_phone || '',
-          caregiver_relationship: c.caregiver_relationship || '',
-          address: c.address || '',
-          weight_kg: c.weight_kg?.toString() || '',
-          height_cm: c.height_cm?.toString() || '',
-          muac_cm: c.muac_cm?.toString() || '',
-          oedema: c.oedema || '',
-          admission_criteria: c.admission_criteria || '',
-          admission_type: c.admission_type || '',
-          appetite_test: c.appetite_test || '',
-          complications_notes: c.complications_notes || '',
-        });
+        const fields: (keyof OpcCaseDetail)[] = [
+          'child_name','child_gender','date_of_birth','caregiver_name','caregiver_phone',
+          'caregiver_relationship','address','oedema','admission_criteria','admission_type',
+          'appetite_test','complications_notes','z_score_wfh','z_score_wfa','z_score_hfa',
+          'diarrhoea','stool_frequency','vomiting','cough','passing_urine','oedema_duration_days',
+          'breastfeeding_status','breastfeeding_prospect','immunization_status','g6pd_status',
+          'additional_medical_history','respiratory_rate','temperature_celsius','chest_indrawing',
+          'eyes_condition','conjunctiva','ears_condition','mouth_condition','lymph_nodes',
+          'hands_feet','skin_changes','disability','disability_details','physical_exam_notes',
+          'amoxicillin_date','amoxicillin_dosage','vitamin_a_date','vitamin_a_dosage',
+          'folic_acid_date','folic_acid_dosage','deworming_date','deworming_dosage',
+          'measles_vaccine_date','measles_vaccine_dosage','malaria_test_date','malaria_test_result',
+          'antimalarial_date','antimalarial_dosage','rutf_sachets_given','rutf_ration_per_day',
+          'next_visit_date','other_drug_1','other_drug_1_date','other_drug_1_dosage',
+          'other_drug_2','other_drug_2_date','other_drug_2_dosage',
+          'other_drug_3','other_drug_3_date','other_drug_3_dosage','additional_notes',
+        ];
+        const next: Record<string, string> = {};
+        for (const k of fields) {
+          next[k] = c[k] != null ? String(c[k]) : '';
+        }
+        next.age_months = c.age_months?.toString() || '';
+        next.weight_kg = c.weight_kg?.toString() || '';
+        next.height_cm = c.height_cm?.toString() || '';
+        next.muac_cm = c.muac_cm?.toString() || '';
+        setForm(next);
       } catch {
         Alert.alert('Error', 'Failed to load case');
       } finally {
@@ -69,14 +103,16 @@ export default function CaseEditScreen() {
     }
     setSaving(true);
     try {
-      await api.put(`/v1/cases/${id}/edit/`, {
-        ...form,
-        age_months: form.age_months ? parseInt(form.age_months) : undefined,
-        weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : undefined,
-        height_cm: form.height_cm ? parseFloat(form.height_cm) : undefined,
-        muac_cm: form.muac_cm ? parseFloat(form.muac_cm) : undefined,
-        ...(fetchedUpdatedAt ? { _updated_at: fetchedUpdatedAt } : {}),
-      });
+      const payload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(form)) {
+        if (v !== '' && v != null) {
+          if (['age_months','rutf_sachets_given'].includes(k)) payload[k] = parseInt(v);
+          else if (['weight_kg','height_cm','muac_cm','rutf_ration_per_day','z_score_wfh','z_score_wfa','z_score_hfa'].includes(k)) payload[k] = parseFloat(v);
+          else payload[k] = v;
+        }
+      }
+      if (fetchedUpdatedAt) payload._updated_at = fetchedUpdatedAt;
+      await api.put(`/v1/cases/${id}/edit/`, payload);
       Alert.alert('Success', 'Case updated successfully', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -128,19 +164,96 @@ export default function CaseEditScreen() {
         {/* Anthropometry */}
         <SectionHeader title="Anthropometry" icon="body-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => setForm({ ...form, weight_kg: v })} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => setForm({ ...form, height_cm: v })} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => setForm({ ...form, muac_cm: v })} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Oedema" value={form.oedema} onChangeText={(v: string) => setForm({ ...form, oedema: v })} colors={colors} />
+          <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => s('weight_kg', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Oedema" value={form.oedema} onChangeText={(v: string) => s('oedema', v)} colors={colors} />
+          <FormField label="Z-Score WFH" value={form.z_score_wfh} onChangeText={(v: string) => s('z_score_wfh', v)} colors={colors} />
+          <FormField label="Z-Score WFA" value={form.z_score_wfa} onChangeText={(v: string) => s('z_score_wfa', v)} colors={colors} />
+          <FormField label="Z-Score HFA" value={form.z_score_hfa} onChangeText={(v: string) => s('z_score_hfa', v)} colors={colors} />
         </View>
 
         {/* Admission */}
         <SectionHeader title="Admission Details" icon="clipboard-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <PickerField label="Admission Criteria" value={form.admission_criteria} options={ADMISSION_CRITERIA} onSelect={(v: string) => setForm({ ...form, admission_criteria: v })} colors={colors} />
-          <PickerField label="Admission Type" value={form.admission_type} options={ADMISSION_TYPES} onSelect={(v: string) => setForm({ ...form, admission_type: v })} colors={colors} />
-          <FormField label="Appetite Test" value={form.appetite_test} onChangeText={(v: string) => setForm({ ...form, appetite_test: v })} colors={colors} />
-          <FormField label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => setForm({ ...form, complications_notes: v })} multiline colors={colors} />
+          <PickerField label="Admission Criteria" value={form.admission_criteria} options={ADMISSION_CRITERIA} onSelect={(v: string) => s('admission_criteria', v)} colors={colors} />
+          <PickerField label="Admission Type" value={form.admission_type} options={ADMISSION_TYPES} onSelect={(v: string) => s('admission_type', v)} colors={colors} />
+          <FormField label="Appetite Test" value={form.appetite_test} onChangeText={(v: string) => s('appetite_test', v)} colors={colors} />
+          <FormField label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => s('complications_notes', v)} multiline colors={colors} />
+        </View>
+
+        {/* Medical History */}
+        <SectionHeader title="Medical History" icon="medkit-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <FormField label="Diarrhoea" value={form.diarrhoea} onChangeText={(v: string) => s('diarrhoea', v)} colors={colors} />
+          <FormField label="Stool Frequency" value={form.stool_frequency} onChangeText={(v: string) => s('stool_frequency', v)} colors={colors} />
+          <FormField label="Vomiting" value={form.vomiting} onChangeText={(v: string) => s('vomiting', v)} colors={colors} />
+          <FormField label="Cough" value={form.cough} onChangeText={(v: string) => s('cough', v)} colors={colors} />
+          <FormField label="Passing Urine" value={form.passing_urine} onChangeText={(v: string) => s('passing_urine', v)} colors={colors} />
+          <FormField label="Oedema Duration (days)" value={form.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="numeric" colors={colors} />
+          <FormField label="Breastfeeding Status" value={form.breastfeeding_status} onChangeText={(v: string) => s('breastfeeding_status', v)} colors={colors} />
+          <FormField label="Breastfeeding Prospect" value={form.breastfeeding_prospect} onChangeText={(v: string) => s('breastfeeding_prospect', v)} colors={colors} />
+          <FormField label="Immunization Status" value={form.immunization_status} onChangeText={(v: string) => s('immunization_status', v)} colors={colors} />
+          <FormField label="G6PD Status" value={form.g6pd_status} onChangeText={(v: string) => s('g6pd_status', v)} colors={colors} />
+          <FormField label="Additional Medical History" value={form.additional_medical_history} onChangeText={(v: string) => s('additional_medical_history', v)} multiline colors={colors} />
+        </View>
+
+        {/* Physical Examination */}
+        <SectionHeader title="Physical Examination" icon="fitness-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <FormField label="Respiratory Rate" value={form.respiratory_rate} onChangeText={(v: string) => s('respiratory_rate', v)} keyboardType="numeric" colors={colors} />
+          <FormField label="Temperature (°C)" value={form.temperature_celsius} onChangeText={(v: string) => s('temperature_celsius', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Chest Indrawing" value={form.chest_indrawing} onChangeText={(v: string) => s('chest_indrawing', v)} colors={colors} />
+          <FormField label="Eyes Condition" value={form.eyes_condition} onChangeText={(v: string) => s('eyes_condition', v)} colors={colors} />
+          <FormField label="Conjunctiva" value={form.conjunctiva} onChangeText={(v: string) => s('conjunctiva', v)} colors={colors} />
+          <FormField label="Ears Condition" value={form.ears_condition} onChangeText={(v: string) => s('ears_condition', v)} colors={colors} />
+          <FormField label="Mouth Condition" value={form.mouth_condition} onChangeText={(v: string) => s('mouth_condition', v)} colors={colors} />
+          <FormField label="Lymph Nodes" value={form.lymph_nodes} onChangeText={(v: string) => s('lymph_nodes', v)} colors={colors} />
+          <FormField label="Hands & Feet" value={form.hands_feet} onChangeText={(v: string) => s('hands_feet', v)} colors={colors} />
+          <FormField label="Skin Changes" value={form.skin_changes} onChangeText={(v: string) => s('skin_changes', v)} colors={colors} />
+          <FormField label="Disability" value={form.disability} onChangeText={(v: string) => s('disability', v)} colors={colors} />
+          <FormField label="Disability Details" value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} colors={colors} />
+          <FormField label="Physical Exam Notes" value={form.physical_exam_notes} onChangeText={(v: string) => s('physical_exam_notes', v)} multiline colors={colors} />
+        </View>
+
+        {/* Medicines at Enrollment */}
+        <SectionHeader title="Medicines at Enrollment" icon="pill-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <FormField label="Amoxicillin Date" value={form.amoxicillin_date} onChangeText={(v: string) => s('amoxicillin_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Amoxicillin Dosage" value={form.amoxicillin_dosage} onChangeText={(v: string) => s('amoxicillin_dosage', v)} colors={colors} />
+          <FormField label="Vitamin A Date" value={form.vitamin_a_date} onChangeText={(v: string) => s('vitamin_a_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Vitamin A Dosage" value={form.vitamin_a_dosage} onChangeText={(v: string) => s('vitamin_a_dosage', v)} colors={colors} />
+          <FormField label="Folic Acid Date" value={form.folic_acid_date} onChangeText={(v: string) => s('folic_acid_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Folic Acid Dosage" value={form.folic_acid_dosage} onChangeText={(v: string) => s('folic_acid_dosage', v)} colors={colors} />
+          <FormField label="Deworming Date" value={form.deworming_date} onChangeText={(v: string) => s('deworming_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Deworming Dosage" value={form.deworming_dosage} onChangeText={(v: string) => s('deworming_dosage', v)} colors={colors} />
+          <FormField label="Measles Vaccine Date" value={form.measles_vaccine_date} onChangeText={(v: string) => s('measles_vaccine_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Measles Vaccine Dosage" value={form.measles_vaccine_dosage} onChangeText={(v: string) => s('measles_vaccine_dosage', v)} colors={colors} />
+          <FormField label="Malaria Test Date" value={form.malaria_test_date} onChangeText={(v: string) => s('malaria_test_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Malaria Test Result" value={form.malaria_test_result} onChangeText={(v: string) => s('malaria_test_result', v)} colors={colors} />
+          <FormField label="Antimalarial Date" value={form.antimalarial_date} onChangeText={(v: string) => s('antimalarial_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Antimalarial Dosage" value={form.antimalarial_dosage} onChangeText={(v: string) => s('antimalarial_dosage', v)} colors={colors} />
+        </View>
+
+        {/* RUTF & Other Supplies */}
+        <SectionHeader title="RUTF & Other Supplies" icon="nutrition-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <FormField label="RUTF Sachets Given" value={form.rutf_sachets_given} onChangeText={(v: string) => s('rutf_sachets_given', v)} keyboardType="numeric" colors={colors} />
+          <FormField label="RUTF Ration/day" value={form.rutf_ration_per_day} onChangeText={(v: string) => s('rutf_ration_per_day', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Next Visit Date" value={form.next_visit_date} onChangeText={(v: string) => s('next_visit_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+        </View>
+
+        {/* Other Medicines */}
+        <SectionHeader title="Other Medicines" icon="thermometer-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          {[1,2,3].map((i) => (
+            <View key={i}>
+              <FormField label={`Drug ${i} Name`} value={form[`other_drug_${i}`]} onChangeText={(v: string) => s(`other_drug_${i}`, v)} colors={colors} />
+              <FormField label={`Drug ${i} Date`} value={form[`other_drug_${i}_date`]} onChangeText={(v: string) => s(`other_drug_${i}_date`, v)} placeholder="YYYY-MM-DD" colors={colors} />
+              <FormField label={`Drug ${i} Dosage`} value={form[`other_drug_${i}_dosage`]} onChangeText={(v: string) => s(`other_drug_${i}_dosage`, v)} colors={colors} />
+            </View>
+          ))}
+          <FormField label="Additional Notes" value={form.additional_notes} onChangeText={(v: string) => s('additional_notes', v)} multiline colors={colors} />
         </View>
 
         {/* Save Button */}

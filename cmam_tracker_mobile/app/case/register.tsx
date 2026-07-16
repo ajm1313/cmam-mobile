@@ -314,6 +314,76 @@ export default function CaseRegisterScreen() {
       if (f.registration_longitude) payload.registration_longitude = f.registration_longitude;
       if (f.medical_complications === 'Yes') payload.medical_complications = true;
       if (f.complications_details) payload.complications_notes = f.complications_details;
+
+      // Demographic/social fields
+      if (f.father_alive) payload.father_alive = f.father_alive;
+      if (f.mother_alive) payload.mother_alive = f.mother_alive;
+      if (f.house_location) payload.house_location = f.house_location;
+      if (f.travel_time) payload.travel_time = f.travel_time;
+      if (f.referral_source) payload.referral_source = f.referral_source;
+
+      // Medical History
+      if (f.diarrhoea) payload.diarrhoea = f.diarrhoea;
+      if (f.stool_frequency) payload.stool_frequency = f.stool_frequency;
+      if (f.vomiting) payload.vomiting = f.vomiting;
+      if (f.cough) payload.cough = f.cough;
+      if (f.passing_urine) payload.passing_urine = f.passing_urine;
+      if (f.oedema_duration_days) payload.oedema_duration_days = f.oedema_duration_days;
+      if (f.breastfeeding_status) payload.breastfeeding_status = f.breastfeeding_status;
+      if (f.breastfeeding_prospect) payload.breastfeeding_prospect = f.breastfeeding_prospect;
+      if (f.immunization_status) payload.immunization_status = f.immunization_status;
+      if (f.g6pd_status) payload.g6pd_status = f.g6pd_status;
+      if (f.additional_medical_history) payload.additional_medical_history = f.additional_medical_history;
+
+      // Physical Examination
+      if (f.respiratory_rate) payload.respiratory_rate = f.respiratory_rate;
+      if (f.temperature_celsius) payload.temperature_celsius = f.temperature_celsius;
+      if (f.chest_indrawing) payload.chest_indrawing = f.chest_indrawing;
+      if (f.eyes_condition) payload.eyes_condition = f.eyes_condition;
+      if (f.conjunctiva) payload.conjunctiva = f.conjunctiva;
+      if (f.ears_condition) payload.ears_condition = f.ears_condition;
+      if (f.mouth_condition) payload.mouth_condition = f.mouth_condition;
+      if (f.lymph_nodes) payload.lymph_nodes = f.lymph_nodes;
+      if (f.hands_feet) payload.hands_feet = f.hands_feet;
+      if (f.skin_changes) payload.skin_changes = f.skin_changes;
+      if (f.disability) payload.disability = f.disability;
+      if (f.disability_details) payload.disability_details = f.disability_details;
+      if (f.physical_exam_notes) payload.physical_exam_notes = f.physical_exam_notes;
+
+      // Medicines at Enrollment
+      if (f.amoxicillin_date) payload.amoxicillin_date = f.amoxicillin_date;
+      if (f.amoxicillin_dosage) payload.amoxicillin_dosage = f.amoxicillin_dosage;
+      if (f.vitamin_a_date) payload.vitamin_a_date = f.vitamin_a_date;
+      if (f.vitamin_a_dosage) payload.vitamin_a_dosage = f.vitamin_a_dosage;
+      if (f.folic_acid_date) payload.folic_acid_date = f.folic_acid_date;
+      if (f.folic_acid_dosage) payload.folic_acid_dosage = f.folic_acid_dosage;
+      if (f.deworming_date) payload.deworming_date = f.deworming_date;
+      if (f.deworming_dosage) payload.deworming_dosage = f.deworming_dosage;
+      if (f.measles_vaccine_date) payload.measles_vaccine_date = f.measles_vaccine_date;
+      if (f.measles_vaccine_dosage) payload.measles_vaccine_dosage = f.measles_vaccine_dosage;
+      if (f.malaria_test_date) payload.malaria_test_date = f.malaria_test_date;
+      if (f.malaria_test_result) payload.malaria_test_result = f.malaria_test_result;
+      if (f.antimalarial_date) payload.antimalarial_date = f.antimalarial_date;
+      if (f.antimalarial_dosage) payload.antimalarial_dosage = f.antimalarial_dosage;
+
+      // RUTF and Other Supplies
+      if (f.rutf_sachets_given) payload.rutf_sachets_given = parseInt(f.rutf_sachets_given);
+      if (f.rutf_ration_per_day) payload.rutf_ration_per_day = parseFloat(f.rutf_ration_per_day);
+      if (f.next_visit_date) payload.next_visit_date = f.next_visit_date;
+
+      // Other Medicines
+      if (f.other_drug_1) payload.other_drug_1 = f.other_drug_1;
+      if (f.other_drug_1_date) payload.other_drug_1_date = f.other_drug_1_date;
+      if (f.other_drug_1_dosage) payload.other_drug_1_dosage = f.other_drug_1_dosage;
+      if (f.other_drug_2) payload.other_drug_2 = f.other_drug_2;
+      if (f.other_drug_2_date) payload.other_drug_2_date = f.other_drug_2_date;
+      if (f.other_drug_2_dosage) payload.other_drug_2_dosage = f.other_drug_2_dosage;
+      if (f.other_drug_3) payload.other_drug_3 = f.other_drug_3;
+      if (f.other_drug_3_date) payload.other_drug_3_date = f.other_drug_3_date;
+      if (f.other_drug_3_dosage) payload.other_drug_3_dosage = f.other_drug_3_dosage;
+
+      // Additional Notes
+      if (f.additional_notes) payload.additional_notes = f.additional_notes;
       
       // MAM aggravating factors
       if (caseType === 'MAM') {

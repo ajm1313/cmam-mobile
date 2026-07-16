@@ -152,6 +152,49 @@ export interface OpcCaseDetail extends OpcCase {
   antimalarial_date: string | null;
   antimalarial_dosage: string | null;
   additional_notes: string | null;
+  child_photo: string | null;
+  // Demographic/social
+  father_alive: string | null;
+  mother_alive: string | null;
+  house_location: string | null;
+  travel_time: string | null;
+  referral_source: string | null;
+  // Medical History
+  diarrhoea: string | null;
+  stool_frequency: string | null;
+  vomiting: string | null;
+  cough: string | null;
+  passing_urine: string | null;
+  oedema_duration_days: string | null;
+  breastfeeding_status: string | null;
+  breastfeeding_prospect: string | null;
+  immunization_status: string | null;
+  g6pd_status: string | null;
+  additional_medical_history: string | null;
+  // Physical Examination
+  respiratory_rate: string | null;
+  temperature_celsius: string | null;
+  chest_indrawing: string | null;
+  eyes_condition: string | null;
+  conjunctiva: string | null;
+  ears_condition: string | null;
+  mouth_condition: string | null;
+  lymph_nodes: string | null;
+  hands_feet: string | null;
+  skin_changes: string | null;
+  disability: string | null;
+  disability_details: string | null;
+  physical_exam_notes: string | null;
+  // Other Medicines
+  other_drug_1: string | null;
+  other_drug_1_date: string | null;
+  other_drug_1_dosage: string | null;
+  other_drug_2: string | null;
+  other_drug_2_date: string | null;
+  other_drug_2_dosage: string | null;
+  other_drug_3: string | null;
+  other_drug_3_date: string | null;
+  other_drug_3_dosage: string | null;
   created_at: string;
   updated_at: string;
 }
