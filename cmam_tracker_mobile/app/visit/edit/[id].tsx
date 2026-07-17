@@ -41,6 +41,7 @@ export default function VisitEditByIdScreen() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [form, setForm] = useState({
     visit_date: '', weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     diarrhoea_days: '', vomiting_days: '', fever_days: '', cough_days: '',
@@ -75,6 +76,7 @@ export default function VisitEditByIdScreen() {
             outcome_notes: visit.outcome_notes || '',
             medical_notes: visit.medical_notes || '',
           });
+          setUpdatedAt(visit.updated_at || visit._updated_at || null);
         }
       } catch {
         Alert.alert('Error', 'Failed to load visit');
@@ -89,6 +91,7 @@ export default function VisitEditByIdScreen() {
     try {
       await api.put(`/v1/cases/${caseId}/visits/${id}/edit/`, {
         ...form,
+        _updated_at: updatedAt,
         weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : undefined,
         height_cm: form.height_cm ? parseFloat(form.height_cm) : undefined,
         muac_cm: form.muac_cm ? parseFloat(form.muac_cm) : undefined,

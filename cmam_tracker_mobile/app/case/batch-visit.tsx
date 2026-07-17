@@ -104,7 +104,7 @@ export default function BatchVisitScreen() {
                 const payload: Record<string, any> = {};
                 if (entry.weight) payload.weight_kg = parseFloat(entry.weight);
                 if (entry.muac) payload.muac_cm = parseFloat(entry.muac);
-                if (entry.notes) payload.notes = entry.notes;
+                if (entry.notes) payload.medical_notes = entry.notes;
                 await api.post(`/v1/cases/${entry.caseId}/visits/record/`, payload);
                 success++;
               } catch (e: any) {
