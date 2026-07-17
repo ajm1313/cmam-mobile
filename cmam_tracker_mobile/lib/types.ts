@@ -123,9 +123,9 @@ export interface OpcCaseDetail extends OpcCase {
   admission_criteria: string;
   admission_type: string;
   registration_date: string;
-  z_score_wfh: number | null;
-  z_score_wfa: number | null;
-  z_score_hfa: number | null;
+  z_score_wfh: string | null;
+  z_score_wfa: string | null;
+  z_score_hfa: string | null;
   appetite_test: string;
   medical_complications: boolean;
   complications_notes: string;
@@ -153,6 +153,8 @@ export interface OpcCaseDetail extends OpcCase {
   antimalarial_dosage: string | null;
   additional_notes: string | null;
   child_photo: string | null;
+  registration_latitude: string | null;
+  registration_longitude: string | null;
   // Demographic/social
   father_alive: string | null;
   mother_alive: string | null;
@@ -209,7 +211,9 @@ export interface OpcVisit {
   weight_lost: boolean;
   height_cm: number | null;
   muac_cm: number | null;
-  z_score_wfh: number | null;
+  z_score_wfh: string | null;
+  z_score_wfa: string | null;
+  z_score_hfa: string | null;
   oedema: string | null;
   diarrhoea_days: number | null;
   vomiting_days: number | null;
@@ -230,13 +234,25 @@ export interface OpcVisit {
   rutf_sachets_given: number | null;
   csb_plus_given: number | null;
   oil_given: number | null;
+  other_supplies: string | null;
+  other_medication: string | null;
+  food_product_type: string;
   food_product_quantity: string | null;
+  staff_name: string;
+  counseling_topics: string | null;
+  caregiver_understanding: string | null;
+  next_visit_date: string | null;
+  treatment_response: string | null;
   visit_outcome: string;
   outcome_notes: string;
+  action_needed: boolean;
+  home_visit_needed: boolean;
+  home_visit_date: string | null;
+  home_visit_notes: string | null;
+  community_volunteer: string | null;
   weight_change: number | null;
-  food_product_type: string;
-  staff_name: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface ApiResponse<T> {
