@@ -126,7 +126,7 @@ export default function CaseDetailScreen() {
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
-            onPress={() => router.push({ pathname: '/visit/[caseId]', params: { caseId: String(caseData.id), caseName: caseData.child_name, caseType: caseData.malnutrition_type } })}
+            onPress={() => router.push({ pathname: '/visit/[caseId]', params: { caseId: String(caseData.id), caseName: caseData.child_name, caseType: caseData.malnutrition_type, caseAge: String(caseData.age_months), admissionWeight: String(caseData.weight_kg), visitNumber: String(caseData.visit_count + 1) } })}
             activeOpacity={0.8}
           >
             <Ionicons name="add-circle-outline" size={20} color="#fff" />

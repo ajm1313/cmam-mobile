@@ -107,7 +107,8 @@ export default function BatchVisitScreen() {
                 if (entry.notes) payload.notes = entry.notes;
                 await api.post(`/v1/cases/${entry.caseId}/visits/record/`, payload);
                 success++;
-              } catch {
+              } catch (e: any) {
+                console.warn('Batch visit failed for case', entry.caseId, e?.message);
                 failed++;
               }
             }

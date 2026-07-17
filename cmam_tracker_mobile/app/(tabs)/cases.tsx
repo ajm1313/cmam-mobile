@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl,
+  View, Text, StyleSheet, ScrollView, RefreshControl, FlatList,
   TouchableOpacity, TextInput, Share, Alert, ActivityIndicator, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,9 @@ export default function CasesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isStale, setIsStale] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
   const [caseType, setCaseType] = useState<CaseType>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
@@ -37,28 +40,42 @@ export default function CasesScreen() {
 
   const cacheKey = `cases_${statusFilter}_${caseType}_${facilityId ?? 'all'}`;
 
-  const fetchCases = useCallback(async () => {
+  const fetchCases = useCallback(async (pageNum: number = 1) => {
     try {
-      setLoading(true);
-      const params: Record<string, any> = { status: statusFilter !== 'all' ? statusFilter : undefined };
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+      const params: Record<string, any> = {
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        page: pageNum,
+        page_size: 50,
+      };
       if (caseType !== 'ALL') params.case_type = caseType;
       if (facilityId) params.facility_id = facilityId;
       const res = await api.get('/v1/cases/', { params });
       const fresh = res.data.data ?? [];
-      setCases(fresh);
-      setIsStale(false);
-      await setCache(cacheKey, fresh, 10 * 60 * 1000);
-    } catch {
-      // Fallback to cache when offline
-      const cached = await getCacheFallback<OpcCase[]>(cacheKey);
-      if (cached) {
-        setCases(cached.data);
-        setIsStale(true);
+      const pagination = res.data.pagination;
+      if (pageNum === 1) {
+        setCases(fresh);
+        await setCache(cacheKey, fresh, 10 * 60 * 1000);
       } else {
-        setCases([]);
+        setCases(prev => [...prev, ...fresh]);
+      }
+      setHasMore(pagination?.has_next ?? false);
+      setPage(pageNum);
+      setIsStale(false);
+    } catch {
+      if (pageNum === 1) {
+        const cached = await getCacheFallback<OpcCase[]>(cacheKey);
+        if (cached) {
+          setCases(cached.data);
+          setIsStale(true);
+        } else {
+          setCases([]);
+        }
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [statusFilter, caseType, facilityId, cacheKey]);
 
@@ -76,9 +93,15 @@ export default function CasesScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchCases();
+    await fetchCases(1);
     setRefreshing(false);
   }, [fetchCases]);
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loadingMore && !loading) {
+      fetchCases(page + 1);
+    }
+  }, [hasMore, loadingMore, loading, page, fetchCases]);
 
   const handleExport = async (format: 'excel' | 'csv') => {
     setExporting(true);
@@ -272,11 +295,14 @@ export default function CasesScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => String(item.id)}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingBottom: 20 }}
-      >
-        {loading ? (
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListHeaderComponent={loading ? (
           <View style={{ paddingTop: 8 }}>
             {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
           </View>
@@ -286,18 +312,28 @@ export default function CasesScreen() {
             title="No cases found"
             subtitle={search ? 'Try a different search term' : 'No cases match the selected filters'}
           />
-        ) : (
-          filtered.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              activeOpacity={0.7}
-              onPress={() => router.push({ pathname: '/case/[id]', params: { id: String(c.id) } })}
-            >
-              <CaseCard item={c} colors={colors} />
-            </TouchableOpacity>
-          ))
+        ) : null}
+        ListEmptyComponent={!loading ? (
+          <EmptyState
+            icon="people-outline"
+            title="No cases found"
+            subtitle={search ? 'Try a different search term' : 'No cases match the selected filters'}
+          />
+        ) : null}
+        renderItem={({ item: c }) => (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push({ pathname: '/case/[id]', params: { id: String(c.id) } })}
+          >
+            <CaseCard item={c} colors={colors} />
+          </TouchableOpacity>
         )}
-      </ScrollView>
+        ListFooterComponent={loadingMore ? (
+          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        ) : null}
+      />
 
       {/* FAB - Register Case (only for facility-level users and admins) */}
       {canRegisterCase && (

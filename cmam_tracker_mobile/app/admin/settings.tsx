@@ -36,13 +36,13 @@ export default function SettingsScreen() {
         setCacheTtl(ttl || '10');
         setSyncInterval(interval || '5');
         setBiometric(bio === 'true');
-      } catch {}
+      } catch (e: any) { console.warn('Failed to load settings', e?.message); }
       setLoaded(true);
     })();
   }, []);
 
   const saveSetting = async (key: string, value: string) => {
-    try { await AsyncStorage.setItem(key, value); } catch {}
+    try { await AsyncStorage.setItem(key, value); } catch (e: any) { console.warn('Failed to save setting', key, e?.message); }
   };
 
   const handleSave = () => {
