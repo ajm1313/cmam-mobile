@@ -385,15 +385,8 @@ export default function CaseRegisterScreen() {
       // Additional Notes
       if (f.additional_notes) payload.additional_notes = f.additional_notes;
       
-      // MAM aggravating factors
+      // MAM-specific fields
       if (caseType === 'MAM') {
-        payload.age_under_24_months = parseInt(f.age_months || '0') < 24;
-        if (f.previous_sam_episode === 'Yes') payload.previous_sam_episode = true;
-        if (f.failed_counselling_only === 'Yes') payload.failed_counselling_only = true;
-        if (f.hiv_tb_status && f.hiv_tb_status !== 'None') payload.hiv_tb_status = f.hiv_tb_status;
-        if (f.poor_maternal_health === 'Yes') payload.poor_maternal_health = true;
-        if (f.mother_deceased === 'Yes') payload.mother_deceased = true;
-        if (f.household_vulnerability && f.household_vulnerability !== 'None') payload.household_vulnerability = f.household_vulnerability;
         if (f.disability === 'Yes') {
           payload.disability = 'Yes';
           if (f.disability_details) payload.disability_details = f.disability_details;

@@ -46,15 +46,15 @@ export default function StockRequestsScreen() {
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-  const updateStatus = (req: StockRequestItem, newStatus: string) => {
-    Alert.alert('Update Status', `Set ${req.request_number} to ${newStatus}?`, [
+  const updateStatus = (req: StockRequestItem, action: string, label: string) => {
+    Alert.alert('Update Status', `Set ${req.request_number} to ${label}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Confirm',
         onPress: async () => {
           try {
-            await api.put(`/v1/inventory/requests/${req.id}/`, { status: newStatus });
-            Alert.alert('Success', `Request ${newStatus}`);
+            await api.put(`/v1/inventory/requests/${req.id}/`, { action });
+            Alert.alert('Success', `Request ${label}`);
             fetchRequests();
           } catch {
             Alert.alert('Error', 'Failed to update request');
@@ -161,11 +161,11 @@ export default function StockRequestsScreen() {
 
                 {req.status === 'Pending' && (
                   <View style={styles.actionRow}>
-                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.success }]} onPress={() => updateStatus(req, 'Approved')}>
+                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.success }]} onPress={() => updateStatus(req, 'approve', 'Approved')}>
                       <Ionicons name="checkmark" size={16} color="#fff" />
                       <Text style={styles.actionBtnText}>Approve</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger }]} onPress={() => updateStatus(req, 'Rejected')}>
+                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger }]} onPress={() => updateStatus(req, 'reject', 'Rejected')}>
                       <Ionicons name="close" size={16} color="#fff" />
                       <Text style={styles.actionBtnText}>Reject</Text>
                     </TouchableOpacity>

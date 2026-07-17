@@ -126,7 +126,7 @@ export default function VisitEditScreen() {
       const payload: Record<string, any> = {};
       for (const [k, v] of Object.entries(form)) {
         if (v !== '' && v != null) {
-          if (['weight_kg','height_cm','muac_cm','temperature','csb_plus_given','oil_given','food_product_quantity','z_score_wfh','z_score_wfa','z_score_hfa'].includes(k)) payload[k] = parseFloat(v);
+          if (['weight_kg','height_cm','muac_cm','temperature','csb_plus_given','oil_given','food_product_quantity'].includes(k)) payload[k] = parseFloat(v);
           else if (['diarrhoea_days','vomiting_days','fever_days','cough_days','respiratory_rate','rutf_sachets_given'].includes(k)) payload[k] = parseInt(v);
           else if (['weight_lost','dehydrated','anaemia_palmar_pallor','skin_infection','has_complications'].includes(k)) payload[k] = v === 'true' || v === 'True' || v === '1';
           else payload[k] = v;

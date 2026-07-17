@@ -107,7 +107,7 @@ export default function CaseEditScreen() {
       for (const [k, v] of Object.entries(form)) {
         if (v !== '' && v != null) {
           if (['age_months','rutf_sachets_given'].includes(k)) payload[k] = parseInt(v);
-          else if (['weight_kg','height_cm','muac_cm','rutf_ration_per_day','z_score_wfh','z_score_wfa','z_score_hfa'].includes(k)) payload[k] = parseFloat(v);
+          else if (['weight_kg','height_cm','muac_cm','rutf_ration_per_day'].includes(k)) payload[k] = parseFloat(v);
           else payload[k] = v;
         }
       }
