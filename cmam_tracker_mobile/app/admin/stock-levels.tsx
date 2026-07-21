@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface StockLevel {
   id: number; item_id: number; item_name: string; item_code: string;
@@ -70,16 +71,20 @@ export default function StockLevelsScreen() {
     }
     setSaving(true);
     try {
-      await api.post('/v1/inventory/stock-levels/update/', {
+      const res = await sendOrQueue('/v1/inventory/stock-levels/update/', 'post', {
         item_id: parseInt(form.item_id),
         facility_id: parseInt(form.facility_id),
         quantity: parseInt(form.quantity),
         movement_type: form.movement_type,
         notes: form.notes,
-      });
-      Alert.alert('Success', 'Stock updated');
-      setModalVisible(false);
-      fetchData();
+      }, 'Stock Level Update');
+      if (res) {
+        Alert.alert('Success', 'Stock updated');
+        setModalVisible(false);
+        fetchData();
+      } else {
+        setModalVisible(false);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to update stock');
     } finally { setSaving(false); }

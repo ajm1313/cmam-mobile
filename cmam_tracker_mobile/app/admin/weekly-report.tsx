@@ -30,7 +30,7 @@ interface WeeklySummary {
   new_males_6_59: number; new_females_6_59: number;
 }
 interface FacilityRow { facility_name: string; facility_code: string; new_admissions: number; total_visits: number; active: number; cured: number; defaulted: number; deaths: number; }
-interface CommodityData { rutf_start: number; rutf_received: number; rutf_issued_sam: number; rutf_issued_mam: number; rutf_balance: number; }
+interface CommodityData { rutf_start: number; rutf_received: number; rutf_issued_sam: number; rutf_issued_mam: number; rutf_balance: number; others_issued_mam?: number; }
 interface WeeklyData { report_type: string; date_from: string; date_to: string; summary: WeeklySummary; facilities: FacilityRow[]; commodity?: CommodityData; }
 interface Loc { id: number; name: string; }
 
@@ -90,12 +90,12 @@ export default function WeeklyReportScreen() {
     api.get('/v1/facilities/').then(r => setFacilityList(r.data.data || [])).catch(() => {});
   }, []);
   useEffect(() => {
-    if (selRegion) api.get('/v1/locations/districts/', { params: { region: selRegion.id } }).then(r => setDistricts(r.data.data || [])).catch(() => {});
+    if (selRegion) api.get('/v1/locations/districts/', { params: { region_id: selRegion.id } }).then(r => setDistricts(r.data.data || [])).catch(() => {});
     else setDistricts([]);
     setSelDistrict(null); setSelSubDistrict(null);
   }, [selRegion]);
   useEffect(() => {
-    if (selDistrict) api.get('/v1/locations/sub-districts/', { params: { district: selDistrict.id } }).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
+    if (selDistrict) api.get('/v1/locations/sub-districts/', { params: { district_id: selDistrict.id } }).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
     else setSubDistricts([]);
     setSelSubDistrict(null);
   }, [selDistrict]);
@@ -105,13 +105,17 @@ export default function WeeklyReportScreen() {
 
   const fetchReport = useCallback(async () => {
     try {
-      const facParam = selFacility ? { facility_id: selFacility.id } : {};
-      const res = await api.get('/v1/reports/weekly/', { params: { type: tab, date_from: from, date_to: to, ...facParam } });
+      const locParams: any = {};
+      if (selFacility) locParams.facility_id = selFacility.id;
+      else if (selSubDistrict) locParams.sub_district = selSubDistrict.id;
+      else if (selDistrict) locParams.district = selDistrict.id;
+      else if (selRegion) locParams.region = selRegion.id;
+      const res = await api.get('/v1/reports/weekly/', { params: { type: tab, date_from: from, date_to: to, ...locParams } });
       setData(res.data.data);
     } catch {
       Alert.alert('Error', 'Failed to load weekly report');
     } finally { setLoading(false); setRefreshing(false); }
-  }, [tab, from, to, selFacility]);
+  }, [tab, from, to, selFacility, selRegion, selDistrict, selSubDistrict]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -162,7 +166,8 @@ export default function WeeklyReportScreen() {
     { label: 'Number Discharged Cured', code: 'F1', value: (s?.cured_under6 ?? 0) + (s?.cured_6_59 ?? 0) },
     { label: 'Number Discharged Died', code: 'F2', value: (s?.died_under6 ?? 0) + (s?.died_6_59 ?? 0) },
     { label: 'Number Discharged Defaulted', code: 'F3', value: (s?.defaulted_under6 ?? 0) + (s?.defaulted_6_59 ?? 0) },
-    { label: 'Total Discharges (F = F1+F2+F3)', code: 'F', value: s?.total_discharges ?? 0, bold: true, bg: bgTotal },
+    { label: 'Number Non-recovered', code: 'F4', value: (s?.non_recovered_under6 ?? 0) + (s?.non_recovered_6_59 ?? 0) },
+    { label: 'Total Discharges (F = F1+F2+F3+F4)', code: 'F', value: s?.total_discharges ?? 0, bold: true, bg: bgTotal },
     { label: 'Referrals to other outpatient/inpatient care for SAM', code: 'G', value: s?.referrals ?? 0 },
     { label: 'TOTAL EXITS (H = F+G)', code: 'H', value: s?.total_exits ?? 0, bold: true, bg: bgTotal },
     { label: 'Total end of period (I = A + E − H)', code: 'I', value: s?.end_of_period ?? 0, bold: true, bg: bgFinal },
@@ -334,8 +339,8 @@ export default function WeeklyReportScreen() {
                   <TallyAddlRow label="RUTF MAM quantity at start" value={data?.commodity ? String(data.commodity.rutf_start) : '—'} colors={colors} />
                   <TallyAddlRow label="RUTF MAM received" value={data?.commodity ? String(data.commodity.rutf_received) : '—'} colors={colors} />
                   <TallyAddlRow label="RUTF MAM issued — in packets" value={data?.commodity ? String(data.commodity.rutf_issued_mam) : '—'} colors={colors} />
-                  <TallyAddlRow label="Other commodities issued — in packets" value={data?.commodity ? String(data.commodity.rutf_issued_sam) : '—'} colors={colors} />
-                  <TallyAddlRow label="Balance at end of week" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} last />
+                  <TallyAddlRow label="RUTF MAM balance at end of week" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} />
+                  <TallyAddlRow label="Other commodities (CSB+, oil) — in packets" value={data?.commodity ? String(data.commodity.others_issued_mam ?? 0) : '—'} colors={colors} last />
                 </>
               )}
             </View>

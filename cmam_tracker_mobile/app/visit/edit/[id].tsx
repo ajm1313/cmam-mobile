@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../lib/theme';
 import api from '../../../lib/api';
+import { sendOrQueue } from '../../../lib/offlineQueue';
 
 const OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Defaulted', 'Death', 'Referral', 'Non-Response', 'Home-Visit', 'Transfer-to-IPC'];
 const APPETITE_OPTIONS = ['Good', 'Fair', 'Poor'];
@@ -89,7 +90,7 @@ export default function VisitEditByIdScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put(`/v1/cases/${caseId}/visits/${id}/edit/`, {
+      const res = await sendOrQueue(`/v1/cases/${caseId}/visits/${id}/edit/`, 'put', {
         ...form,
         _updated_at: updatedAt,
         weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : undefined,
@@ -102,8 +103,12 @@ export default function VisitEditByIdScreen() {
         fever_days: form.fever_days ? parseInt(form.fever_days) : undefined,
         cough_days: form.cough_days ? parseInt(form.cough_days) : undefined,
         rutf_sachets_given: form.rutf_sachets_given ? parseInt(form.rutf_sachets_given) : undefined,
-      });
-      Alert.alert('Success', 'Visit updated', [{ text: 'OK', onPress: () => router.back() }]);
+      }, 'Visit Edit');
+      if (res) {
+        Alert.alert('Success', 'Visit updated', [{ text: 'OK', onPress: () => router.back() }]);
+      } else {
+        Alert.alert('Saved Offline', 'Visit edit saved and will sync when online.', [{ text: 'OK', onPress: () => router.back() }]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to update visit');
     } finally {

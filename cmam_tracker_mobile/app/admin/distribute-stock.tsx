@@ -60,7 +60,7 @@ export default function DistributeStockScreen() {
   // Source cascading
   useEffect(() => {
     if (srcRegion) {
-      api.get('/v1/locations/districts/', { params: { region: srcRegion.id } })
+      api.get('/v1/locations/districts/', { params: { region_id: srcRegion.id } })
         .then(r => setSrcDistricts(r.data.data ?? []))
         .catch(() => setSrcDistricts([]));
     } else { setSrcDistricts([]); setSrcDistrict(null); }
@@ -77,7 +77,7 @@ export default function DistributeStockScreen() {
   // Destination cascading
   useEffect(() => {
     if (destRegion) {
-      api.get('/v1/locations/districts/', { params: { region: destRegion.id } })
+      api.get('/v1/locations/districts/', { params: { region_id: destRegion.id } })
         .then(r => setDestDistricts(r.data.data ?? []))
         .catch(() => setDestDistricts([]));
     } else { setDestDistricts([]); setDestDistrict(null); }

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface StockRequestItem {
   id: number;
@@ -53,9 +54,11 @@ export default function StockRequestsScreen() {
         text: 'Confirm',
         onPress: async () => {
           try {
-            await api.put(`/v1/inventory/requests/${req.id}/`, { action });
-            Alert.alert('Success', `Request ${label}`);
-            fetchRequests();
+            const res = await sendOrQueue(`/v1/inventory/requests/${req.id}/`, 'put', { action }, `Stock Request: ${label}`);
+            if (res) {
+              Alert.alert('Success', `Request ${label}`);
+              fetchRequests();
+            }
           } catch {
             Alert.alert('Error', 'Failed to update request');
           }

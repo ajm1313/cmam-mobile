@@ -13,6 +13,7 @@ import { useTheme } from '../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import type { Facility } from '../../lib/types';
 import { checkIpcReferral, getAlertColors, getAdmissionType, getReportingCategory, type AutomationResult } from '../../lib/samOpcAutomation';
 import DatePickerField from '../../components/DatePickerField';
@@ -397,15 +398,21 @@ export default function CaseRegisterScreen() {
         const fd = new FormData();
         Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); });
         fd.append('child_photo', { uri: childPhoto.uri, name: 'child_photo.jpg', type: childPhoto.mimeType || 'image/jpeg' } as any);
-        res = await api.post('/v1/cases/create/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        res = await sendOrQueue('/v1/cases/create/', 'post', fd, 'Case Registration');
       } else {
-        res = await api.post('/v1/cases/create/', payload);
+        res = await sendOrQueue('/v1/cases/create/', 'post', payload, 'Case Registration');
       }
-      const newId = res.data.data?.id;
-      Alert.alert('Success', 'Case registered successfully.', [
-        { text: 'View Case', onPress: () => newId ? router.replace({ pathname: '/case/[id]', params: { id: String(newId) } }) : router.back() },
-        { text: 'Done', onPress: () => router.back() },
-      ]);
+      if (res) {
+        const newId = res.data.data?.id;
+        Alert.alert('Success', 'Case registered successfully.', [
+          { text: 'View Case', onPress: () => newId ? router.replace({ pathname: '/case/[id]', params: { id: String(newId) } }) : router.back() },
+          { text: 'Done', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Saved Offline', 'Case registration saved and will sync when online.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to register case.');
     } finally { setSubmitting(false); }

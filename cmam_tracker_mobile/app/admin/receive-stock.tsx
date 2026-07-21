@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface InventoryItem { id: number; name: string; code: string; unit: string; }
 interface Loc { id: number; name: string; }
@@ -53,7 +54,7 @@ export default function ReceiveStockScreen() {
   // Cascading: load districts when region changes
   useEffect(() => {
     if (selRegion) {
-      api.get('/v1/locations/districts/', { params: { region: selRegion.id } })
+      api.get('/v1/locations/districts/', { params: { region_id: selRegion.id } })
         .then(r => setDistricts(r.data.data ?? []))
         .catch(() => setDistricts([]));
     } else {
@@ -98,7 +99,7 @@ export default function ReceiveStockScreen() {
 
     setSaving(true);
     try {
-      await api.post('/v1/inventory/movements/create/', {
+      const res = await sendOrQueue('/v1/inventory/movements/create/', 'post', {
         item_id: selectedItem.id,
         movement_type: 'IN',
         quantity: qty,
@@ -108,10 +109,16 @@ export default function ReceiveStockScreen() {
         destination_facility_id: selFacility?.id || null,
         reference_number: referenceNumber,
         notes: notes || `Received ${qty} ${selectedItem.unit} at ${getLocationLabel()}`,
-      });
-      Alert.alert('Success', `Received ${qty} ${selectedItem.unit} of ${selectedItem.name} at ${getLocationLabel()}`, [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      }, 'Receive Stock');
+      if (res) {
+        Alert.alert('Success', `Received ${qty} ${selectedItem.unit} of ${selectedItem.name} at ${getLocationLabel()}`, [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      } else {
+        Alert.alert('Saved Offline', 'Stock receipt saved and will sync when online.', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to receive stock');
     } finally { setSaving(false); }

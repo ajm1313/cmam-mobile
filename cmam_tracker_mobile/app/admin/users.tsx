@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface UserItem {
   id: number;
@@ -51,9 +52,11 @@ export default function UsersListScreen() {
         text: 'Deactivate', style: 'destructive',
         onPress: async () => {
           try {
-            await api.delete(`/v1/users/${user.id}/delete/`);
-            Alert.alert('Success', 'User deactivated');
-            fetchUsers();
+            const res = await sendOrQueue(`/v1/users/${user.id}/delete/`, 'delete', null, `Deactivate ${user.name}`);
+            if (res !== null) {
+              Alert.alert('Success', 'User deactivated');
+              fetchUsers();
+            }
           } catch {
             Alert.alert('Error', 'Failed to deactivate user');
           }

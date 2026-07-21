@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import OfflineBanner from '../../components/OfflineBanner';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
@@ -99,14 +100,19 @@ export default function BatchVisitScreen() {
             setSubmitting(true);
             let success = 0;
             let failed = 0;
+            let queued = 0;
             for (const entry of validEntries) {
               try {
                 const payload: Record<string, any> = {};
                 if (entry.weight) payload.weight_kg = parseFloat(entry.weight);
                 if (entry.muac) payload.muac_cm = parseFloat(entry.muac);
                 if (entry.notes) payload.medical_notes = entry.notes;
-                await api.post(`/v1/cases/${entry.caseId}/visits/record/`, payload);
-                success++;
+                const res = await sendOrQueue(`/v1/cases/${entry.caseId}/visits/record/`, 'post', payload, `Batch Visit #${entry.caseId}`);
+                if (res) {
+                  success++;
+                } else {
+                  queued++;
+                }
               } catch (e: any) {
                 console.warn('Batch visit failed for case', entry.caseId, e?.message);
                 failed++;
@@ -115,7 +121,7 @@ export default function BatchVisitScreen() {
             setSubmitting(false);
             Alert.alert(
               'Batch Complete',
-              `${success} visit(s) recorded successfully.${failed > 0 ? `\n${failed} failed.` : ''}`,
+              `${success} visit(s) recorded successfully.${queued > 0 ? `\n${queued} saved offline.` : ''}${failed > 0 ? `\n${failed} failed.` : ''}`,
               [{ text: 'OK', onPress: () => router.back() }]
             );
           },

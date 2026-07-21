@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import type { OpcCaseDetail, OpcVisit } from '../../lib/types';
 import ZScoreChart from '../../components/ZScoreChart';
 import OfflineBanner from '../../components/OfflineBanner';
@@ -38,9 +39,13 @@ export default function CaseDetailScreen() {
 
   const processDischarge = async (outcome: string) => {
     try {
-      await api.post(`/v1/cases/${id}/discharge/`, { outcome });
-      Alert.alert('Success', `Case discharged: ${outcome}`);
-      fetchCase();
+      const res = await sendOrQueue(`/v1/cases/${id}/discharge/`, 'post', { outcome }, `Discharge: ${outcome}`);
+      if (res) {
+        Alert.alert('Success', `Case discharged: ${outcome}`);
+        fetchCase();
+      } else {
+        Alert.alert('Saved Offline', `Discharge (${outcome}) saved and will sync when online.`);
+      }
     } catch {
       Alert.alert('Error', 'Failed to process discharge');
     }
@@ -186,8 +191,12 @@ export default function CaseDetailScreen() {
                 text: 'Close', style: 'destructive',
                 onPress: async () => {
                   try {
-                    await api.delete(`/v1/cases/${id}/delete/`);
-                    Alert.alert('Success', 'Case closed', [{ text: 'OK', onPress: () => router.back() }]);
+                    const res = await sendOrQueue(`/v1/cases/${id}/delete/`, 'delete', null, 'Case Closure');
+                    if (res !== null) {
+                      Alert.alert('Success', 'Case closed', [{ text: 'OK', onPress: () => router.back() }]);
+                    } else {
+                      Alert.alert('Saved Offline', 'Case closure saved and will sync when online.', [{ text: 'OK', onPress: () => router.back() }]);
+                    }
                   } catch { Alert.alert('Error', 'Failed to close case'); }
                 },
               },

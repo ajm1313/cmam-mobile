@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 
 const OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Defaulted', 'Death', 'Referral', 'Non-Response', 'Home-Visit', 'Transfer-to-IPC'];
@@ -133,8 +134,12 @@ export default function VisitEditScreen() {
         }
       }
       if (fetchedUpdatedAt) payload._updated_at = fetchedUpdatedAt;
-      await api.put(`/v1/cases/${caseId}/visits/${visitId}/edit/`, payload);
-      Alert.alert('Success', 'Visit updated', [{ text: 'OK', onPress: () => router.back() }]);
+      const res = await sendOrQueue(`/v1/cases/${caseId}/visits/${visitId}/edit/`, 'put', payload, 'Visit Edit');
+      if (res) {
+        Alert.alert('Success', 'Visit updated', [{ text: 'OK', onPress: () => router.back() }]);
+      } else {
+        Alert.alert('Saved Offline', 'Visit edit saved and will sync when online.', [{ text: 'OK', onPress: () => router.back() }]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to update visit');
     } finally {

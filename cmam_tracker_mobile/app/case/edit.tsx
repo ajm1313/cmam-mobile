@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import type { OpcCaseDetail } from '../../lib/types';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
@@ -112,10 +113,16 @@ export default function CaseEditScreen() {
         }
       }
       if (fetchedUpdatedAt) payload._updated_at = fetchedUpdatedAt;
-      await api.put(`/v1/cases/${id}/edit/`, payload);
-      Alert.alert('Success', 'Case updated successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      const res = await sendOrQueue(`/v1/cases/${id}/edit/`, 'put', payload, 'Case Edit');
+      if (res) {
+        Alert.alert('Success', 'Case updated successfully', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Saved Offline', 'Case edit saved and will sync when online.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to update case');
     } finally {

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface DischargeStats {
   total_cases: number;
@@ -73,9 +74,13 @@ export default function DischargeManagementScreen() {
 
   const processDischarge = async (caseId: number, outcome: string) => {
     try {
-      await api.post(`/v1/cases/${caseId}/discharge/`, { outcome });
-      Alert.alert('Success', `Case discharged: ${outcome}`);
-      fetchData();
+      const res = await sendOrQueue(`/v1/cases/${caseId}/discharge/`, 'post', { outcome }, `Discharge: ${outcome}`);
+      if (res) {
+        Alert.alert('Success', `Case discharged: ${outcome}`);
+        fetchData();
+      } else {
+        Alert.alert('Saved Offline', `Discharge (${outcome}) saved and will sync when online.`);
+      }
     } catch {
       Alert.alert('Error', 'Failed to process discharge');
     }

@@ -46,12 +46,23 @@ interface CommodityData {
   rutf_issued_sam: number;
   rutf_issued_mam: number;
   rutf_balance: number;
+  others_start?: number;
+  others_received?: number;
+  others_issued_sam?: number;
+  others_issued_mam?: number;
+  others_balance?: number;
+}
+interface MamOtherData {
+  start: number; new: number; cured: number; died: number;
+  defaulted: number; non_recovered: number; total_discharges: number;
+  end: number; new_males: number; new_females: number;
 }
 interface MonthlyData {
   month: number; year: number; date_from: string; date_to: string;
   facilities: FacilityReport[];
   coverage?: CoverageData;
   commodity?: CommodityData;
+  mam_other?: MamOtherData;
 }
 interface Loc { id: number; name: string; }
 
@@ -106,25 +117,29 @@ export default function MonthlyReportScreen() {
     api.get('/v1/facilities/').then(r => setFacilityList(r.data.data || [])).catch(() => {});
   }, []);
   useEffect(() => {
-    if (selRegion) api.get('/v1/locations/districts/', { params: { region: selRegion.id } }).then(r => setDistricts(r.data.data || [])).catch(() => {});
+    if (selRegion) api.get('/v1/locations/districts/', { params: { region_id: selRegion.id } }).then(r => setDistricts(r.data.data || [])).catch(() => {});
     else setDistricts([]);
     setSelDistrict(null); setSelSubDistrict(null);
   }, [selRegion]);
   useEffect(() => {
-    if (selDistrict) api.get('/v1/locations/sub-districts/', { params: { district: selDistrict.id } }).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
+    if (selDistrict) api.get('/v1/locations/sub-districts/', { params: { district_id: selDistrict.id } }).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
     else setSubDistricts([]);
     setSelSubDistrict(null);
   }, [selDistrict]);
 
   const fetchReport = useCallback(async () => {
     try {
-      const facParam = selFacility ? { facility_id: selFacility.id } : {};
-      const res = await api.get('/v1/reports/monthly/', { params: { month: selMonth, year: selYear, ...facParam } });
+      const locParams: any = {};
+      if (selFacility) locParams.facility_id = selFacility.id;
+      else if (selSubDistrict) locParams.sub_district = selSubDistrict.id;
+      else if (selDistrict) locParams.district = selDistrict.id;
+      else if (selRegion) locParams.region = selRegion.id;
+      const res = await api.get('/v1/reports/monthly/', { params: { month: selMonth, year: selYear, ...locParams } });
       setData(res.data.data);
     } catch {
       Alert.alert('Error', 'Failed to load monthly report');
     } finally { setLoading(false); setRefreshing(false); }
-  }, [selMonth, selYear, selFacility]);
+  }, [selMonth, selYear, selFacility, selRegion, selDistrict, selSubDistrict]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -271,10 +286,24 @@ export default function MonthlyReportScreen() {
         <TallyRow code="F1" label="Discharged Cured" value={mam.cured_under6 + mam.cured_6_59} colors={colors} />
         <TallyRow code="F2" label="Discharged Died" value={mam.died_under6 + mam.died_6_59} colors={colors} />
         <TallyRow code="F3" label="Discharged Defaulted" value={mam.defaulted_under6 + mam.defaulted_6_59} colors={colors} />
-        <TallyRow code="F" label="Total Discharges (F1+F2+F3)" value={mam.total_discharges} colors={colors} bold bg={bgTotal} />
+        <TallyRow code="F4" label="Non-recovered" value={mam.non_recovered_under6 + mam.non_recovered_6_59} colors={colors} />
+        <TallyRow code="F" label="Total Discharges (F1+F2+F3+F4)" value={mam.total_discharges} colors={colors} bold bg={bgTotal} />
         <TallyRow code="G" label="Referrals to SAM programme" value={mam.referrals} colors={colors} />
         <TallyRow code="H" label="TOTAL EXITS (F+G)" value={mam.total_exits} colors={colors} bold bg={bgTotal} />
         <TallyRow code="I" label="End of month (A + E − H)" value={mam.end_of_period} colors={colors} bold bg={bgFinal} />
+      </TallySection>
+
+      {/* ── Other MAM Report ── */}
+      <TallySection title="MONTHLY MAM REPORT (OTHER MAM)" color='#0891b2' colors={colors}>
+        <TallyRow code="P" label="Start of month (carried forward from previous)" value={data?.mam_other?.start ?? 0} colors={colors} bg={bgAlt} />
+        <TallyRow code="Q" label="New Other MAM cases" value={data?.mam_other?.new ?? 0} colors={colors} bg={bgMamTint} />
+        <TallyRow code="S" label="TOTAL ENROLMENT (P+Q)" value={(data?.mam_other?.start ?? 0) + (data?.mam_other?.new ?? 0)} colors={colors} bold bg={bgTotal} />
+        <TallyRow code="U1" label="Discharged Cured" value={data?.mam_other?.cured ?? 0} colors={colors} />
+        <TallyRow code="U2" label="Discharged Died" value={data?.mam_other?.died ?? 0} colors={colors} />
+        <TallyRow code="U3" label="Discharged Defaulted" value={data?.mam_other?.defaulted ?? 0} colors={colors} />
+        <TallyRow code="U4" label="Non-recovered" value={data?.mam_other?.non_recovered ?? 0} colors={colors} />
+        <TallyRow code="U" label="Total Discharges (U1+U2+U3+U4)" value={data?.mam_other?.total_discharges ?? 0} colors={colors} bold bg={bgTotal} />
+        <TallyRow code="V" label="End of month (P+S−U)" value={data?.mam_other?.end ?? 0} colors={colors} bold bg={bgFinal} />
       </TallySection>
 
       {/* ── Performance Indicators ── */}
@@ -310,11 +339,20 @@ export default function MonthlyReportScreen() {
       {/* ── Commodity Management ── */}
       <SecHdr title="Commodity Management (RUTF)" colors={colors} />
       <View style={[styles.listCard, { backgroundColor: colors.surface }]}>
-        <LRow label="Opening Stock (packets)" value={data?.commodity ? String(data.commodity.rutf_start) : '—'} colors={colors} />
-        <LRow label="Received during month" value={data?.commodity ? String(data.commodity.rutf_received) : '—'} colors={colors} />
-        <LRow label="Issued for SAM (packets)" value={data?.commodity ? String(data.commodity.rutf_issued_sam) : '—'} colors={colors} />
-        <LRow label="Issued for MAM (packets)" value={data?.commodity ? String(data.commodity.rutf_issued_mam) : '—'} colors={colors} />
-        <LRow label="Closing Balance (packets)" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} last />
+        <LRow label="RUTF Opening Stock (packets)" value={data?.commodity ? String(data.commodity.rutf_start) : '—'} colors={colors} />
+        <LRow label="RUTF Received during month" value={data?.commodity ? String(data.commodity.rutf_received) : '—'} colors={colors} />
+        <LRow label="RUTF Issued for SAM (packets)" value={data?.commodity ? String(data.commodity.rutf_issued_sam) : '—'} colors={colors} />
+        <LRow label="RUTF Issued for MAM (packets)" value={data?.commodity ? String(data.commodity.rutf_issued_mam) : '—'} colors={colors} />
+        <LRow label="RUTF Closing Balance (packets)" value={data?.commodity ? String(data.commodity.rutf_balance) : '—'} colors={colors} />
+      </View>
+
+      <SecHdr title="Commodity Management (Others — CSB+, Oil)" colors={colors} />
+      <View style={[styles.listCard, { backgroundColor: colors.surface }]}>
+        <LRow label="Others Opening Stock" value={data?.commodity ? String(data.commodity.others_start ?? 0) : '—'} colors={colors} />
+        <LRow label="Others Received during month" value={data?.commodity ? String(data.commodity.others_received ?? 0) : '—'} colors={colors} />
+        <LRow label="Others Issued for SAM" value={data?.commodity ? String(data.commodity.others_issued_sam ?? 0) : '—'} colors={colors} />
+        <LRow label="Others Issued for MAM" value={data?.commodity ? String(data.commodity.others_issued_mam ?? 0) : '—'} colors={colors} />
+        <LRow label="Others Closing Balance" value={data?.commodity ? String(data.commodity.others_balance ?? 0) : '—'} colors={colors} last />
       </View>
 
       {/* ── Per-Facility Breakdown ── */}

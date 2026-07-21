@@ -10,6 +10,7 @@ import { useTheme } from '../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../lib/store';
 import api, { storage } from '../lib/api';
+import { sendOrQueue } from '../lib/offlineQueue';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -29,15 +30,19 @@ export default function EditProfileScreen() {
 
     setLoading(true);
     try {
-      const res = await api.patch('/v1/profile/update/', {
+      const res = await sendOrQueue('/v1/profile/update/', 'patch', {
         name: name.trim(),
         phone: phone.trim(),
-      });
-      if (res.data.success) {
+      }, 'Profile Update');
+      if (res && res.data.success) {
         const updated = res.data.data;
         await storage.setItem('auth_user', JSON.stringify(updated));
         setUser(updated);
         Alert.alert('Success', 'Profile updated successfully.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else if (!res) {
+        Alert.alert('Saved Offline', 'Profile update saved and will sync when online.', [
           { text: 'OK', onPress: () => router.back() },
         ]);
       }

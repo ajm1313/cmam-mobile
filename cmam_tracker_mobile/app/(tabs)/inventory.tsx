@@ -11,8 +11,10 @@ import { useAuthStore } from '../../lib/store';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import { setCache, getCacheFallback } from '../../lib/cache';
 import OfflineBanner from '../../components/OfflineBanner';
+import { SyncStatusBanner } from '../../components/SyncStatus';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import type { StockLevel, InventoryItem } from '../../lib/types';
@@ -118,15 +120,19 @@ export default function InventoryScreen() {
     }
     setConsuming(true);
     try {
-      await api.post('/v1/inventory/consumption/', {
+      const res = await sendOrQueue('/v1/inventory/consumption/', 'post', {
         inventory_item_id: selectedItem.inventory_item.id,
         facility_id: facilityId,
         quantity: qty,
         notes: consumeNote,
-      });
-      Alert.alert('Success', 'Consumption recorded successfully.');
-      setShowConsume(false);
-      fetchData();
+      }, 'Consumption Record');
+      if (res) {
+        Alert.alert('Success', 'Consumption recorded successfully.');
+        setShowConsume(false);
+        fetchData();
+      } else {
+        setShowConsume(false);
+      }
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'Failed to record consumption.');
     } finally {
@@ -181,6 +187,7 @@ export default function InventoryScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner isStale={isStale} />
+      <SyncStatusBanner />
 
       {/* Inventory Management Quick Actions */}
       <View style={styles.quickRow}>

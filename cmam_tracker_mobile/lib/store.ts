@@ -30,8 +30,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await api.post('/v1/login/', { email, password });
       console.log('[LOGIN] SUCCESS:', response.status);
       console.log('[LOGIN] Response data:', JSON.stringify(response.data));
-      const { user, token } = response.data.data;
+      const { user, token, refresh_token } = response.data.data;
       await storage.setItem('auth_token', token);
+      if (refresh_token) {
+        await storage.setItem('auth_refresh_token', refresh_token);
+      }
       await storage.setItem('auth_user', JSON.stringify(user));
       set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (e: any) {
@@ -52,6 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       // ignore
     }
     await storage.deleteItem('auth_token');
+    await storage.deleteItem('auth_refresh_token');
     await storage.deleteItem('auth_user');
     await clearAllCache();
     set({ user: null, token: null, isAuthenticated: false });
@@ -74,21 +78,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         await storage.setItem('auth_user', JSON.stringify(fresh));
         set({ user: fresh, token, isAuthenticated: true, isLoading: false });
       } catch (e: any) {
-        const status = e?.response?.status;
-        if (status === 401 || status === 403) {
-          if (cachedUser) {
-            // Token expired but we have cached data — keep user visible offline.
-            // The onUnauthorized interceptor will redirect to login when they
-            // perform an action while online.
-            await storage.deleteItem('auth_token');
-            set({ token: null, isLoading: false });
-          } else {
-            // No cached data — full sign-out.
-            await storage.deleteItem('auth_token');
-            await storage.deleteItem('auth_user');
-            set({ user: null, token: null, isAuthenticated: false, isLoading: false });
-          }
-        } else if (!cachedUser) {
+        // The interceptor handles 401s (token refresh → retry, or logout).
+        // Here we only handle non-401 errors (network errors, server errors).
+        // Keep cached user visible — don't wipe the session.
+        if (!cachedUser) {
           set({ isLoading: false });
         }
         // Network error with cached user: state already set above — nothing to do.

@@ -68,6 +68,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="ai"
+        options={{
+          title: 'AI',
+          tabBarIcon: ({ color, size }) => <TabIcon name="sparkles-outline" color={color} size={size} />,
+          headerTitle: 'AI Assistant',
+        }}
+      />
+      <Tabs.Screen
         name="admin"
         options={{
           title: 'Admin',

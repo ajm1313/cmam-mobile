@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface InventoryItem { id: number; name: string; code: string; unit: string; }
 interface Facility { id: number; name: string; }
@@ -68,7 +69,7 @@ export default function StockRequestCreateScreen() {
   // Requesting location cascading
   useEffect(() => {
     if (reqRegion) {
-      api.get('/v1/locations/districts/', { params: { region: reqRegion.id } })
+      api.get('/v1/locations/districts/', { params: { region_id: reqRegion.id } })
         .then(r => setReqDistricts(r.data.data ?? []))
         .catch(() => setReqDistricts([]));
     } else { setReqDistricts([]); setReqDistrict(null); setRequestingFacility(null); }
@@ -85,7 +86,7 @@ export default function StockRequestCreateScreen() {
   // Supplier location cascading
   useEffect(() => {
     if (supRegion) {
-      api.get('/v1/locations/districts/', { params: { region: supRegion.id } })
+      api.get('/v1/locations/districts/', { params: { region_id: supRegion.id } })
         .then(r => setSupDistricts(r.data.data ?? []))
         .catch(() => setSupDistricts([]));
     } else { setSupDistricts([]); setSupDistrict(null); setSupplierFacility(null); }
@@ -129,7 +130,7 @@ export default function StockRequestCreateScreen() {
 
     setSaving(true);
     try {
-      await api.post('/v1/inventory/requests/create/', {
+      const res = await sendOrQueue('/v1/inventory/requests/create/', 'post', {
         requesting_facility_id: requestingFacility?.id || null,
         requesting_region_id: reqRegion?.id || null,
         requesting_district_id: reqDistrict?.id || null,
@@ -145,8 +146,12 @@ export default function StockRequestCreateScreen() {
           quantity: parseInt(i.quantity),
           notes: i.notes,
         })),
-      });
-      Alert.alert('Success', 'Stock request submitted', [{ text: 'OK', onPress: () => router.back() }]);
+      }, 'Stock Request');
+      if (res) {
+        Alert.alert('Success', 'Stock request submitted', [{ text: 'OK', onPress: () => router.back() }]);
+      } else {
+        Alert.alert('Saved Offline', 'Stock request saved and will sync when online.', [{ text: 'OK', onPress: () => router.back() }]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to create request');
     } finally { setSaving(false); }

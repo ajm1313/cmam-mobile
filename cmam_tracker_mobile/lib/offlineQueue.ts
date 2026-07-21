@@ -81,6 +81,15 @@ export async function sendOrQueue(
     return api.request({ url, method, data });
   }
 
+  if (data instanceof FormData) {
+    Alert.alert(
+      'Cannot Save Offline',
+      `"${label}" includes a file upload that cannot be saved offline. Please connect to the internet and try again.`,
+      [{ text: 'OK' }],
+    );
+    return null;
+  }
+
   await enqueue({ url, method, data, label });
   Alert.alert(
     'Saved Offline',

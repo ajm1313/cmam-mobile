@@ -9,6 +9,7 @@ import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../lib/samOpcAutomation';
 
@@ -61,7 +62,11 @@ export default function VisitFormScreen() {
   useEffect(() => {
     const fetchStock = async () => {
       try {
-        const res = await api.get('/stock-levels/', { params: { facility_id: undefined } });
+        const caseRes = await api.get(`/v1/cases/${caseId}/`);
+        const facilityId = caseRes.data?.data?.facility_id;
+        const params: any = {};
+        if (facilityId) params.facility_id = facilityId;
+        const res = await api.get('/stock-levels/', { params });
         if (res.data?.success && Array.isArray(res.data.data)) {
           const rutfItem = res.data.data.find((s: any) => 
             s.item_name?.toLowerCase().includes('rutf') || s.item_code?.toLowerCase().includes('rutf')
@@ -71,7 +76,7 @@ export default function VisitFormScreen() {
       } catch (e: any) { console.warn('Stock check failed', e?.message); }
     };
     fetchStock();
-  }, []);
+  }, [caseId]);
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
@@ -207,10 +212,16 @@ export default function VisitFormScreen() {
       if (form.food_product_quantity) payload.food_product_quantity = form.food_product_quantity;
       if (form.next_visit_date) payload.next_visit_date = form.next_visit_date;
 
-      await api.post(`/v1/cases/${caseId}/visits/record/`, payload);
-      Alert.alert('Success', 'Visit recorded successfully.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      const res = await sendOrQueue(`/v1/cases/${caseId}/visits/record/`, 'post', payload, 'Visit Record');
+      if (res) {
+        Alert.alert('Success', 'Visit recorded successfully.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Saved Offline', 'Visit record saved and will sync when online.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (e: any) {
       const msg = e.response?.data?.message || 'Failed to record visit.';
       Alert.alert('Error', msg);

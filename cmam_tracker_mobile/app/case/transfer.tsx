@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface Facility { id: number; name: string; }
 
@@ -37,15 +38,21 @@ export default function CaseTransferScreen() {
 
     setSubmitting(true);
     try {
-      await api.post(`/v1/cases/${params.caseId}/transfer/`, {
+      const res = await sendOrQueue(`/v1/cases/${params.caseId}/transfer/`, 'post', {
         transfer_type: transferType,
         target_facility_id: parseInt(targetFacility),
         reason,
         notes,
-      });
-      Alert.alert('Success', `Case ${transferType === 'ipc' ? 'transferred to IPC' : 'transferred'} successfully.`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      }, 'Case Transfer');
+      if (res) {
+        Alert.alert('Success', `Case ${transferType === 'ipc' ? 'transferred to IPC' : 'transferred'} successfully.`, [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Saved Offline', 'Case transfer saved and will sync when online.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message || e?.message || 'Transfer failed.');
     } finally {

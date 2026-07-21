@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
+import { clearAllCache } from './cache';
 
 export interface SyncQueueItem {
   id: string;
@@ -89,6 +90,9 @@ export const useSyncStore = create<SyncState>()(
         }
 
         set({ queue: failed, isSyncing: false, lastSyncAt: Date.now() });
+        if (failed.length < queue.length) {
+          clearAllCache().catch(() => {});
+        }
       },
 
       clear: () => set({ queue: [] }),

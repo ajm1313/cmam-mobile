@@ -13,6 +13,7 @@ import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { setCache, getCacheFallback } from '../../lib/cache';
 import OfflineBanner from '../../components/OfflineBanner';
+import { SyncStatusBanner } from '../../components/SyncStatus';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 import { useFocusEffect } from 'expo-router';
@@ -162,6 +163,7 @@ export default function CasesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner isStale={isStale} />
+      <SyncStatusBanner />
 
       {/* Clinical Quick Actions — horizontally scrollable premium cards */}
       <ScrollView

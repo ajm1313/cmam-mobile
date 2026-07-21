@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface Movement {
   id: number; item_name: string; item_code: string;
@@ -78,7 +79,7 @@ export default function StockMovementsScreen() {
   // Cascading for source
   useEffect(() => {
     if (form.source_region_id) {
-      api.get('/v1/locations/districts/', { params: { region: form.source_region_id } })
+      api.get('/v1/locations/districts/', { params: { region_id: form.source_region_id } })
         .then(r => setSrcDistricts(r.data.data ?? []))
         .catch(() => setSrcDistricts([]));
     } else { setSrcDistricts([]); }
@@ -95,7 +96,7 @@ export default function StockMovementsScreen() {
   // Cascading for destination
   useEffect(() => {
     if (form.destination_region_id) {
-      api.get('/v1/locations/districts/', { params: { region: form.destination_region_id } })
+      api.get('/v1/locations/districts/', { params: { region_id: form.destination_region_id } })
         .then(r => setDestDistricts(r.data.data ?? []))
         .catch(() => setDestDistricts([]));
     } else { setDestDistricts([]); }
@@ -124,7 +125,7 @@ export default function StockMovementsScreen() {
     }
     setSaving(true);
     try {
-      await api.post('/v1/inventory/movements/create/', {
+      const res = await sendOrQueue('/v1/inventory/movements/create/', 'post', {
         item_id: parseInt(form.item_id),
         movement_type: form.movement_type,
         quantity: parseInt(form.quantity),
@@ -138,11 +139,15 @@ export default function StockMovementsScreen() {
         destination_facility_id: form.destination_facility_id ? parseInt(form.destination_facility_id) : null,
         notes: form.notes,
         reference_number: form.reference_number,
-      });
-      Alert.alert('Success', 'Movement recorded');
-      setModalVisible(false);
-      setForm({ item_id: '', movement_type: 'IN', quantity: '', source_type: 'national', source_region_id: '', source_district_id: '', source_facility_id: '', destination_type: 'national', destination_region_id: '', destination_district_id: '', destination_facility_id: '', notes: '', reference_number: '' });
-      fetchData();
+      }, 'Stock Movement');
+      if (res) {
+        Alert.alert('Success', 'Movement recorded');
+        setModalVisible(false);
+        setForm({ item_id: '', movement_type: 'IN', quantity: '', source_type: 'national', source_region_id: '', source_district_id: '', source_facility_id: '', destination_type: 'national', destination_region_id: '', destination_district_id: '', destination_facility_id: '', notes: '', reference_number: '' });
+        fetchData();
+      } else {
+        setModalVisible(false);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to create movement');
     } finally { setSaving(false); }

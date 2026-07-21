@@ -12,6 +12,7 @@ import api from '../../lib/api';
 import { setCache, getCacheFallback } from '../../lib/cache';
 import { useOfflineSync } from '../../lib/useOfflineSync';
 import OfflineBanner from '../../components/OfflineBanner';
+import { SyncStatusBanner } from '../../components/SyncStatus';
 import { Skeleton, CardSkeleton } from '../../components/LoadingSkeleton';
 import PickerSelect from '../../components/PickerSelect';
 import type { Facility, DashboardStats } from '../../lib/types';
@@ -230,6 +231,7 @@ export default function DashboardScreen() {
       </View>
 
       <OfflineBanner isStale={isStale} />
+      <SyncStatusBanner />
 
       {/* Filter Bar */}
       {!isFacilityUser && (

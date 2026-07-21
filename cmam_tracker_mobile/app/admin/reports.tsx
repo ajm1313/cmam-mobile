@@ -60,14 +60,14 @@ export default function AdminReportsScreen() {
 
   useEffect(() => {
     if (selRegion) {
-      api.get('/v1/locations/districts/', { params: { region: selRegion.id } }).then(r => setDistricts(r.data.data || [])).catch(() => {});
+      api.get('/v1/locations/districts/', { params: { region_id: selRegion.id } }).then(r => setDistricts(r.data.data || [])).catch(() => {});
     } else { setDistricts([]); }
     setSelDistrict(null); setSelSubDistrict(null);
   }, [selRegion]);
 
   useEffect(() => {
     if (selDistrict) {
-      api.get('/v1/locations/sub-districts/', { params: { district: selDistrict.id } }).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
+      api.get('/v1/locations/sub-districts/', { params: { district_id: selDistrict.id } }).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
     } else { setSubDistricts([]); }
     setSelSubDistrict(null);
   }, [selDistrict]);
@@ -78,12 +78,16 @@ export default function AdminReportsScreen() {
       const mm = String(selMonth).padStart(2, '0');
       const dateFrom = `${selYear}-${mm}-01`;
       const dateTo = `${selYear}-${mm}-${String(lastDay).padStart(2, '0')}`;
-      const facParam = selFacility ? { facility_id: selFacility.id } : {};
+      const locParams: any = {};
+      if (selFacility) locParams.facility_id = selFacility.id;
+      else if (selSubDistrict) locParams.sub_district = selSubDistrict.id;
+      else if (selDistrict) locParams.district = selDistrict.id;
+      else if (selRegion) locParams.region = selRegion.id;
       const [monthlyRes, samVRes, mamVRes, stockRes] = await Promise.all([
-        api.get('/v1/reports/monthly/', { params: { month: selMonth, year: selYear, ...facParam } }),
-        api.get('/v1/reports/weekly/', { params: { type: 'SAM', date_from: dateFrom, date_to: dateTo, ...facParam } }),
-        api.get('/v1/reports/weekly/', { params: { type: 'MAM', date_from: dateFrom, date_to: dateTo, ...facParam } }),
-        api.get('/v1/inventory/stock-levels/'),
+        api.get('/v1/reports/monthly/', { params: { month: selMonth, year: selYear, ...locParams } }),
+        api.get('/v1/reports/weekly/', { params: { type: 'SAM', date_from: dateFrom, date_to: dateTo, ...locParams } }),
+        api.get('/v1/reports/weekly/', { params: { type: 'MAM', date_from: dateFrom, date_to: dateTo, ...locParams } }),
+        api.get('/v1/inventory/stock-levels/', { params: { ...locParams } }),
       ]);
       const facs: FacilityReport[] = monthlyRes.data.data?.facilities || [];
       const samAgg = facs.reduce((a, f) => addP(a, f.sam), { ...EMPTY });
@@ -99,7 +103,7 @@ export default function AdminReportsScreen() {
     } catch {
       Alert.alert('Error', 'Failed to load report data');
     } finally { setLoading(false); setRefreshing(false); }
-  }, [selMonth, selYear, selFacility]);
+  }, [selMonth, selYear, selFacility, selRegion, selDistrict, selSubDistrict]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

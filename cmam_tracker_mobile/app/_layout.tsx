@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, LogBox } from 'react-native';
+import { View, LogBox, AppState } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
@@ -8,6 +8,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { useAuthStore } from '../lib/store';
 import { setOnUnauthorized } from '../lib/api';
 import { ThemeProvider, useTheme } from '../lib/theme';
+import { useOfflineSync } from '../lib/useOfflineSync';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -26,10 +27,28 @@ export default function RootLayout() {
 function RootLayoutInner() {
   const loadToken = useAuthStore((s) => s.loadToken);
   const logout = useAuthStore((s) => s.logout);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
+  const wasAuthenticated = useRef(false);
+
+  useOfflineSync();
+
+  // Global auth watcher: whenever an active session ends (token expiry,
+  // interceptor logout, etc.), redirect to the login screen. Without this,
+  // the user stays on the current screen with user=null, showing "User"
+  // instead of their real name until they manually log out and back in.
+  useEffect(() => {
+    if (isAuthenticated) {
+      wasAuthenticated.current = true;
+    } else if (wasAuthenticated.current && !isLoading) {
+      wasAuthenticated.current = false;
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
     setOnUnauthorized(async () => {
@@ -41,10 +60,26 @@ function RootLayoutInner() {
       const staleToken = useAuthStore.getState().token;
       const currentToken = await SecureStore.getItemAsync('auth_token');
       if (currentToken && currentToken === staleToken) {
-        logout();
+        await logout();
+        // Navigate immediately — the global auth watcher above is a backup,
+        // but an explicit redirect guarantees the user lands on login.
+        router.replace('/login');
       }
     });
     loadToken();
+
+    // Re-validate auth when app returns from background
+    // This proactively refreshes expired tokens instead of waiting for a 401
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        const { isAuthenticated, token } = useAuthStore.getState();
+        if (isAuthenticated && token) {
+          // Token exists — silently re-validate by fetching profile
+          // The interceptor will auto-refresh if the token is expired
+          loadToken();
+        }
+      }
+    });
 
     // Register for push notifications (skip in Expo Go — not supported since SDK 53)
     if (!isExpoGo) {
@@ -76,6 +111,7 @@ function RootLayoutInner() {
     return () => {
       if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
+      if (appStateSub) appStateSub.remove();
     };
   }, []);
 

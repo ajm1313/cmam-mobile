@@ -64,11 +64,11 @@ export default function ReportsScreen() {
   // Load location cascades
   useEffect(() => { api.get('/v1/locations/regions/').then(r => setRegions(r.data.data ?? [])).catch(() => {}); }, []);
   useEffect(() => {
-    if (selRegion) api.get('/v1/locations/districts/', { params: { region: selRegion.id } }).then(r => setDistricts(r.data.data ?? [])).catch(() => {});
+    if (selRegion) api.get('/v1/locations/districts/', { params: { region_id: selRegion.id } }).then(r => setDistricts(r.data.data ?? [])).catch(() => {});
     else { setDistricts([]); setSelDistrict(null); }
   }, [selRegion]);
   useEffect(() => {
-    if (selDistrict) api.get('/v1/locations/sub-districts/', { params: { district: selDistrict.id } }).then(r => setSubDistricts(r.data.data ?? [])).catch(() => {});
+    if (selDistrict) api.get('/v1/locations/sub-districts/', { params: { district_id: selDistrict.id } }).then(r => setSubDistricts(r.data.data ?? [])).catch(() => {});
     else { setSubDistricts([]); setSelSubDistrict(null); }
   }, [selDistrict]);
   useEffect(() => {
@@ -309,6 +309,7 @@ export default function ReportsScreen() {
                   <BreakdownCell label="Cured" value={sam?.cured ?? 0} color="#2563eb" colors={colors} />
                   <BreakdownCell label="Defaulted" value={sam?.defaulted ?? 0} color="#d97706" colors={colors} />
                   <BreakdownCell label="Deaths" value={sam?.deaths ?? 0} color="#dc2626" colors={colors} />
+                  <BreakdownCell label="Transferred" value={sam?.transferred ?? 0} color="#7c3aed" colors={colors} />
                 </View>
 
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -324,6 +325,7 @@ export default function ReportsScreen() {
                   <BreakdownCell label="Cured" value={mam?.cured ?? 0} color="#2563eb" colors={colors} />
                   <BreakdownCell label="Defaulted" value={mam?.defaulted ?? 0} color="#d97706" colors={colors} />
                   <BreakdownCell label="Deaths" value={mam?.deaths ?? 0} color="#dc2626" colors={colors} />
+                  <BreakdownCell label="Transferred" value={mam?.transferred ?? 0} color="#7c3aed" colors={colors} />
                 </View>
               </View>
             </View>

@@ -10,6 +10,7 @@ import { useAuthStore } from '../../lib/store';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 
 interface Facility { id: number; name: string; }
@@ -70,15 +71,15 @@ export default function IpcRegisterScreen() {
       };
       if (form.muac) payload.muac = parseFloat(form.muac);
 
-      await api.post('/v1/ipc/cases/', payload);
+      await sendOrQueue('/v1/ipc/cases/', 'post', payload, 'IPC Case Registration');
 
       if (params.caseId) {
-        await api.post(`/v1/cases/${params.caseId}/transfer/`, {
+        await sendOrQueue(`/v1/cases/${params.caseId}/transfer/`, 'post', {
           transfer_type: 'ipc',
           target_facility_id: parseInt(form.facility_id),
           reason: form.reason,
           notes: form.notes,
-        }).catch(() => {});
+        }, 'IPC Transfer').catch(() => {});
       }
 
       Alert.alert('Success', 'IPC case registered successfully.', [{ text: 'OK', onPress: () => router.back() }]);
