@@ -10,7 +10,7 @@ import { useTheme } from '../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../lib/store';
 import api, { storage } from '../lib/api';
-import { sendOrQueue } from '../lib/offlineQueue';
+import { sendOrReject } from '../lib/offlineQueue';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function EditProfileScreen() {
 
     setLoading(true);
     try {
-      const res = await sendOrQueue('/v1/profile/update/', 'patch', {
+      const res = await sendOrReject('/v1/profile/update/', 'patch', {
         name: name.trim(),
         phone: phone.trim(),
       }, 'Profile Update');
@@ -41,12 +41,9 @@ export default function EditProfileScreen() {
         Alert.alert('Success', 'Profile updated successfully.', [
           { text: 'OK', onPress: () => router.back() },
         ]);
-      } else if (!res) {
-        Alert.alert('Saved Offline', 'Profile update saved and will sync when online.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
       }
     } catch (error: any) {
+      if (error.message?.includes('internet connection')) return;
       const message = error.response?.data?.message || 'Failed to update profile.';
       Alert.alert('Error', message);
     } finally {

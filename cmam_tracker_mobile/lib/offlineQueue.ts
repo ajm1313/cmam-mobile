@@ -98,3 +98,29 @@ export async function sendOrQueue(
   );
   return null;
 }
+
+/**
+ * Send immediately if online, otherwise reject with a clear error.
+ * Use for operations that cannot be queued offline (e.g. user management,
+ * authentication, role assignment) — these require immediate server validation.
+ */
+export async function sendOrReject(
+  url: string,
+  method: 'post' | 'put' | 'patch' | 'delete',
+  data: any,
+  label: string,
+): Promise<any> {
+  const netState = await NetInfo.fetch();
+
+  if (netState.isConnected && netState.isInternetReachable !== false) {
+    const { default: api } = await import('./api');
+    return api.request({ url, method, data });
+  }
+
+  Alert.alert(
+    'Internet Required',
+    `"${label}" requires an internet connection and cannot be saved offline. Please connect and try again.`,
+    [{ text: 'OK' }],
+  );
+  throw new Error(`${label} requires internet connection`);
+}

@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
-import { sendOrQueue } from '../../lib/offlineQueue';
+import { sendOrReject } from '../../lib/offlineQueue';
 
 interface RoleOption { id: number; name: string; display_name: string; level: number }
 interface LocationOption { id: number; name: string }
@@ -90,7 +90,7 @@ export default function UserEditScreen() {
     }
     setSaving(true);
     try {
-      const res = await sendOrQueue(`/v1/users/${id}/edit/`, 'put', {
+      await sendOrReject(`/v1/users/${id}/edit/`, 'put', {
         name: form.name, email: form.email, phone: form.phone, is_active: form.is_active,
         role_id: form.role_id ? parseInt(form.role_id) : undefined,
         region_id: form.region_id ? parseInt(form.region_id) : undefined,
@@ -98,12 +98,9 @@ export default function UserEditScreen() {
         sub_district_id: form.sub_district_id ? parseInt(form.sub_district_id) : undefined,
         facility_id: form.facility_id ? parseInt(form.facility_id) : undefined,
       }, 'User Edit');
-      if (res) {
-        Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
-      } else {
-        Alert.alert('Saved Offline', 'User edit saved and will sync when online.', [{ text: 'OK', onPress: () => router.back() }]);
-      }
+      Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e: any) {
+      if (e.message?.includes('internet connection')) return;
       Alert.alert('Error', e.response?.data?.message || 'Failed to update user');
     } finally {
       setSaving(false);
