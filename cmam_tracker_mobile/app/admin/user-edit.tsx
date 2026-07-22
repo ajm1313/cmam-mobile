@@ -142,7 +142,7 @@ export default function UserEditScreen() {
 
         <SectionHeader title="Role & Location" icon="shield-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <ListPickerField label="Role" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => update('role_id', v)} colors={colors} />
+          <ListPickerField label="Role *" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => update('role_id', v)} colors={colors} />
           <ListPickerField label="Region" value={form.region_id} options={regions.map((r) => ({ key: String(r.id), label: r.name }))} onSelect={(v: string) => update('region_id', v)} colors={colors} />
           {districts.length > 0 && (
             <ListPickerField label="District" value={form.district_id} options={districts.map((d) => ({ key: String(d.id), label: d.name }))} onSelect={(v: string) => update('district_id', v)} colors={colors} />

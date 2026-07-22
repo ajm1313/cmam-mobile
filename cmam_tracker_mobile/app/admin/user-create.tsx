@@ -73,6 +73,10 @@ export default function UserCreateScreen() {
       Alert.alert('Validation', 'Name, email, and password are required');
       return;
     }
+    if (!form.role_id) {
+      Alert.alert('Validation', 'Please select a role for the user');
+      return;
+    }
     setSaving(true);
     try {
       await sendOrReject('/v1/users/create/', 'post', {
@@ -115,7 +119,7 @@ export default function UserCreateScreen() {
 
         <SectionHeader title="Role & Location" icon="shield-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <ListPickerField label="Role" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => update('role_id', v)} colors={colors} />
+          <ListPickerField label="Role *" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => update('role_id', v)} colors={colors} />
           <ListPickerField label="Region" value={form.region_id} options={regions.map((r) => ({ key: String(r.id), label: r.name }))} onSelect={(v: string) => update('region_id', v)} colors={colors} />
           {districts.length > 0 && (
             <ListPickerField label="District" value={form.district_id} options={districts.map((d) => ({ key: String(d.id), label: d.name }))} onSelect={(v: string) => update('district_id', v)} colors={colors} />
