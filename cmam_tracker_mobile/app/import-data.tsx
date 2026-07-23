@@ -64,19 +64,19 @@ export default function ImportDataScreen() {
 
     try {
       const url = `/v1/import/template/${selectedType}/`;
-      const response = await api.get(url, { responseType: 'blob' });
-      
+      const response = await api.get(url, { responseType: 'arraybuffer' });
+
       if (Platform.OS === 'web') {
         // Web download
-        const blob = new Blob([response.data], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        const blob = new Blob([response.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
-        const url = URL.createObjectURL(blob);
+        const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = downloadUrl;
         a.download = `${selectedType}_import_template.xlsx`;
         a.click();
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(downloadUrl);
         Alert.alert('Success', 'Template downloaded');
       } else {
         // Native - requires FileSystem and Sharing
@@ -84,26 +84,28 @@ export default function ImportDataScreen() {
           Alert.alert('Setup Required', 'Please install expo-file-system and expo-sharing: npx expo install expo-file-system expo-sharing');
           return;
         }
-        
+
         const filename = `${selectedType}_import_template.xlsx`;
         const fileUri = FileSystem.cacheDirectory + filename;
-        
-        // Convert blob to base64 and write
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64 = reader.result?.toString().split(',')[1];
-          if (base64) {
-            await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-            if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(fileUri, { mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            }
-          }
-        };
-        reader.readAsDataURL(response.data);
-        Alert.alert('Success', 'Template downloaded');
+
+        // Convert arraybuffer to base64
+        const base64 = btoa(
+          new Uint8Array(response.data).reduce((data: string, byte: number) => data + String.fromCharCode(byte), '')
+        );
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            dialogTitle: 'Import Template',
+          });
+        } else {
+          Alert.alert('Success', `Template saved: ${filename}`);
+        }
       }
-    } catch (e) {
-      Alert.alert('Error', 'Failed to download template');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to download template');
     }
   };
 
