@@ -145,8 +145,8 @@ export default function ImportDataScreen() {
       return;
     }
 
-    if (selectedType === 'inventory' && !selectedFacility) {
-      Alert.alert('Error', 'Please select a facility for inventory import');
+    if (selectedType && !selectedFacility) {
+      Alert.alert('Error', `Please select a destination facility for ${selectedType} import`);
       return;
     }
 
@@ -170,7 +170,7 @@ export default function ImportDataScreen() {
         }
       }
 
-      if (selectedType === 'inventory' && selectedFacility) {
+      if (selectedFacility) {
         formData.append('facility_id', selectedFacility.toString());
       }
 
@@ -216,7 +216,7 @@ export default function ImportDataScreen() {
         } as any);
       }
 
-      if (selectedType === 'inventory' && selectedFacility) {
+      if (selectedFacility) {
         formData.append('facility_id', selectedFacility.toString());
       }
 
@@ -305,8 +305,8 @@ export default function ImportDataScreen() {
         </View>
       )}
 
-      {/* Facility Selection (for inventory) */}
-      {selectedType === 'inventory' && facilities.length > 0 && (
+      {/* Facility Selection (for both cases and inventory) */}
+      {selectedType && facilities.length > 0 && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Select Destination Facility</Text>
           <View style={[styles.facilitySelector, { backgroundColor: colors.surface, borderColor: colors.border }]}>
