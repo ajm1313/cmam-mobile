@@ -8,8 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrReject } from '../../lib/offlineQueue';
+import * as Location from 'expo-location';
 
-const FACILITY_TYPES = ['OPC', 'IPC', 'SC', 'Health Center', 'Hospital'];
+const FACILITY_TYPES = ['OPC', 'IPC'];
 
 const OPC_DAY_OPTIONS = [
   { key: '0', label: 'Monday' },
@@ -30,15 +32,16 @@ export default function FacilityEditScreen() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const [regions, setRegions] = useState<LocationOption[]>([]);
   const [districts, setDistricts] = useState<LocationOption[]>([]);
   const [subDistricts, setSubDistricts] = useState<LocationOption[]>([]);
 
   const [form, setForm] = useState({
-    name: '', facility_type: '', district_id: '', sub_district_id: '',
+    name: '', code: '', facility_type: '', district_id: '', sub_district_id: '',
     contact_person: '', contact_phone: '', contact_email: '',
     address: '', capacity: '', region_id: '', is_active: true, opc_day: '',
-    population: '', sam_prevalence: '',
+    population: '', sam_prevalence: '', latitude: '', longitude: '',
   });
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function FacilityEditScreen() {
         const f = facRes.data.data;
         setRegions(regRes.data.data || []);
         setForm({
-          name: f.name || '', facility_type: f.type || f.facility_type || '',
+          name: f.name || '', code: f.code || '', facility_type: f.type || f.facility_type || '',
           district_id: f.district_id ? String(f.district_id) : '',
           sub_district_id: f.sub_district_id ? String(f.sub_district_id) : '',
           contact_person: f.contact_person || '', contact_phone: f.contact_phone || f.phone || '',
@@ -62,6 +65,8 @@ export default function FacilityEditScreen() {
           opc_day: f.opc_day !== null && f.opc_day !== undefined ? String(f.opc_day) : '',
           population: f.population ? String(f.population) : '',
           sam_prevalence: f.sam_prevalence ? String(f.sam_prevalence) : '',
+          latitude: f.latitude ? String(f.latitude) : '',
+          longitude: f.longitude ? String(f.longitude) : '',
         });
       } catch {
         Alert.alert('Error', 'Failed to load facility');
@@ -89,8 +94,8 @@ export default function FacilityEditScreen() {
     if (!form.name.trim()) { Alert.alert('Validation', 'Name is required'); return; }
     setSaving(true);
     try {
-      await api.put(`/v1/facilities/${id}/edit/`, {
-        name: form.name, facility_type: form.facility_type, is_active: form.is_active,
+      const payload: Record<string, any> = {
+        name: form.name, code: form.code.toUpperCase(), facility_type: form.facility_type, is_active: form.is_active,
         district_id: form.district_id ? parseInt(form.district_id) : undefined,
         sub_district_id: form.sub_district_id ? parseInt(form.sub_district_id) : undefined,
         contact_person: form.contact_person, contact_phone: form.contact_phone,
@@ -99,9 +104,13 @@ export default function FacilityEditScreen() {
         opc_day: form.facility_type === 'OPC' && form.opc_day !== '' ? parseInt(form.opc_day) : null,
         population: form.population ? parseInt(form.population) : undefined,
         sam_prevalence: form.sam_prevalence ? parseFloat(form.sam_prevalence) : undefined,
-      });
+        latitude: form.latitude ? parseFloat(form.latitude) : undefined,
+        longitude: form.longitude ? parseFloat(form.longitude) : undefined,
+      };
+      await sendOrReject(`/v1/facilities/${id}/edit/`, 'put', payload, 'Facility Edit');
       Alert.alert('Success', 'Facility updated', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (e: any) {
+      if (e.message?.includes('internet connection')) return;
       Alert.alert('Error', e.response?.data?.message || 'Failed to update facility');
     } finally { setSaving(false); }
   };
@@ -111,6 +120,25 @@ export default function FacilityEditScreen() {
   }
 
   const update = (key: string, val: string | boolean) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  const getLocation = async () => {
+    setGettingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to get coordinates.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      update('latitude', pos.coords.latitude.toFixed(6));
+      update('longitude', pos.coords.longitude.toFixed(6));
+      Alert.alert('Location Captured', `Lat: ${pos.coords.latitude.toFixed(6)}\nLng: ${pos.coords.longitude.toFixed(6)}`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Unable to get location. Check GPS/permissions.');
+    } finally {
+      setGettingLocation(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -126,13 +154,38 @@ export default function FacilityEditScreen() {
         <SectionHeader title="Basic Info" icon="business-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Field label="Facility Name *" value={form.name} onChangeText={(v: string) => update('name', v)} colors={colors} />
-          <PickerField label="Facility Type" value={form.facility_type} options={FACILITY_TYPES.map((t) => ({ key: t, label: t }))} onSelect={(v: string) => { update('facility_type', v); if (v !== 'OPC') update('opc_day', ''); }} colors={colors} />
+          <Field label="Facility Code" value={form.code} onChangeText={(v: string) => update('code', v.toUpperCase())} autoCapitalize="characters" colors={colors} hint="Unique identifier code" />
+          <PickerField label="Facility Type" value={form.facility_type} options={FACILITY_TYPES.map((t) => ({ key: t, label: `${t} (${t === 'OPC' ? 'Outpatient Care' : 'Inpatient Care'})` }))} onSelect={(v: string) => { update('facility_type', v); if (v !== 'OPC') update('opc_day', ''); }} colors={colors} />
           {form.facility_type === 'OPC' && (
             <PickerField label="OPC Visit Day" value={form.opc_day} options={OPC_DAY_OPTIONS} onSelect={(v: string) => update('opc_day', v)} colors={colors} hint="Weekly day when SAM & MAM OPC visits are scheduled" />
           )}
           <Field label="Capacity" value={form.capacity} onChangeText={(v: string) => update('capacity', v)} keyboardType="numeric" colors={colors} />
           <Field label="Catchment Population" value={form.population} onChangeText={(v: string) => update('population', v)} keyboardType="numeric" colors={colors} hint="Total population served by this facility" />
           <Field label="SAM Prevalence (%)" value={form.sam_prevalence} onChangeText={(v: string) => update('sam_prevalence', v)} keyboardType="decimal-pad" colors={colors} hint="Regional SAM prevalence rate from nutrition surveys" />
+          {form.population && form.sam_prevalence && parseFloat(form.population) > 0 && parseFloat(form.sam_prevalence) > 0 && (() => {
+            const pop = parseFloat(form.population);
+            const prev = parseFloat(form.sam_prevalence);
+            const expected = Math.ceil(pop * 0.17 * (prev / 100) * 2.6);
+            const target = Math.ceil(expected * 0.80);
+            return (
+              <View style={{ marginTop: 8, padding: 12, backgroundColor: colors.inputBg, borderRadius: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textMuted }}>SAM Burden (auto-calculated)</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, marginTop: 4 }}>Expected: {expected.toLocaleString()} cases/year</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#d97706' }}>Target (80%): {target.toLocaleString()} cases/year</Text>
+                <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 2 }}>Population × 17% (U5) × Prevalence × 2.6 (incidence)</Text>
+              </View>
+            );
+          })()}
+          <Field label="Latitude" value={form.latitude} onChangeText={(v: string) => update('latitude', v)} keyboardType="decimal-pad" colors={colors} />
+          <Field label="Longitude" value={form.longitude} onChangeText={(v: string) => update('longitude', v)} keyboardType="decimal-pad" colors={colors} />
+          <TouchableOpacity onPress={getLocation} disabled={gettingLocation} style={[styles.locBtn, { borderColor: colors.primary + '40', backgroundColor: colors.primary + '0A' }]} activeOpacity={0.7}>
+            {gettingLocation ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="locate" size={18} color={colors.primary} />
+            )}
+            <Text style={[styles.locBtnText, { color: colors.primary }]}>{gettingLocation ? 'Getting location...' : 'Use My Current Location'}</Text>
+          </TouchableOpacity>
           <View style={styles.toggleWrap}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Active</Text>
             <TouchableOpacity style={[styles.toggleSwitch, { backgroundColor: form.is_active ? colors.success : colors.textMuted + '40' }]} onPress={() => update('is_active', !form.is_active)}>
@@ -237,4 +290,6 @@ const styles = StyleSheet.create({
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 24, paddingVertical: 16, borderRadius: 14, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   hintText: { fontSize: 11, marginTop: 4 },
+  locBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 10, borderWidth: 1, marginTop: 4 },
+  locBtnText: { fontSize: 14, fontWeight: '600' },
 });

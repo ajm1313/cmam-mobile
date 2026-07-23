@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
@@ -24,11 +26,14 @@ export default function UserEditScreen() {
   const [regions, setRegions] = useState<LocationOption[]>([]);
   const [districts, setDistricts] = useState<LocationOption[]>([]);
   const [subDistricts, setSubDistricts] = useState<LocationOption[]>([]);
-  const [facilities, setFacilities] = useState<{ id: number; name: string }[]>([]);
+  const [facilities, setFacilities] = useState<{ id: number; name: string; district_id?: number; sub_district_id?: number }[]>([]);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarChanged, setAvatarChanged] = useState(false);
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', is_active: true,
     role_id: '', region_id: '', district_id: '', sub_district_id: '', facility_id: '',
+    password: '', password_confirm: '',
   });
 
   useEffect(() => {
@@ -43,7 +48,7 @@ export default function UserEditScreen() {
         const u = userRes.data.data;
         setRoles(rolesRes.data.data || []);
         setRegions(regionsRes.data.data || []);
-        setFacilities((facilitiesRes.data.data || []).map((f: any) => ({ id: f.id, name: f.name })));
+        setFacilities((facilitiesRes.data.data || []).map((f: any) => ({ id: f.id, name: f.name, district_id: f.district_id, sub_district_id: f.sub_district_id })));
         setForm({
           name: u.name || '',
           email: u.email || '',
@@ -54,7 +59,9 @@ export default function UserEditScreen() {
           district_id: u.role?.district_id ? String(u.role.district_id) : '',
           sub_district_id: u.role?.sub_district_id ? String(u.role.sub_district_id) : '',
           facility_id: u.role?.facility_id ? String(u.role.facility_id) : '',
+          password: '', password_confirm: '',
         });
+        if (u.avatar) setAvatarUri(u.avatar);
       } catch {
         Alert.alert('Error', 'Failed to load user data');
       } finally {
@@ -83,22 +90,66 @@ export default function UserEditScreen() {
     }
   }, [form.district_id]);
 
+  const filteredFacilities = facilities.filter((f) => {
+    if (form.district_id && form.sub_district_id) {
+      return String(f.district_id) === form.district_id && String(f.sub_district_id) === form.sub_district_id;
+    }
+    if (form.district_id) {
+      return String(f.district_id) === form.district_id;
+    }
+    return true;
+  });
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!result.granted) { Alert.alert('Permission needed', 'Camera roll permission is required'); return; }
+    const picker = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    if (!picker.canceled && picker.assets[0]) {
+      setAvatarUri(picker.assets[0].uri);
+      setAvatarChanged(true);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.name.trim() || !form.email.trim()) {
       Alert.alert('Validation', 'Name and email are required');
       return;
     }
+    if (form.password && form.password !== form.password_confirm) {
+      Alert.alert('Validation', 'Passwords do not match');
+      return;
+    }
     setSaving(true);
     try {
-      await sendOrReject(`/v1/users/${id}/edit/`, 'put', {
-        name: form.name, email: form.email, phone: form.phone, is_active: form.is_active,
-        role_id: form.role_id ? parseInt(form.role_id) : undefined,
-        region_id: form.region_id ? parseInt(form.region_id) : undefined,
-        district_id: form.district_id ? parseInt(form.district_id) : undefined,
-        sub_district_id: form.sub_district_id ? parseInt(form.sub_district_id) : undefined,
-        facility_id: form.facility_id ? parseInt(form.facility_id) : undefined,
-      }, 'User Edit');
-      Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
+      if (avatarChanged && avatarUri) {
+        const formData = new FormData();
+        formData.append('name', form.name);
+        formData.append('email', form.email);
+        formData.append('phone', form.phone);
+        formData.append('is_active', String(form.is_active));
+        if (form.role_id) formData.append('role_id', form.role_id);
+        if (form.region_id) formData.append('region_id', form.region_id);
+        if (form.district_id) formData.append('district_id', form.district_id);
+        if (form.sub_district_id) formData.append('sub_district_id', form.sub_district_id);
+        if (form.facility_id) formData.append('facility_id', form.facility_id);
+        if (form.password) formData.append('password', form.password);
+        if (form.password_confirm) formData.append('password_confirm', form.password_confirm);
+        formData.append('avatar', { uri: avatarUri, type: 'image/jpeg', name: 'avatar.jpg' } as any);
+        await api.put(`/v1/users/${id}/edit/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
+      } else {
+        const payload: Record<string, any> = {
+          name: form.name, email: form.email, phone: form.phone, is_active: form.is_active,
+          role_id: form.role_id ? parseInt(form.role_id) : undefined,
+          region_id: form.region_id ? parseInt(form.region_id) : undefined,
+          district_id: form.district_id ? parseInt(form.district_id) : undefined,
+          sub_district_id: form.sub_district_id ? parseInt(form.sub_district_id) : undefined,
+          facility_id: form.facility_id ? parseInt(form.facility_id) : undefined,
+        };
+        if (form.password) { payload.password = form.password; payload.password_confirm = form.password_confirm; }
+        await sendOrReject(`/v1/users/${id}/edit/`, 'put', payload, 'User Edit');
+        Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
+      }
     } catch (e: any) {
       if (e.message?.includes('internet connection')) return;
       Alert.alert('Error', e.response?.data?.message || 'Failed to update user');
@@ -143,14 +194,38 @@ export default function UserEditScreen() {
         <SectionHeader title="Role & Location" icon="shield-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <ListPickerField label="Role *" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => update('role_id', v)} colors={colors} />
-          <ListPickerField label="Region" value={form.region_id} options={regions.map((r) => ({ key: String(r.id), label: r.name }))} onSelect={(v: string) => update('region_id', v)} colors={colors} />
+          <ListPickerField label="Region" value={form.region_id} options={regions.map((r) => ({ key: String(r.id), label: r.name }))} onSelect={(v: string) => { update('region_id', v); update('district_id', ''); update('sub_district_id', ''); update('facility_id', ''); }} colors={colors} />
           {districts.length > 0 && (
-            <ListPickerField label="District" value={form.district_id} options={districts.map((d) => ({ key: String(d.id), label: d.name }))} onSelect={(v: string) => update('district_id', v)} colors={colors} />
+            <ListPickerField label="District" value={form.district_id} options={districts.map((d) => ({ key: String(d.id), label: d.name }))} onSelect={(v: string) => { update('district_id', v); update('sub_district_id', ''); update('facility_id', ''); }} colors={colors} />
           )}
           {subDistricts.length > 0 && (
-            <ListPickerField label="Sub-District" value={form.sub_district_id} options={subDistricts.map((s) => ({ key: String(s.id), label: s.name }))} onSelect={(v: string) => update('sub_district_id', v)} colors={colors} />
+            <ListPickerField label="Sub-District" value={form.sub_district_id} options={subDistricts.map((s) => ({ key: String(s.id), label: s.name }))} onSelect={(v: string) => { update('sub_district_id', v); update('facility_id', ''); }} colors={colors} />
           )}
-          <ListPickerField label="Facility" value={form.facility_id} options={facilities.map((f) => ({ key: String(f.id), label: f.name }))} onSelect={(v: string) => update('facility_id', v)} colors={colors} />
+          <ListPickerField label="Facility" value={form.facility_id} options={filteredFacilities.map((f) => ({ key: String(f.id), label: f.name }))} onSelect={(v: string) => update('facility_id', v)} colors={colors} />
+        </View>
+
+        {/* Avatar */}
+        <SectionHeader title="Avatar" icon="camera-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 16 }]}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+          ) : (
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.inputBg, justifyContent: 'center', alignItems: 'center' }}>
+              <Ionicons name="person" size={28} color={colors.textMuted} />
+            </View>
+          )}
+          <TouchableOpacity onPress={pickAvatar} style={[styles.pickerBtn, { backgroundColor: colors.inputBg, flex: 1 }]}>
+            <Text style={[styles.pickerText, { color: colors.primary }]}>Upload New Avatar</Text>
+            <Ionicons name="camera" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Change Password */}
+        <SectionHeader title="Change Password (Optional)" icon="lock-closed-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Field label="New Password" value={form.password} onChangeText={(v: string) => update('password', v)} secureTextEntry colors={colors} />
+          <Field label="Confirm New Password" value={form.password_confirm} onChangeText={(v: string) => update('password_confirm', v)} secureTextEntry colors={colors} />
+          <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Leave blank to keep current password</Text>
         </View>
 
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>
@@ -171,14 +246,14 @@ function SectionHeader({ title, icon, colors }: { title: string; icon: string; c
   );
 }
 
-function Field({ label, value, onChangeText, keyboardType, autoCapitalize, colors }: any) {
+function Field({ label, value, onChangeText, keyboardType, autoCapitalize, secureTextEntry, colors }: any) {
   return (
     <View style={styles.fieldWrap}>
       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
         style={[styles.fieldInput, { color: colors.textPrimary, backgroundColor: colors.inputBg }]}
         value={value} onChangeText={onChangeText} placeholderTextColor={colors.textMuted}
-        keyboardType={keyboardType} autoCapitalize={autoCapitalize}
+        keyboardType={keyboardType} autoCapitalize={autoCapitalize} secureTextEntry={secureTextEntry}
       />
     </View>
   );

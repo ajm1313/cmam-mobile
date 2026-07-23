@@ -23,7 +23,13 @@ const STEPS: { key: Step; label: string; icon: string }[] = [
 
 const VISIT_TYPES = ['Routine', 'Follow-up', 'Unscheduled'];
 const APPETITE_OPTIONS = ['Good', 'Fair', 'Poor'];
-const OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Defaulted', 'Death', 'Referral', 'Non-Response', 'Transfer-to-IPC'];
+const SAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Defaulted', 'Referral', 'Refused-Referral', 'Cured', 'Non-Response', 'Home-Visit', 'Death', 'Transfer-to-IPC'];
+const MAM_OUTCOME_OPTIONS = ['Continue', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
+const TREATMENT_RESPONSE_OPTIONS = ['Good', 'Moderate', 'Poor', 'No-Response'];
+const BREASTFEEDING_OPTIONS = ['BFW', 'BFC', 'NBF'];
+const Z_SCORE_OPTIONS = ['N', 'MAM', 'SAM'];
+const FOOD_PRODUCT_OPTIONS = ['RUSF', 'CSB++', 'CSB+', 'Fortified Oil', 'Other'];
+const ANTHROPOMETRY_VISITS = [4, 8, 12, 16];
 
 // ponytail: RUTF calculator - same as register
 const calcRutf = (w: number): number | null => {
@@ -56,14 +62,27 @@ export default function VisitFormScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [automationAlert, setAutomationAlert] = useState<AutomationResult | null>(null);
   const [rutfStock, setRutfStock] = useState<number | null>(null);
+  const [weeksInProgram, setWeeksInProgram] = useState<number | null>(null);
   const isSAM = caseType === 'SAM';
+  const visitNum = parseInt(visitNumber || '1');
+  const isAnthropometryVisit = ANTHROPOMETRY_VISITS.includes(visitNum);
+  const maxWeeks = isSAM ? 16 : 10;
 
-  // Fetch RUTF stock level for the case's facility
+  // Fetch RUTF stock level and case info for weeks calculation
   useEffect(() => {
     const fetchStock = async () => {
       try {
         const caseRes = await api.get(`/v1/cases/${caseId}/`);
-        const facilityId = caseRes.data?.data?.facility_id;
+        const caseData = caseRes.data?.data;
+        const facilityId = caseData?.facility_id;
+        // Calculate weeks in program from registration date
+        if (caseData?.registration_date) {
+          const regDate = new Date(caseData.registration_date);
+          const now = new Date();
+          const diffMs = now.getTime() - regDate.getTime();
+          const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+          setWeeksInProgram(weeks);
+        }
         const params: any = {};
         if (facilityId) params.facility_id = facilityId;
         const res = await api.get('/stock-levels/', { params });
@@ -115,9 +134,24 @@ export default function VisitFormScreen() {
     next_visit_date: '',
     treatment_response: '',
     medical_notes: '',
+    remarks: '',
     visit_outcome: 'Continue',
     outcome_notes: '',
     staff_name: '',
+    // IPC referral clinical signs
+    intractable_vomiting: false,
+    convulsions: false,
+    lethargic_or_not_alert: false,
+    unconscious: false,
+    chest_indrawing: false,
+    severe_dehydration: false,
+    very_pale_or_severe_palmar_pallor: false,
+    // Home visit fields
+    action_needed: false,
+    home_visit_needed: false,
+    home_visit_date: '',
+    community_volunteer: '',
+    home_visit_notes: '',
   });
 
   const set = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
@@ -130,11 +164,18 @@ export default function VisitFormScreen() {
       age_months: parseInt(caseAge || '12'),
       weight_kg: parseFloat(form.weight_kg),
       oedema: form.oedema,
-      appetite_test: form.appetite,
+      appetite_test: form.rutf_test === 'Fail' ? 'Failed' : form.rutf_test === 'Pass' ? 'Passed' : undefined,
       temperature_c: parseFloat(form.temperature),
       respiratory_rate: parseInt(form.respiratory_rate) || 0,
       visit_number: parseInt(visitNumber || '1'),
-      admission_weight: parseFloat(admissionWeight || '0')
+      admission_weight: parseFloat(admissionWeight || '0'),
+      intractable_vomiting: form.intractable_vomiting,
+      convulsions: form.convulsions,
+      lethargic: form.lethargic_or_not_alert,
+      unconscious: form.unconscious,
+      chest_indrawing: form.chest_indrawing,
+      severe_dehydration: form.severe_dehydration,
+      severe_pallor: form.very_pale_or_severe_palmar_pallor,
     };
     
     const result = checkVisitActions(data);
@@ -151,6 +192,17 @@ export default function VisitFormScreen() {
   const handleSubmit = async () => {
     if (!form.weight_kg) {
       Alert.alert('Required', 'Weight is required.');
+      setStep('anthropometry');
+      return;
+    }
+    if (!form.muac_cm) {
+      Alert.alert('Required', 'MUAC is required.');
+      setStep('anthropometry');
+      return;
+    }
+    // Anthropometry visit validation (visits 4, 8, 12, 16)
+    if (isAnthropometryVisit && (!form.height_cm || !form.z_score_wfh)) {
+      Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 4, 8, 12, 16).');
       setStep('anthropometry');
       return;
     }
@@ -194,6 +246,16 @@ export default function VisitFormScreen() {
         treatment_response: form.treatment_response || undefined,
         other_supplies: form.other_supplies || undefined,
         other_medication: form.other_medication || undefined,
+        intractable_vomiting: form.intractable_vomiting,
+        convulsions: form.convulsions,
+        lethargic_or_not_alert: form.lethargic_or_not_alert,
+        unconscious: form.unconscious,
+        chest_indrawing: form.chest_indrawing,
+        severe_dehydration: form.severe_dehydration,
+        very_pale_or_severe_palmar_pallor: form.very_pale_or_severe_palmar_pallor,
+        action_needed: form.action_needed,
+        home_visit_needed: form.home_visit_needed,
+        remarks: form.remarks || undefined,
       };
       if (form.height_cm) payload.height_cm = parseFloat(form.height_cm);
       if (form.muac_cm) payload.muac_cm = parseFloat(form.muac_cm);
@@ -211,6 +273,9 @@ export default function VisitFormScreen() {
       if (form.food_product_type) payload.food_product_type = form.food_product_type;
       if (form.food_product_quantity) payload.food_product_quantity = form.food_product_quantity;
       if (form.next_visit_date) payload.next_visit_date = form.next_visit_date;
+      if (form.home_visit_date) payload.home_visit_date = form.home_visit_date;
+      if (form.community_volunteer) payload.community_volunteer = form.community_volunteer;
+      if (form.home_visit_notes) payload.home_visit_notes = form.home_visit_notes;
 
       const res = await sendOrQueue(`/v1/cases/${caseId}/visits/record/`, 'post', payload, 'Visit Record');
       if (res) {
@@ -271,20 +336,44 @@ export default function VisitFormScreen() {
         {/* Form Content */}
         <ScrollView style={styles.formScroll} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
           {/* Automation Alert (ponytail: visit action warnings) */}
-          {automationAlert && isSAM && (
-            <View style={{ marginHorizontal: 12, marginTop: 12, padding: 14, borderRadius: 12, borderLeftWidth: 4, backgroundColor: getAlertColors(automationAlert.priority).bg, borderLeftColor: getAlertColors(automationAlert.priority).border }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: getAlertColors(automationAlert.priority).text, marginBottom: 6 }}>{automationAlert.title}</Text>
-              <Text style={{ fontSize: 13, color: getAlertColors(automationAlert.priority).text, marginBottom: 8 }}>{automationAlert.message}</Text>
+          {automationAlert && isSAM && (() => {
+            const ac = getAlertColors(automationAlert.priority || 'normal');
+            return (
+            <View style={{ marginHorizontal: 12, marginTop: 12, padding: 14, borderRadius: 12, borderLeftWidth: 4, backgroundColor: ac.bg, borderLeftColor: ac.border }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: ac.text, marginBottom: 6 }}>{automationAlert.title}</Text>
+              <Text style={{ fontSize: 13, color: ac.text, marginBottom: 8 }}>{automationAlert.message}</Text>
               {automationAlert.reasons.map((reason, i) => (
-                <Text key={i} style={{ fontSize: 12, color: getAlertColors(automationAlert.priority).text, marginLeft: 8, marginBottom: 2 }}>• {reason}</Text>
+                <Text key={i} style={{ fontSize: 12, color: ac.text, marginLeft: 8, marginBottom: 2 }}>• {reason}</Text>
               ))}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: getAlertColors(automationAlert.priority).text, marginTop: 8 }}>Suggested Action: {automationAlert.action}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: ac.text, marginTop: 8 }}>Suggested Action: {automationAlert.action}</Text>
             </View>
-          )}
+            );
+          })()}
 
           {step === 'anthropometry' && (
             <View style={[styles.formCard, { backgroundColor: colors.surface }]}>
               <Text style={[styles.formSectionTitle, { color: colors.textPrimary }]}>Anthropometric Measurements</Text>
+
+              {/* Weeks in program indicator */}
+              {weeksInProgram !== null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: weeksInProgram >= maxWeeks ? '#fef3c7' : weeksInProgram >= maxWeeks - 4 ? '#dbeafe' : colors.inputBg }}>
+                  <Ionicons name="time-outline" size={16} color={weeksInProgram >= maxWeeks ? '#f59e0b' : weeksInProgram >= maxWeeks - 4 ? '#3b82f6' : colors.textMuted} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: weeksInProgram >= maxWeeks ? '#92400e' : weeksInProgram >= maxWeeks - 4 ? '#1e40af' : colors.textSecondary }}>
+                    {weeksInProgram} / {maxWeeks} weeks in program
+                  </Text>
+                  {weeksInProgram >= maxWeeks && (
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#dc2626', marginLeft: 'auto' }}>DISCHARGE DUE</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Anthropometry visit notice */}
+              {isAnthropometryVisit && (
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: '#dbeafe', borderLeftWidth: 3, borderLeftColor: '#3b82f6' }}>
+                  <Ionicons name="information-circle" size={16} color="#3b82f6" style={{ marginTop: 2 }} />
+                  <Text style={{ fontSize: 12, color: '#1e40af', flex: 1 }}>Anthropometry Visit (Visit {visitNum}) — Height and W/H Z-Score are required at this visit.</Text>
+                </View>
+              )}
 
               <Label text="Visit Date" colors={colors} />
               <DatePickerField label="Visit Date" value={form.visit_date} onChange={v => set('visit_date', v)} colors={colors} maxDate={new Date().toISOString().slice(0, 10)} />
@@ -298,24 +387,27 @@ export default function VisitFormScreen() {
                 const w = parseFloat(v);
                 const sachets = calcRutf(w);
                 if (sachets && isSAM) set('rutf_sachets_given', sachets.toString());
-                checkAutomation(); // ponytail: check on weight change
+                checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 8.5" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Height (cm)" colors={colors} />
+              <Label text={isAnthropometryVisit ? 'Height (cm) *' : 'Height (cm)'} colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.height_cm} onChangeText={v => set('height_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 75.0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="MUAC (cm)" colors={colors} />
+              <Label text="MUAC (cm) *" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.muac_cm} onChangeText={v => set('muac_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 11.5" placeholderTextColor={colors.textMuted} />
 
               {isSAM && (
                 <>
-                  <Label text="Oedema" colors={colors} />
-                  <ChipRow options={['None', '+', '++', '+++']} selected={form.oedema} onSelect={v => set('oedema', v)} colors={colors} />
+                  <Label text="Bilateral Pitting Oedema" colors={colors} />
+                  <ChipRow options={['0', '+', '++', '+++']} selected={form.oedema} onSelect={v => { set('oedema', v); checkAutomation(); }} colors={colors} />
                 </>
               )}
 
-              <Label text="Z-Score (WFL/H)" colors={colors} />
-              <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.z_score_wfh} onChangeText={v => set('z_score_wfh', v)} placeholder="e.g. -2.5" placeholderTextColor={colors.textMuted} />
+              <Label text={isAnthropometryVisit ? 'W/H Z-Score *' : 'W/H Z-Score'} colors={colors} />
+              <ChipRow options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
+              {!isAnthropometryVisit && (
+                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 4, 8, 12, and 16.</Text>
+              )}
             </View>
           )}
 
@@ -347,18 +439,19 @@ export default function VisitFormScreen() {
               {isSAM && (
                 <>
                   <Label text="RUTF Test" colors={colors} />
-                  <ChipRow options={['Pass', 'Fail']} selected={form.rutf_test} onSelect={v => set('rutf_test', v)} colors={colors} />
+                  <ChipRow options={['Passed', 'Failed']} selected={form.rutf_test} onSelect={v => { set('rutf_test', v); checkAutomation(); }} colors={colors} />
 
                   <Label text="Breastfeeding Status" colors={colors} />
-                  <ChipRow options={['Yes', 'No', 'N/A']} selected={form.breastfeeding_status} onSelect={v => set('breastfeeding_status', v)} colors={colors} />
+                  <ChipRow options={BREASTFEEDING_OPTIONS} selected={form.breastfeeding_status} onSelect={v => set('breastfeeding_status', v)} colors={colors} />
                 </>
               )}
 
               <Label text="General Condition" colors={colors} />
-              <ChipRow options={['Good', 'Fair', 'Poor']} selected={form.general_condition} onSelect={v => set('general_condition', v)} colors={colors} />
+              <ChipRow options={['Good', 'Fair', 'Poor', 'Critical']} selected={form.general_condition} onSelect={v => set('general_condition', v)} colors={colors} />
 
-              {/* Clinical checkboxes */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              {/* Physical exam checkboxes */}
+              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16, marginBottom: 8 }]}>Physical Examination</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {[
                   { key: 'dehydrated', label: 'Dehydrated' },
                   { key: 'anaemia_palmar_pallor', label: 'Palmar Pallor' },
@@ -378,6 +471,34 @@ export default function VisitFormScreen() {
                 <>
                   <Label text="Complications Notes" colors={colors} />
                   <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.complications_notes} onChangeText={v => set('complications_notes', v)} placeholder="Describe complications..." placeholderTextColor={colors.textMuted} multiline numberOfLines={2} textAlignVertical="top" />
+                </>
+              )}
+
+              {/* Clinical Signs (IPC Referral Criteria) - SAM only */}
+              {isSAM && (
+                <>
+                  <Text style={[styles.label, { color: colors.textSecondary, marginTop: 20, marginBottom: 4 }]}>Clinical Signs (IPC Referral Criteria)</Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>Check any danger signs present. These automatically trigger IPC referral alerts.</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {[
+                      { key: 'intractable_vomiting', label: 'Intractable Vomiting' },
+                      { key: 'lethargic_or_not_alert', label: 'Lethargic/Not Alert' },
+                      { key: 'convulsions', label: 'Convulsions' },
+                      { key: 'chest_indrawing', label: 'Chest Indrawing' },
+                      { key: 'unconscious', label: 'Unconscious' },
+                      { key: 'very_pale_or_severe_palmar_pallor', label: 'Severe Palmar Pallor' },
+                      { key: 'severe_dehydration', label: 'Severe Dehydration' },
+                    ].map(item => (
+                      <TouchableOpacity key={item.key} onPress={() => {
+                        setForm(p => ({ ...p, [item.key]: !p[item.key as keyof typeof p] }));
+                        setTimeout(checkAutomation, 0);
+                      }}
+                        style={[styles.checkboxChip, { borderColor: colors.border, backgroundColor: form[item.key as keyof typeof form] ? colors.danger + '15' : colors.inputBg }]}>
+                        <Ionicons name={form[item.key as keyof typeof form] ? 'checkbox' : 'square-outline'} size={16} color={form[item.key as keyof typeof form] ? colors.danger : colors.textMuted} />
+                        <Text style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 4 }}>{item.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </>
               )}
             </View>
@@ -408,7 +529,7 @@ export default function VisitFormScreen() {
               ) : (
                 <>
                   <Label text="Food Product Type" colors={colors} />
-                  <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.food_product_type} onChangeText={v => set('food_product_type', v)} placeholder="e.g. CSB+" placeholderTextColor={colors.textMuted} />
+                  <ChipRow options={FOOD_PRODUCT_OPTIONS} selected={form.food_product_type} onSelect={v => set('food_product_type', v)} colors={colors} />
 
                   <Label text="Food Product Quantity" colors={colors} />
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.food_product_quantity} onChangeText={v => set('food_product_quantity', v)} placeholder="e.g. 6 kg" placeholderTextColor={colors.textMuted} />
@@ -434,7 +555,7 @@ export default function VisitFormScreen() {
               <ChipRow options={['Good', 'Fair', 'Poor']} selected={form.caregiver_understanding} onSelect={v => set('caregiver_understanding', v)} colors={colors} />
 
               <Label text="Treatment Response" colors={colors} />
-              <ChipRow options={['Improving', 'Static', 'Deteriorating']} selected={form.treatment_response} onSelect={v => set('treatment_response', v)} colors={colors} />
+              <ChipRow options={TREATMENT_RESPONSE_OPTIONS} selected={form.treatment_response} onSelect={v => set('treatment_response', v)} colors={colors} />
 
               <Label text="Next Visit Date" colors={colors} />
               <DatePickerField label="Next Visit Date" value={form.next_visit_date} onChange={v => set('next_visit_date', v)} colors={colors} minDate={new Date().toISOString().slice(0, 10)} />
@@ -444,6 +565,42 @@ export default function VisitFormScreen() {
 
               <Label text="Medical Notes" colors={colors} />
               <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.medical_notes} onChangeText={v => set('medical_notes', v)} placeholder="Any additional notes..." placeholderTextColor={colors.textMuted} multiline numberOfLines={3} textAlignVertical="top" />
+
+              {/* MAM Remarks */}
+              {!isSAM && (
+                <>
+                  <Label text="Visit Remarks" colors={colors} />
+                  <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.remarks} onChangeText={v => set('remarks', v)} placeholder="Any observations or notes about this visit" placeholderTextColor={colors.textMuted} multiline numberOfLines={3} textAlignVertical="top" />
+                </>
+              )}
+
+              {/* Home Visit / Action fields */}
+              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 20, marginBottom: 8 }]}>Action / Follow-up</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {[
+                  { key: 'action_needed', label: 'Action Needed' },
+                  { key: 'home_visit_needed', label: 'Home Visit Needed' },
+                ].map(item => (
+                  <TouchableOpacity key={item.key} onPress={() => setForm(p => ({ ...p, [item.key]: !p[item.key as keyof typeof p] }))}
+                    style={[styles.checkboxChip, { borderColor: colors.border, backgroundColor: form[item.key as keyof typeof form] ? colors.danger + '15' : colors.inputBg }]}>
+                    <Ionicons name={form[item.key as keyof typeof form] ? 'checkbox' : 'square-outline'} size={16} color={form[item.key as keyof typeof form] ? colors.danger : colors.textMuted} />
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 4 }}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {form.home_visit_needed && (
+                <>
+                  <Label text="Home Visit Date" colors={colors} />
+                  <DatePickerField label="Home Visit Date" value={form.home_visit_date} onChange={v => set('home_visit_date', v)} colors={colors} minDate={new Date().toISOString().slice(0, 10)} />
+
+                  <Label text="Community Volunteer Name" colors={colors} />
+                  <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.community_volunteer} onChangeText={v => set('community_volunteer', v)} placeholder="Name of community volunteer" placeholderTextColor={colors.textMuted} />
+
+                  <Label text="Home Visit Notes" colors={colors} />
+                  <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.home_visit_notes} onChangeText={v => set('home_visit_notes', v)} placeholder="Notes from home visit" placeholderTextColor={colors.textMuted} />
+                </>
+              )}
             </View>
           )}
 
@@ -451,9 +608,17 @@ export default function VisitFormScreen() {
             <View style={[styles.formCard, { backgroundColor: colors.surface }]}>
               <Text style={[styles.formSectionTitle, { color: colors.textPrimary }]}>Visit Outcome</Text>
 
+              {/* Discharge warning for long-running cases */}
+              {weeksInProgram !== null && weeksInProgram >= maxWeeks && (
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12, padding: 12, borderRadius: 10, backgroundColor: '#fef3c7', borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}>
+                  <Ionicons name="warning" size={16} color="#f59e0b" style={{ marginTop: 2 }} />
+                  <Text style={{ fontSize: 12, color: '#92400e', flex: 1 }}>This case has reached {weeksInProgram} weeks since enrollment. Cases are automatically discharged after {maxWeeks} weeks. Please select an appropriate discharge outcome.</Text>
+                </View>
+              )}
+
               <Label text="Outcome" colors={colors} />
               <View style={styles.outcomeGrid}>
-                {OUTCOME_OPTIONS.map(o => {
+                {(isSAM ? SAM_OUTCOME_OPTIONS : MAM_OUTCOME_OPTIONS).map(o => {
                   const active = form.visit_outcome === o;
                   const outcomeColor = o === 'Cured' ? colors.success : o === 'Death' ? colors.danger :
                     o === 'Defaulted' ? colors.warning : colors.primary;

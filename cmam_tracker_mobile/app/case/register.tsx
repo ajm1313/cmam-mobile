@@ -116,6 +116,8 @@ export default function CaseRegisterScreen() {
     breastfeeding_status: '', breastfeeding_prospect: '', effective_suckling: '', relactation_needed: '', visible_severe_wasting: '',
     immunization_status: '', g6pd_status: '', additional_medical_history: '',
     respiratory_rate: '', temperature_celsius: '', chest_indrawing: '',
+    intractable_vomiting_sign: '', convulsions: '', lethargic_or_not_alert: '',
+    unconscious: '', severe_dehydration: '', very_pale_or_severe_palmar_pallor: '',
     eyes_condition: '', conjunctiva: '', ears_condition: '', mouth_condition: '',
     lymph_nodes: '', hands_feet: '', skin_changes: '',
     disability: '', disability_details: '', physical_exam_notes: '',
@@ -187,13 +189,13 @@ export default function CaseRegisterScreen() {
       appetite_test: f.appetite_test,
       temperature_c: parseFloat(f.temperature_celsius),
       respiratory_rate: parseInt(f.respiratory_rate),
-      intractable_vomiting: f.vomiting === 'Yes',
-      convulsions: false, // Add if field exists
-      lethargic: false, // Add if field exists
-      unconscious: false, // Add if field exists
+      intractable_vomiting: f.intractable_vomiting_sign === 'Yes',
+      convulsions: f.convulsions === 'Yes',
+      lethargic: f.lethargic_or_not_alert === 'Yes',
+      unconscious: f.unconscious === 'Yes',
       chest_indrawing: f.chest_indrawing === 'Yes',
-      severe_dehydration: false, // Add if field exists
-      severe_pallor: false, // Add if field exists
+      severe_dehydration: f.severe_dehydration === 'Yes',
+      severe_pallor: f.very_pale_or_severe_palmar_pallor === 'Yes',
       // Infant-specific criteria
       breastfeeding_prospect: f.breastfeeding_prospect,
       effective_suckling: f.effective_suckling,
@@ -340,6 +342,12 @@ export default function CaseRegisterScreen() {
       if (f.respiratory_rate) payload.respiratory_rate = f.respiratory_rate;
       if (f.temperature_celsius) payload.temperature_celsius = f.temperature_celsius;
       if (f.chest_indrawing) payload.chest_indrawing = f.chest_indrawing;
+      if (f.intractable_vomiting_sign) payload.intractable_vomiting = f.intractable_vomiting_sign === 'Yes';
+      if (f.convulsions) payload.convulsions = f.convulsions === 'Yes';
+      if (f.lethargic_or_not_alert) payload.lethargic_or_not_alert = f.lethargic_or_not_alert === 'Yes';
+      if (f.unconscious) payload.unconscious = f.unconscious === 'Yes';
+      if (f.severe_dehydration) payload.severe_dehydration = f.severe_dehydration === 'Yes';
+      if (f.very_pale_or_severe_palmar_pallor) payload.very_pale_or_severe_palmar_pallor = f.very_pale_or_severe_palmar_pallor === 'Yes';
       if (f.eyes_condition) payload.eyes_condition = f.eyes_condition;
       if (f.conjunctiva) payload.conjunctiva = f.conjunctiva;
       if (f.ears_condition) payload.ears_condition = f.ears_condition;
@@ -659,7 +667,19 @@ export default function CaseRegisterScreen() {
               <Lbl text="Temperature (°C)" c={colors} />
               <TextInput style={inp} value={f.temperature_celsius} onChangeText={(v: string) => s('temperature_celsius', v)} keyboardType="decimal-pad" placeholder="e.g. 37.5" placeholderTextColor={colors.textMuted} />
               <Lbl text="Chest Indrawing" c={colors} />
-              <Chips opts={YES_NO} val={f.chest_indrawing} set={(v: string) => s('chest_indrawing', v)} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.chest_indrawing} set={(v: string) => { s('chest_indrawing', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Lbl text="Intractable Vomiting" c={colors} />
+              <Chips opts={YES_NO} val={f.intractable_vomiting_sign} set={(v: string) => { s('intractable_vomiting_sign', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Lbl text="Convulsions" c={colors} />
+              <Chips opts={YES_NO} val={f.convulsions} set={(v: string) => { s('convulsions', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Lbl text="Lethargic / Not Alert" c={colors} />
+              <Chips opts={YES_NO} val={f.lethargic_or_not_alert} set={(v: string) => { s('lethargic_or_not_alert', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Lbl text="Unconscious" c={colors} />
+              <Chips opts={YES_NO} val={f.unconscious} set={(v: string) => { s('unconscious', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Lbl text="Severe Dehydration" c={colors} />
+              <Chips opts={YES_NO} val={f.severe_dehydration} set={(v: string) => { s('severe_dehydration', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Lbl text="Very Pale / Severe Palmar Pallor" c={colors} />
+              <Chips opts={YES_NO} val={f.very_pale_or_severe_palmar_pallor} set={(v: string) => { s('very_pale_or_severe_palmar_pallor', v); checkAutomation(); }} accent={accent} c={colors} />
               <Lbl text="Eyes" c={colors} />
               <Chips opts={EYE_COND} val={f.eyes_condition} set={(v: string) => s('eyes_condition', v)} accent={accent} c={colors} />
               <Lbl text="Conjunctiva (Pallor)" c={colors} />

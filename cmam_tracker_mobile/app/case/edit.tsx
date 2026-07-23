@@ -2,18 +2,69 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
-import type { OpcCaseDetail } from '../../lib/types';
+import DatePickerField from '../../components/DatePickerField';
+import type { Facility } from '../../lib/types';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
-const ADMISSION_CRITERIA = ['MUAC <11.5cm', 'WFH/WFL <-3SD', 'Bilateral Oedema', 'MUAC 11.5-12.4cm', 'WFH/WFL <-2SD'];
+const YES_NO = ['Yes', 'No'];
+const YES_NO_UNK = ['Yes', 'No', 'Unknown'];
+const OEDEMA_OPTS = ['None', '+', '++', '+++'];
+const ADMISSION_CRITERIA = ['MUAC < 11.5cm', 'WFH < -3SD', 'Bilateral oedema', 'MUAC < 11.0cm infant', 'WFA < -3SD infant'];
 const ADMISSION_TYPES = ['New Admission', 'Readmission', 'Transfer In'];
+const WFH_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 to +2 SD', '> +2 SD'];
+const WFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 SD'];
+const HFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +3 SD', '> +3 SD'];
+const STOOL_FREQ = ['1-3', '4-5', '>5'];
+const APPETITE_SAM = ['Good', 'Poor', 'None'];
+const APPETITE_SIMPLE = ['Pass', 'Fail'];
+const BF_PROSPECT = ['Good', 'Poor', 'None'];
+const IMMUN_STATUS = ['Complete for Age', 'Not Complete for Age'];
+const G6PD_OPTS = ['No Defect', 'Partial Defect', 'Full Defect'];
+const RESP_RATE = ['<30', '30-39', '40-49', '50-59', '>=60'];
+const EYE_COND = ['Normal', 'Sunken', 'Discharge'];
+const CONJ_OPTS = ['Normal', 'Mild Pallor', 'Moderate Pallor', 'Severe Pallor'];
+const EAR_COND = ['Normal', 'Discharge'];
+const MOUTH_COND = ['Normal', 'Thrush', 'Sores'];
+const LYMPH_OPTS = ['None', 'Neck', 'Axilla', 'Groin', 'Multiple'];
+const HANDS_FEET = ['Normal', 'Cold'];
+const SKIN_OPTS = ['None', 'Stained/Discolored', 'Peeling', 'Ulcers/Torn', 'Abscess'];
+const MALARIA_RES = ['Positive', 'Negative', 'Not Done'];
+const MAM_TYPES = ['High-risk MAM', 'Other MAM'];
+const MAM_ENTRY = ['Direct New Enrolment', 'Referred from other MAM-OPC', 'Re-enrolment after defaulting'];
+const MAM_ZSCORE = ['< -3 SD', '>= -3 SD and < -2 SD', '>= -2 SD and <= +1 SD'];
+const FOOD_PROD = ['RUSF', 'CSB', 'Fortified Oil', 'Micronutrient Powder'];
+const CAREGIVER_REL = ['Mother', 'Father', 'Grandmother', 'Grandfather', 'Aunt', 'Uncle', 'Sibling', 'Other'];
+const SAM_REFERRAL = ['Direct from community', 'Referred from health facility', 'Referred from IPC', 'Re-enrolment/relapse'];
+const HIV_TB_OPTS = ['None', 'HIV+', 'TB', 'HIV+ and TB'];
+const VULN_OPTS = ['None', 'Single parent', 'Disabled caregiver', 'Very poor household', 'Other'];
+const calcRutf = (w: number): number | null => {
+  if (w < 4) return null;
+  if (w < 5) return 11;
+  if (w < 7) return 14;
+  if (w < 8.5) return 18;
+  if (w < 9.5) return 21;
+  if (w < 10.5) return 25;
+  if (w < 12) return 28;
+  return 32;
+};
+const RUTF_GUIDE = [
+  { weight: '4.0 – 4.9', week: 11, day: '1½' },
+  { weight: '5.0 – 6.9', week: 14, day: '2' },
+  { weight: '7.0 – 8.4', week: 18, day: '2½' },
+  { weight: '8.5 – 9.4', week: 21, day: '3' },
+  { weight: '9.5 – 10.4', week: 25, day: '3½' },
+  { weight: '10.5 – 11.9', week: 28, day: '4' },
+  { weight: '12+', week: 32, day: '4½' },
+];
 
 export default function CaseEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,7 +74,11 @@ export default function CaseEditScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fetchedUpdatedAt, setFetchedUpdatedAt] = useState<string | null>(null);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [childPhotoUri, setChildPhotoUri] = useState<string | null>(null);
+  const [childPhotoChanged, setChildPhotoChanged] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({
+    facility_id: '', admission_date: '', registration_number: '', malnutrition_type: '',
     child_name: '', child_gender: '', date_of_birth: '', age_months: '',
     caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', address: '',
     weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
@@ -33,7 +88,11 @@ export default function CaseEditScreen() {
     // Medical History
     diarrhoea: '', stool_frequency: '', vomiting: '', cough: '', passing_urine: '',
     oedema_duration_days: '', breastfeeding_status: '', breastfeeding_prospect: '',
+    effective_suckling: '', relactation_needed: '', visible_severe_wasting: '',
     immunization_status: '', g6pd_status: '', additional_medical_history: '',
+    // Clinical signs (IPC referral criteria)
+    intractable_vomiting_sign: '', convulsions: '', lethargic_or_not_alert: '',
+    unconscious: '', severe_dehydration: '', very_pale_or_severe_palmar_pallor: '',
     // Physical Examination
     respiratory_rate: '', temperature_celsius: '', chest_indrawing: '',
     eyes_condition: '', conjunctiva: '', ears_condition: '', mouth_condition: '',
@@ -54,22 +113,41 @@ export default function CaseEditScreen() {
     other_drug_2: '', other_drug_2_date: '', other_drug_2_dosage: '',
     other_drug_3: '', other_drug_3_date: '', other_drug_3_dosage: '',
     additional_notes: '',
+    // MAM-specific fields
+    mam_type: '', enrolment_criteria: '', food_product_type: '', food_product_quantity: '',
+    counselling: '', hiv_tb_status: '', household_vulnerability: '',
+    previous_sam_episode: '', failed_counselling_only: '',
+    poor_maternal_health: '', mother_deceased: '',
+    community: '', house_location: '', travel_time: '',
+    father_alive: '', mother_alive: '', referral_source: '',
+    registration_latitude: '', registration_longitude: '',
+    // Other fields from web form
+    medical_complications: '', complications_details: '', time_to_travel_minutes: '',
+    mebendazole_date: '', measles_vaccination_date: '', other_medicines: '',
+    entry_criteria: '', bilateral_pitting_oedema: '', oedema_grade: '',
+    admission_time: '', referring_facility: '',
   });
   const s = useCallback((k: string, v: string) => setForm((p) => ({ ...p, [k]: v })), []);
+
+  useEffect(() => { api.get('/v1/facilities/').then((r: any) => setFacilities(r.data.data ?? [])).catch(() => {}); }, []);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await api.get(`/v1/cases/${id}/`);
-        const c: OpcCaseDetail = res.data.data;
+        const c: any = res.data.data;
         setFetchedUpdatedAt(c.updated_at ?? null);
-        const fields: (keyof OpcCaseDetail)[] = [
+        const fields: string[] = [
+          'facility_id','admission_date','registration_number','malnutrition_type',
           'child_name','child_gender','date_of_birth','caregiver_name','caregiver_phone',
           'caregiver_relationship','address','oedema','admission_criteria','admission_type',
           'appetite_test','complications_notes','z_score_wfh','z_score_wfa','z_score_hfa',
           'diarrhoea','stool_frequency','vomiting','cough','passing_urine','oedema_duration_days',
-          'breastfeeding_status','breastfeeding_prospect','immunization_status','g6pd_status',
-          'additional_medical_history','respiratory_rate','temperature_celsius','chest_indrawing',
+          'breastfeeding_status','breastfeeding_prospect','effective_suckling','relactation_needed',
+          'visible_severe_wasting','immunization_status','g6pd_status','additional_medical_history',
+          'intractable_vomiting_sign','convulsions','lethargic_or_not_alert','unconscious',
+          'severe_dehydration','very_pale_or_severe_palmar_pallor',
+          'respiratory_rate','temperature_celsius','chest_indrawing',
           'eyes_condition','conjunctiva','ears_condition','mouth_condition','lymph_nodes',
           'hands_feet','skin_changes','disability','disability_details','physical_exam_notes',
           'amoxicillin_date','amoxicillin_dosage','vitamin_a_date','vitamin_a_dosage',
@@ -79,12 +157,24 @@ export default function CaseEditScreen() {
           'next_visit_date','other_drug_1','other_drug_1_date','other_drug_1_dosage',
           'other_drug_2','other_drug_2_date','other_drug_2_dosage',
           'other_drug_3','other_drug_3_date','other_drug_3_dosage','additional_notes',
+          'mam_type','enrolment_criteria','food_product_type','food_product_quantity',
+          'counselling','hiv_tb_status','household_vulnerability',
+          'previous_sam_episode','failed_counselling_only',
+          'poor_maternal_health','mother_deceased',
+          'community','house_location','travel_time',
+          'father_alive','mother_alive','referral_source',
+          'registration_latitude','registration_longitude',
+          'medical_complications','complications_details','time_to_travel_minutes',
+          'mebendazole_date','measles_vaccination_date','other_medicines',
+          'entry_criteria','bilateral_pitting_oedema','oedema_grade',
+          'admission_time','referring_facility',
         ];
         const next: Record<string, string> = {};
         for (const k of fields) {
           next[k] = c[k] != null ? String(c[k]) : '';
         }
         next.age_months = c.age_months?.toString() || '';
+        if (c.child_photo) setChildPhotoUri(c.child_photo);
         next.weight_kg = c.weight_kg?.toString() || '';
         next.height_cm = c.height_cm?.toString() || '';
         next.muac_cm = c.muac_cm?.toString() || '';
@@ -107,13 +197,22 @@ export default function CaseEditScreen() {
       const payload: Record<string, any> = {};
       for (const [k, v] of Object.entries(form)) {
         if (v !== '' && v != null) {
-          if (['age_months','rutf_sachets_given'].includes(k)) payload[k] = parseInt(v);
-          else if (['weight_kg','height_cm','muac_cm','rutf_ration_per_day'].includes(k)) payload[k] = parseFloat(v);
+          if (['age_months','rutf_sachets_given','oedema_duration_days','time_to_travel_minutes'].includes(k)) payload[k] = parseInt(v);
+          else if (['weight_kg','height_cm','muac_cm','rutf_ration_per_day','food_product_quantity','temperature_celsius'].includes(k)) payload[k] = parseFloat(v);
           else payload[k] = v;
         }
       }
       if (fetchedUpdatedAt) payload._updated_at = fetchedUpdatedAt;
-      const res = await sendOrQueue(`/v1/cases/${id}/edit/`, 'put', payload, 'Case Edit');
+      let res;
+      if (childPhotoChanged && childPhotoUri) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); });
+        fd.append('child_photo', { uri: childPhotoUri, name: 'child_photo.jpg', type: 'image/jpeg' } as any);
+        res = await api.put(`/v1/cases/${id}/edit/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        res = res.data;
+      } else {
+        res = await sendOrQueue(`/v1/cases/${id}/edit/`, 'put', payload, 'Case Edit');
+      }
       if (res) {
         Alert.alert('Success', 'Case updated successfully', [
           { text: 'OK', onPress: () => router.back() },
@@ -153,19 +252,61 @@ export default function CaseEditScreen() {
         {/* Child Information */}
         <SectionHeader title="Child Information" icon="person-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <FormField label="Child Name *" value={form.child_name} onChangeText={(v: string) => setForm({ ...form, child_name: v })} colors={colors} />
-          <PickerField label="Gender" value={form.child_gender} options={GENDER_OPTIONS} onSelect={(v: string) => setForm({ ...form, child_gender: v })} colors={colors} />
-          <FormField label="Date of Birth" value={form.date_of_birth} onChangeText={(v: string) => setForm({ ...form, date_of_birth: v })} placeholder="YYYY-MM-DD" colors={colors} />
-          <FormField label="Age (months)" value={form.age_months} onChangeText={(v: string) => setForm({ ...form, age_months: v })} keyboardType="numeric" colors={colors} />
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Facility</Text>
+          <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg }]} onPress={() => {
+            const opts = facilities.map(fac => `${fac.id}:${fac.name}`);
+            Alert.alert('Select Facility', undefined, [
+              ...facilities.map(fac => ({ text: fac.name, onPress: () => s('facility_id', String(fac.id)) })),
+              { text: 'Cancel', style: 'cancel' },
+            ]);
+          }}>
+            <Text style={[styles.pickerBtnText, { color: form.facility_id ? colors.textPrimary : colors.textMuted }]}>
+              {form.facility_id ? facilities.find(fac => String(fac.id) === form.facility_id)?.name || form.facility_id : 'Select...'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+          <FormField label="Registration Number" value={form.registration_number} onChangeText={(v: string) => s('registration_number', v)} colors={colors} />
+          <DatePickerField label="Admission Date" value={form.admission_date} onChange={(v: string) => s('admission_date', v)} colors={colors} />
+          <Text style={[styles.fieldLabel, { color: colors.textMuted, marginTop: 8 }]}>Child Photo</Text>
+          <TouchableOpacity style={[styles.photoBox, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+            onPress={() => Alert.alert('Child Photo', 'Choose', [
+              { text: 'Camera', onPress: async () => { const r = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 }); if (!r.canceled && r.assets[0]) { setChildPhotoUri(r.assets[0].uri); setChildPhotoChanged(true); } } },
+              { text: 'Photo Library', onPress: async () => { const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 }); if (!r.canceled && r.assets[0]) { setChildPhotoUri(r.assets[0].uri); setChildPhotoChanged(true); } } },
+              ...(childPhotoUri ? [{ text: 'Remove', style: 'destructive' as const, onPress: () => { setChildPhotoUri(null); setChildPhotoChanged(true); } }] : []),
+              { text: 'Cancel', style: 'cancel' as const },
+            ])}
+          >
+            {childPhotoUri ? (
+              <Image source={{ uri: childPhotoUri }} style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
+                <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '600' }}>Tap to add photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <FormField label="Child Name *" value={form.child_name} onChangeText={(v: string) => s('child_name', v)} colors={colors} />
+          <PickerField label="Gender" value={form.child_gender} options={GENDER_OPTIONS} onSelect={(v: string) => s('child_gender', v)} colors={colors} />
+          <FormField label="Date of Birth" value={form.date_of_birth} onChangeText={(v: string) => s('date_of_birth', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Age (months)" value={form.age_months} onChangeText={(v: string) => s('age_months', v)} keyboardType="numeric" colors={colors} />
+          <FormField label="Community" value={form.community} onChangeText={(v: string) => s('community', v)} colors={colors} />
+          <FormField label="House Location" value={form.house_location} onChangeText={(v: string) => s('house_location', v)} colors={colors} />
+          <FormField label="Travel Time to Facility" value={form.travel_time} onChangeText={(v: string) => s('travel_time', v)} colors={colors} />
+          <FormField label="Time to Travel (minutes)" value={form.time_to_travel_minutes} onChangeText={(v: string) => s('time_to_travel_minutes', v)} keyboardType="numeric" colors={colors} />
+          <PickerField label="Father Alive" value={form.father_alive} options={YES_NO_UNK} onSelect={(v: string) => s('father_alive', v)} colors={colors} />
+          <PickerField label="Mother Alive" value={form.mother_alive} options={YES_NO_UNK} onSelect={(v: string) => s('mother_alive', v)} colors={colors} />
+          <PickerField label="Referral Source" value={form.referral_source} options={SAM_REFERRAL} onSelect={(v: string) => s('referral_source', v)} colors={colors} />
+          <FormField label="Registration Latitude" value={form.registration_latitude} onChangeText={(v: string) => s('registration_latitude', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Registration Longitude" value={form.registration_longitude} onChangeText={(v: string) => s('registration_longitude', v)} keyboardType="decimal-pad" colors={colors} />
         </View>
 
         {/* Caregiver */}
         <SectionHeader title="Caregiver" icon="people-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <FormField label="Caregiver Name" value={form.caregiver_name} onChangeText={(v: string) => setForm({ ...form, caregiver_name: v })} colors={colors} />
-          <FormField label="Phone" value={form.caregiver_phone} onChangeText={(v: string) => setForm({ ...form, caregiver_phone: v })} keyboardType="phone-pad" colors={colors} />
-          <FormField label="Relationship" value={form.caregiver_relationship} onChangeText={(v: string) => setForm({ ...form, caregiver_relationship: v })} colors={colors} />
-          <FormField label="Address" value={form.address} onChangeText={(v: string) => setForm({ ...form, address: v })} multiline colors={colors} />
+          <FormField label="Caregiver Name" value={form.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} colors={colors} />
+          <FormField label="Phone" value={form.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" colors={colors} />
+          <PickerField label="Relationship" value={form.caregiver_relationship} options={CAREGIVER_REL} onSelect={(v: string) => s('caregiver_relationship', v)} colors={colors} />
+          <FormField label="Address" value={form.address} onChangeText={(v: string) => s('address', v)} multiline colors={colors} />
         </View>
 
         {/* Anthropometry */}
@@ -174,10 +315,11 @@ export default function CaseEditScreen() {
           <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => s('weight_kg', v)} keyboardType="decimal-pad" colors={colors} />
           <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" colors={colors} />
           <FormField label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Oedema" value={form.oedema} onChangeText={(v: string) => s('oedema', v)} colors={colors} />
-          <FormField label="Z-Score WFH" value={form.z_score_wfh} onChangeText={(v: string) => s('z_score_wfh', v)} colors={colors} />
-          <FormField label="Z-Score WFA" value={form.z_score_wfa} onChangeText={(v: string) => s('z_score_wfa', v)} colors={colors} />
-          <FormField label="Z-Score HFA" value={form.z_score_hfa} onChangeText={(v: string) => s('z_score_hfa', v)} colors={colors} />
+          <PickerField label="Bilateral Pitting Oedema" value={form.oedema} options={OEDEMA_OPTS} onSelect={(v: string) => s('oedema', v)} colors={colors} />
+          <PickerField label="Oedema Grade" value={form.oedema_grade} options={['1+', '2+', '3+']} onSelect={(v: string) => s('oedema_grade', v)} colors={colors} />
+          <PickerField label="Z-Score WFH" value={form.z_score_wfh} options={WFH_Z} onSelect={(v: string) => s('z_score_wfh', v)} colors={colors} />
+          <PickerField label="Z-Score WFA" value={form.z_score_wfa} options={WFA_Z} onSelect={(v: string) => s('z_score_wfa', v)} colors={colors} />
+          <PickerField label="Z-Score HFA" value={form.z_score_hfa} options={HFA_Z} onSelect={(v: string) => s('z_score_hfa', v)} colors={colors} />
         </View>
 
         {/* Admission */}
@@ -185,41 +327,77 @@ export default function CaseEditScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <PickerField label="Admission Criteria" value={form.admission_criteria} options={ADMISSION_CRITERIA} onSelect={(v: string) => s('admission_criteria', v)} colors={colors} />
           <PickerField label="Admission Type" value={form.admission_type} options={ADMISSION_TYPES} onSelect={(v: string) => s('admission_type', v)} colors={colors} />
-          <FormField label="Appetite Test" value={form.appetite_test} onChangeText={(v: string) => s('appetite_test', v)} colors={colors} />
+          <PickerField label="Appetite Test" value={form.appetite_test} options={APPETITE_SAM} onSelect={(v: string) => s('appetite_test', v)} colors={colors} />
+          <PickerField label="Medical Complications" value={form.medical_complications} options={YES_NO} onSelect={(v: string) => s('medical_complications', v)} colors={colors} />
+          <FormField label="Complications Details" value={form.complications_details} onChangeText={(v: string) => s('complications_details', v)} multiline colors={colors} />
           <FormField label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => s('complications_notes', v)} multiline colors={colors} />
+          <FormField label="Admission Time" value={form.admission_time} onChangeText={(v: string) => s('admission_time', v)} colors={colors} />
+          <FormField label="Referring Facility" value={form.referring_facility} onChangeText={(v: string) => s('referring_facility', v)} colors={colors} />
+        </View>
+
+        {/* MAM-specific */}
+        <SectionHeader title="MAM Details" icon="nutrition-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <PickerField label="MAM Type" value={form.mam_type} options={MAM_TYPES} onSelect={(v: string) => s('mam_type', v)} colors={colors} />
+          <PickerField label="Enrolment Criteria" value={form.enrolment_criteria} options={MAM_ENTRY} onSelect={(v: string) => s('enrolment_criteria', v)} colors={colors} />
+          <PickerField label="Food Product Type" value={form.food_product_type} options={FOOD_PROD} onSelect={(v: string) => s('food_product_type', v)} colors={colors} />
+          <FormField label="Food Product Quantity" value={form.food_product_quantity} onChangeText={(v: string) => s('food_product_quantity', v)} colors={colors} />
+          <FormField label="Counselling" value={form.counselling} onChangeText={(v: string) => s('counselling', v)} multiline colors={colors} />
+          <PickerField label="HIV/TB Status" value={form.hiv_tb_status} options={HIV_TB_OPTS} onSelect={(v: string) => s('hiv_tb_status', v)} colors={colors} />
+          <PickerField label="Household Vulnerability" value={form.household_vulnerability} options={VULN_OPTS} onSelect={(v: string) => s('household_vulnerability', v)} colors={colors} />
+          <PickerField label="Previous SAM Episode" value={form.previous_sam_episode} options={YES_NO} onSelect={(v: string) => s('previous_sam_episode', v)} colors={colors} />
+          <PickerField label="Failed Counselling Only" value={form.failed_counselling_only} options={YES_NO} onSelect={(v: string) => s('failed_counselling_only', v)} colors={colors} />
+          <PickerField label="Poor Maternal Health" value={form.poor_maternal_health} options={YES_NO} onSelect={(v: string) => s('poor_maternal_health', v)} colors={colors} />
+          <PickerField label="Mother Deceased" value={form.mother_deceased} options={YES_NO} onSelect={(v: string) => s('mother_deceased', v)} colors={colors} />
         </View>
 
         {/* Medical History */}
         <SectionHeader title="Medical History" icon="medkit-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <FormField label="Diarrhoea" value={form.diarrhoea} onChangeText={(v: string) => s('diarrhoea', v)} colors={colors} />
-          <FormField label="Stool Frequency" value={form.stool_frequency} onChangeText={(v: string) => s('stool_frequency', v)} colors={colors} />
-          <FormField label="Vomiting" value={form.vomiting} onChangeText={(v: string) => s('vomiting', v)} colors={colors} />
-          <FormField label="Cough" value={form.cough} onChangeText={(v: string) => s('cough', v)} colors={colors} />
-          <FormField label="Passing Urine" value={form.passing_urine} onChangeText={(v: string) => s('passing_urine', v)} colors={colors} />
+          <PickerField label="Diarrhoea" value={form.diarrhoea} options={YES_NO} onSelect={(v: string) => s('diarrhoea', v)} colors={colors} />
+          <PickerField label="Stool Frequency" value={form.stool_frequency} options={STOOL_FREQ} onSelect={(v: string) => s('stool_frequency', v)} colors={colors} />
+          <PickerField label="Vomiting" value={form.vomiting} options={YES_NO} onSelect={(v: string) => s('vomiting', v)} colors={colors} />
+          <PickerField label="Cough" value={form.cough} options={YES_NO} onSelect={(v: string) => s('cough', v)} colors={colors} />
+          <PickerField label="Passing Urine" value={form.passing_urine} options={YES_NO} onSelect={(v: string) => s('passing_urine', v)} colors={colors} />
           <FormField label="Oedema Duration (days)" value={form.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="numeric" colors={colors} />
-          <FormField label="Breastfeeding Status" value={form.breastfeeding_status} onChangeText={(v: string) => s('breastfeeding_status', v)} colors={colors} />
-          <FormField label="Breastfeeding Prospect" value={form.breastfeeding_prospect} onChangeText={(v: string) => s('breastfeeding_prospect', v)} colors={colors} />
-          <FormField label="Immunization Status" value={form.immunization_status} onChangeText={(v: string) => s('immunization_status', v)} colors={colors} />
-          <FormField label="G6PD Status" value={form.g6pd_status} onChangeText={(v: string) => s('g6pd_status', v)} colors={colors} />
+          <PickerField label="Breastfeeding Status" value={form.breastfeeding_status} options={YES_NO} onSelect={(v: string) => s('breastfeeding_status', v)} colors={colors} />
+          <PickerField label="Breastfeeding Prospect" value={form.breastfeeding_prospect} options={BF_PROSPECT} onSelect={(v: string) => s('breastfeeding_prospect', v)} colors={colors} />
+          <PickerField label="Effective Suckling" value={form.effective_suckling} options={YES_NO} onSelect={(v: string) => s('effective_suckling', v)} colors={colors} />
+          <PickerField label="Relactation Needed" value={form.relactation_needed} options={YES_NO} onSelect={(v: string) => s('relactation_needed', v)} colors={colors} />
+          <PickerField label="Visible Severe Wasting" value={form.visible_severe_wasting} options={YES_NO} onSelect={(v: string) => s('visible_severe_wasting', v)} colors={colors} />
+          <PickerField label="Immunization Status" value={form.immunization_status} options={IMMUN_STATUS} onSelect={(v: string) => s('immunization_status', v)} colors={colors} />
+          <PickerField label="G6PD Status" value={form.g6pd_status} options={G6PD_OPTS} onSelect={(v: string) => s('g6pd_status', v)} colors={colors} />
           <FormField label="Additional Medical History" value={form.additional_medical_history} onChangeText={(v: string) => s('additional_medical_history', v)} multiline colors={colors} />
+        </View>
+
+        {/* Clinical Signs (IPC Referral Criteria) */}
+        <SectionHeader title="Clinical Signs (IPC Referral)" icon="warning-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <PickerField label="Intractable Vomiting" value={form.intractable_vomiting_sign} options={YES_NO} onSelect={(v: string) => s('intractable_vomiting_sign', v)} colors={colors} />
+          <PickerField label="Convulsions" value={form.convulsions} options={YES_NO} onSelect={(v: string) => s('convulsions', v)} colors={colors} />
+          <PickerField label="Lethargic / Not Alert" value={form.lethargic_or_not_alert} options={YES_NO} onSelect={(v: string) => s('lethargic_or_not_alert', v)} colors={colors} />
+          <PickerField label="Unconscious" value={form.unconscious} options={YES_NO} onSelect={(v: string) => s('unconscious', v)} colors={colors} />
+          <PickerField label="Chest Indrawing" value={form.chest_indrawing} options={YES_NO} onSelect={(v: string) => s('chest_indrawing', v)} colors={colors} />
+          <PickerField label="Severe Dehydration" value={form.severe_dehydration} options={YES_NO} onSelect={(v: string) => s('severe_dehydration', v)} colors={colors} />
+          <PickerField label="Very Pale / Severe Palmar Pallor" value={form.very_pale_or_severe_palmar_pallor} options={YES_NO} onSelect={(v: string) => s('very_pale_or_severe_palmar_pallor', v)} colors={colors} />
         </View>
 
         {/* Physical Examination */}
         <SectionHeader title="Physical Examination" icon="fitness-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <FormField label="Respiratory Rate" value={form.respiratory_rate} onChangeText={(v: string) => s('respiratory_rate', v)} keyboardType="numeric" colors={colors} />
+          <PickerField label="Respiratory Rate" value={form.respiratory_rate} options={RESP_RATE} onSelect={(v: string) => s('respiratory_rate', v)} colors={colors} />
           <FormField label="Temperature (°C)" value={form.temperature_celsius} onChangeText={(v: string) => s('temperature_celsius', v)} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Chest Indrawing" value={form.chest_indrawing} onChangeText={(v: string) => s('chest_indrawing', v)} colors={colors} />
-          <FormField label="Eyes Condition" value={form.eyes_condition} onChangeText={(v: string) => s('eyes_condition', v)} colors={colors} />
-          <FormField label="Conjunctiva" value={form.conjunctiva} onChangeText={(v: string) => s('conjunctiva', v)} colors={colors} />
-          <FormField label="Ears Condition" value={form.ears_condition} onChangeText={(v: string) => s('ears_condition', v)} colors={colors} />
-          <FormField label="Mouth Condition" value={form.mouth_condition} onChangeText={(v: string) => s('mouth_condition', v)} colors={colors} />
-          <FormField label="Lymph Nodes" value={form.lymph_nodes} onChangeText={(v: string) => s('lymph_nodes', v)} colors={colors} />
-          <FormField label="Hands & Feet" value={form.hands_feet} onChangeText={(v: string) => s('hands_feet', v)} colors={colors} />
-          <FormField label="Skin Changes" value={form.skin_changes} onChangeText={(v: string) => s('skin_changes', v)} colors={colors} />
-          <FormField label="Disability" value={form.disability} onChangeText={(v: string) => s('disability', v)} colors={colors} />
-          <FormField label="Disability Details" value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} colors={colors} />
+          <PickerField label="Eyes" value={form.eyes_condition} options={EYE_COND} onSelect={(v: string) => s('eyes_condition', v)} colors={colors} />
+          <PickerField label="Conjunctiva (Pallor)" value={form.conjunctiva} options={CONJ_OPTS} onSelect={(v: string) => s('conjunctiva', v)} colors={colors} />
+          <PickerField label="Ears" value={form.ears_condition} options={EAR_COND} onSelect={(v: string) => s('ears_condition', v)} colors={colors} />
+          <PickerField label="Mouth" value={form.mouth_condition} options={MOUTH_COND} onSelect={(v: string) => s('mouth_condition', v)} colors={colors} />
+          <PickerField label="Enlarged Lymph Nodes" value={form.lymph_nodes} options={LYMPH_OPTS} onSelect={(v: string) => s('lymph_nodes', v)} colors={colors} />
+          <PickerField label="Hands & Feet" value={form.hands_feet} options={HANDS_FEET} onSelect={(v: string) => s('hands_feet', v)} colors={colors} />
+          <PickerField label="Skin Changes" value={form.skin_changes} options={SKIN_OPTS} onSelect={(v: string) => s('skin_changes', v)} colors={colors} />
+          <PickerField label="Disability" value={form.disability} options={YES_NO} onSelect={(v: string) => s('disability', v)} colors={colors} />
+          {form.disability === 'Yes' && (
+            <FormField label="Disability Details" value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} colors={colors} />
+          )}
           <FormField label="Physical Exam Notes" value={form.physical_exam_notes} onChangeText={(v: string) => s('physical_exam_notes', v)} multiline colors={colors} />
         </View>
 
@@ -236,8 +414,10 @@ export default function CaseEditScreen() {
           <FormField label="Deworming Dosage" value={form.deworming_dosage} onChangeText={(v: string) => s('deworming_dosage', v)} colors={colors} />
           <FormField label="Measles Vaccine Date" value={form.measles_vaccine_date} onChangeText={(v: string) => s('measles_vaccine_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
           <FormField label="Measles Vaccine Dosage" value={form.measles_vaccine_dosage} onChangeText={(v: string) => s('measles_vaccine_dosage', v)} colors={colors} />
+          <FormField label="Mebendazole Date" value={form.mebendazole_date} onChangeText={(v: string) => s('mebendazole_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Measles Vaccination Date" value={form.measles_vaccination_date} onChangeText={(v: string) => s('measles_vaccination_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
           <FormField label="Malaria Test Date" value={form.malaria_test_date} onChangeText={(v: string) => s('malaria_test_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
-          <FormField label="Malaria Test Result" value={form.malaria_test_result} onChangeText={(v: string) => s('malaria_test_result', v)} colors={colors} />
+          <PickerField label="Malaria Test Result" value={form.malaria_test_result} options={MALARIA_RES} onSelect={(v: string) => s('malaria_test_result', v)} colors={colors} />
           <FormField label="Antimalarial Date" value={form.antimalarial_date} onChangeText={(v: string) => s('antimalarial_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
           <FormField label="Antimalarial Dosage" value={form.antimalarial_dosage} onChangeText={(v: string) => s('antimalarial_dosage', v)} colors={colors} />
         </View>
@@ -245,9 +425,20 @@ export default function CaseEditScreen() {
         {/* RUTF & Other Supplies */}
         <SectionHeader title="RUTF & Other Supplies" icon="nutrition-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>RUTF Dosage Guide</Text>
+            <TouchableOpacity onPress={() => Alert.alert('RUTF Dosage Guide', RUTF_GUIDE.map(r => `${r.weight} kg → ${r.week}/week (${r.day}/day)`).join('\n'), [{ text: 'OK' }])} activeOpacity={0.7}>
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>📊 Show Guide</Text>
+            </TouchableOpacity>
+          </View>
+          <FormField label="Weight (kg) for RUTF Calc" value={form.weight_kg} onChangeText={(v: string) => { s('weight_kg', v); const w = parseFloat(v); const sachets = calcRutf(w); if (sachets) s('rutf_sachets_given', sachets.toString()); }} keyboardType="decimal-pad" colors={colors} />
+          {form.weight_kg && calcRutf(parseFloat(form.weight_kg)) && (
+            <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 8 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
+          )}
           <FormField label="RUTF Sachets Given" value={form.rutf_sachets_given} onChangeText={(v: string) => s('rutf_sachets_given', v)} keyboardType="numeric" colors={colors} />
           <FormField label="RUTF Ration/day" value={form.rutf_ration_per_day} onChangeText={(v: string) => s('rutf_ration_per_day', v)} keyboardType="decimal-pad" colors={colors} />
           <FormField label="Next Visit Date" value={form.next_visit_date} onChangeText={(v: string) => s('next_visit_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
+          <FormField label="Other Medicines" value={form.other_medicines} onChangeText={(v: string) => s('other_medicines', v)} multiline colors={colors} />
         </View>
 
         {/* Other Medicines */}
@@ -341,6 +532,7 @@ const styles = StyleSheet.create({
   fieldInput: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontWeight: '500' },
   pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
   pickerBtnText: { fontSize: 15, fontWeight: '500' },
+  photoBox: { width: 110, height: 110, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed', overflow: 'hidden', marginTop: 4, marginBottom: 16 },
   optionsList: { borderRadius: 10, borderWidth: 1, marginTop: 4, overflow: 'hidden' },
   optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 11 },
   optionText: { fontSize: 14, fontWeight: '500' },

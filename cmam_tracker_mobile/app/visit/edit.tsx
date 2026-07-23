@@ -11,9 +11,18 @@ import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 
-const OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Defaulted', 'Death', 'Referral', 'Non-Response', 'Home-Visit', 'Transfer-to-IPC'];
+const SAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Defaulted', 'Referral', 'Refused-Referral', 'Cured', 'Non-Response', 'Home-Visit', 'Death', 'Transfer-to-IPC'];
+const MAM_OUTCOME_OPTIONS = ['Continue', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
 const APPETITE_OPTIONS = ['Good', 'Fair', 'Poor'];
 const RUTF_OPTIONS = ['Passed', 'Failed'];
+const VISIT_TYPES = ['Routine', 'Follow-up', 'Unscheduled'];
+const TREATMENT_RESPONSE_OPTS = ['Good', 'Moderate', 'Poor', 'No-Response'];
+const BREASTFEEDING_OPTS = ['BFW', 'BFC', 'NBF'];
+const GENERAL_CONDITION_OPTS = ['Normal', 'Moderate', 'Severe'];
+const FOOD_PRODUCT_OPTS = ['RUSF', 'CSB++', 'CSB+', 'Fortified Oil', 'Other'];
+const YES_NO = ['Yes', 'No'];
+const Z_SCORE_OPTS = ['N', 'MAM', 'SAM'];
+const OEDEMA_OPTS = ['0', '+', '++', '+++'];
 
 // ponytail: RUTF calculator - same as register
 const calcRutf = (w: number): number | null => {
@@ -45,8 +54,8 @@ export default function VisitEditScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fetchedUpdatedAt, setFetchedUpdatedAt] = useState<string | null>(null);
-  const [form, setForm] = useState<Record<string, string>>({
-    visit_date: '', weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
+  const [form, setForm] = useState<Record<string, any>>({
+    visit_date: '', visit_type: '', weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     diarrhoea_days: '', vomiting_days: '', fever_days: '', cough_days: '',
     temperature: '', respiratory_rate: '',
     appetite: '', rutf_test: '', rutf_sachets_given: '',
@@ -61,6 +70,13 @@ export default function VisitEditScreen() {
     treatment_response: '', staff_name: '',
     weight_lost: '', dehydrated: '', anaemia_palmar_pallor: '', skin_infection: '',
     has_complications: '',
+    remarks: '',
+    // IPC referral clinical signs
+    intractable_vomiting: '', convulsions: '', lethargic_or_not_alert: '',
+    unconscious: '', chest_indrawing: '', severe_dehydration: '', very_pale_or_severe_palmar_pallor: '',
+    // Home visit fields
+    action_needed: '', home_visit_needed: '', home_visit_date: '',
+    community_volunteer: '', home_visit_notes: '',
   });
 
   useEffect(() => {
@@ -73,6 +89,7 @@ export default function VisitEditScreen() {
           setFetchedUpdatedAt(visit.updated_at ?? null);
           setForm({
             visit_date: visit.visit_date || '',
+            visit_type: visit.visit_type || '',
             weight_kg: visit.weight_kg?.toString() || '',
             height_cm: visit.height_cm?.toString() || '',
             muac_cm: visit.muac_cm?.toString() || '',
@@ -111,6 +128,19 @@ export default function VisitEditScreen() {
             anaemia_palmar_pallor: visit.anaemia_palmar_pallor?.toString() || '',
             skin_infection: visit.skin_infection?.toString() || '',
             has_complications: visit.has_complications?.toString() || '',
+            remarks: visit.remarks || '',
+            intractable_vomiting: visit.intractable_vomiting?.toString() || '',
+            convulsions: visit.convulsions?.toString() || '',
+            lethargic_or_not_alert: visit.lethargic_or_not_alert?.toString() || '',
+            unconscious: visit.unconscious?.toString() || '',
+            chest_indrawing: visit.chest_indrawing?.toString() || '',
+            severe_dehydration: visit.severe_dehydration?.toString() || '',
+            very_pale_or_severe_palmar_pallor: visit.very_pale_or_severe_palmar_pallor?.toString() || '',
+            action_needed: visit.action_needed?.toString() || '',
+            home_visit_needed: visit.home_visit_needed?.toString() || '',
+            home_visit_date: visit.home_visit_date || '',
+            community_volunteer: visit.community_volunteer || '',
+            home_visit_notes: visit.home_visit_notes || '',
           });
         }
       } catch {
@@ -168,8 +198,10 @@ export default function VisitEditScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>VISIT DATE</Text>
           <DatePickerField label="Visit Date" value={form.visit_date} onChange={(v: string) => update('visit_date', v)} colors={colors} maxDate={new Date().toISOString().slice(0, 10)} />
-          <PickerRow label="Outcome" value={form.visit_outcome} options={OUTCOME_OPTIONS} onSelect={(v: string) => update('visit_outcome', v)} colors={colors} />
+          <PickerRow label="Visit Type" value={form.visit_type} options={VISIT_TYPES} onSelect={(v: string) => update('visit_type', v)} colors={colors} />
+          <PickerRow label="Outcome" value={form.visit_outcome} options={SAM_OUTCOME_OPTIONS} onSelect={(v: string) => update('visit_outcome', v)} colors={colors} />
           <Field label="Outcome Notes" value={form.outcome_notes} onChangeText={(v: string) => update('outcome_notes', v)} multiline colors={colors} />
+          <Field label="Remarks" value={form.remarks} onChangeText={(v: string) => update('remarks', v)} multiline colors={colors} />
         </View>
 
         <SectionHeader title="Anthropometry" icon="body-outline" colors={colors} />
@@ -182,7 +214,8 @@ export default function VisitEditScreen() {
           }} keyboardType="decimal-pad" colors={colors} />
           <Field label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => update('height_cm', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => update('muac_cm', v)} keyboardType="decimal-pad" colors={colors} />
-          <Field label="Oedema" value={form.oedema} onChangeText={(v: string) => update('oedema', v)} colors={colors} />
+          <PickerRow label="Oedema" value={form.oedema} options={OEDEMA_OPTS} onSelect={(v: string) => update('oedema', v)} colors={colors} />
+          <PickerRow label="Z-Score WFH" value={form.z_score_wfh} options={Z_SCORE_OPTS} onSelect={(v: string) => update('z_score_wfh', v)} colors={colors} />
         </View>
 
         <SectionHeader title="Medical History" icon="medkit-outline" colors={colors} />
@@ -193,6 +226,25 @@ export default function VisitEditScreen() {
           <Field label="Cough (days)" value={form.cough_days} onChangeText={(v: string) => update('cough_days', v)} keyboardType="numeric" colors={colors} />
           <Field label="Temperature (°C)" value={form.temperature} onChangeText={(v: string) => update('temperature', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="Respiratory Rate" value={form.respiratory_rate} onChangeText={(v: string) => update('respiratory_rate', v)} keyboardType="numeric" colors={colors} />
+          <PickerRow label="Weight Lost" value={form.weight_lost} options={YES_NO} onSelect={(v: string) => update('weight_lost', v)} colors={colors} />
+          <PickerRow label="Dehydrated" value={form.dehydrated} options={YES_NO} onSelect={(v: string) => update('dehydrated', v)} colors={colors} />
+          <PickerRow label="Anaemia / Palmar Pallor" value={form.anaemia_palmar_pallor} options={YES_NO} onSelect={(v: string) => update('anaemia_palmar_pallor', v)} colors={colors} />
+          <PickerRow label="Skin Infection" value={form.skin_infection} options={YES_NO} onSelect={(v: string) => update('skin_infection', v)} colors={colors} />
+          <PickerRow label="General Condition" value={form.general_condition} options={GENERAL_CONDITION_OPTS} onSelect={(v: string) => update('general_condition', v)} colors={colors} />
+          <PickerRow label="Has Complications" value={form.has_complications} options={YES_NO} onSelect={(v: string) => update('has_complications', v)} colors={colors} />
+          <Field label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => update('complications_notes', v)} multiline colors={colors} />
+        </View>
+
+        {/* Clinical Signs (IPC Referral Criteria) */}
+        <SectionHeader title="Clinical Signs (IPC Referral)" icon="warning-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <PickerRow label="Intractable Vomiting" value={form.intractable_vomiting} options={YES_NO} onSelect={(v: string) => update('intractable_vomiting', v)} colors={colors} />
+          <PickerRow label="Convulsions" value={form.convulsions} options={YES_NO} onSelect={(v: string) => update('convulsions', v)} colors={colors} />
+          <PickerRow label="Lethargic / Not Alert" value={form.lethargic_or_not_alert} options={YES_NO} onSelect={(v: string) => update('lethargic_or_not_alert', v)} colors={colors} />
+          <PickerRow label="Unconscious" value={form.unconscious} options={YES_NO} onSelect={(v: string) => update('unconscious', v)} colors={colors} />
+          <PickerRow label="Chest Indrawing" value={form.chest_indrawing} options={YES_NO} onSelect={(v: string) => update('chest_indrawing', v)} colors={colors} />
+          <PickerRow label="Severe Dehydration" value={form.severe_dehydration} options={YES_NO} onSelect={(v: string) => update('severe_dehydration', v)} colors={colors} />
+          <PickerRow label="Very Pale / Severe Palmar Pallor" value={form.very_pale_or_severe_palmar_pallor} options={YES_NO} onSelect={(v: string) => update('very_pale_or_severe_palmar_pallor', v)} colors={colors} />
         </View>
 
         <SectionHeader title="Feeding & Treatment" icon="nutrition-outline" colors={colors} />
@@ -209,28 +261,40 @@ export default function VisitEditScreen() {
             <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 4 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
           )}
           <Field label="" value={form.rutf_sachets_given} onChangeText={(v: string) => update('rutf_sachets_given', v)} keyboardType="numeric" colors={colors} />
+          <PickerRow label="Breastfeeding Status" value={form.breastfeeding_status} options={BREASTFEEDING_OPTS} onSelect={(v: string) => update('breastfeeding_status', v)} colors={colors} />
           <Field label="CSB+ Given" value={form.csb_plus_given} onChangeText={(v: string) => update('csb_plus_given', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="Oil Given" value={form.oil_given} onChangeText={(v: string) => update('oil_given', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="Other Supplies" value={form.other_supplies} onChangeText={(v: string) => update('other_supplies', v)} colors={colors} />
           <Field label="Other Medication" value={form.other_medication} onChangeText={(v: string) => update('other_medication', v)} colors={colors} />
-          <Field label="Food Product Type" value={form.food_product_type} onChangeText={(v: string) => update('food_product_type', v)} colors={colors} />
+          <PickerRow label="Food Product Type" value={form.food_product_type} options={FOOD_PRODUCT_OPTS} onSelect={(v: string) => update('food_product_type', v)} colors={colors} />
           <Field label="Food Product Quantity" value={form.food_product_quantity} onChangeText={(v: string) => update('food_product_quantity', v)} keyboardType="numeric" colors={colors} />
           <Field label="Medical Notes" value={form.medical_notes} onChangeText={(v: string) => update('medical_notes', v)} multiline colors={colors} />
         </View>
 
         <SectionHeader title="Clinical Assessment" icon="pulse-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Field label="Z-Score WFH" value={form.z_score_wfh} onChangeText={(v: string) => update('z_score_wfh', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="Z-Score WFA" value={form.z_score_wfa} onChangeText={(v: string) => update('z_score_wfa', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="Z-Score HFA" value={form.z_score_hfa} onChangeText={(v: string) => update('z_score_hfa', v)} keyboardType="decimal-pad" colors={colors} />
-          <Field label="Breastfeeding Status" value={form.breastfeeding_status} onChangeText={(v: string) => update('breastfeeding_status', v)} colors={colors} />
-          <Field label="General Condition" value={form.general_condition} onChangeText={(v: string) => update('general_condition', v)} colors={colors} />
-          <Field label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => update('complications_notes', v)} multiline colors={colors} />
+          <PickerRow label="Treatment Response" value={form.treatment_response} options={TREATMENT_RESPONSE_OPTS} onSelect={(v: string) => update('treatment_response', v)} colors={colors} />
           <Field label="Counseling Topics" value={form.counseling_topics} onChangeText={(v: string) => update('counseling_topics', v)} multiline colors={colors} />
           <Field label="Caregiver Understanding" value={form.caregiver_understanding} onChangeText={(v: string) => update('caregiver_understanding', v)} colors={colors} />
-          <Field label="Treatment Response" value={form.treatment_response} onChangeText={(v: string) => update('treatment_response', v)} colors={colors} />
           <Field label="Next Visit Date" value={form.next_visit_date} onChangeText={(v: string) => update('next_visit_date', v)} placeholder="YYYY-MM-DD" colors={colors} />
           <Field label="Staff Name" value={form.staff_name} onChangeText={(v: string) => update('staff_name', v)} colors={colors} />
+        </View>
+
+        {/* Home Visit / Action fields */}
+        <SectionHeader title="Home Visit / Action" icon="home-outline" colors={colors} />
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <PickerRow label="Action Needed" value={form.action_needed} options={YES_NO} onSelect={(v: string) => update('action_needed', v)} colors={colors} />
+          <PickerRow label="Home Visit Needed" value={form.home_visit_needed} options={YES_NO} onSelect={(v: string) => update('home_visit_needed', v)} colors={colors} />
+          {form.home_visit_needed === 'Yes' && (
+            <>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted, marginTop: 8 }]}>HOME VISIT DATE</Text>
+              <DatePickerField label="Home Visit Date" value={form.home_visit_date} onChange={(v: string) => update('home_visit_date', v)} colors={colors} />
+              <Field label="Community Volunteer" value={form.community_volunteer} onChangeText={(v: string) => update('community_volunteer', v)} colors={colors} />
+              <Field label="Home Visit Notes" value={form.home_visit_notes} onChangeText={(v: string) => update('home_visit_notes', v)} multiline colors={colors} />
+            </>
+          )}
         </View>
 
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>

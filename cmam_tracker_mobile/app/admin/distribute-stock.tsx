@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { sendOrQueue } from '../../lib/offlineQueue';
 
 interface InventoryItem { id: number; name: string; code: string; unit: string; }
 interface Loc { id: number; name: string; }
@@ -124,7 +125,7 @@ export default function DistributeStockScreen() {
 
     setSaving(true);
     try {
-      await api.post('/v1/inventory/movements/create/', {
+      const payload = {
         item_id: selectedItem.id,
         movement_type: 'TRANSFER',
         quantity: qty,
@@ -138,10 +139,17 @@ export default function DistributeStockScreen() {
         destination_facility_id: destFacility?.id || null,
         reference_number: referenceNumber,
         notes: notes || `Transfer ${qty} ${selectedItem.unit} from ${srcLabel} to ${destLabel}`,
-      });
-      Alert.alert('Success', `Transferred ${qty} ${selectedItem.unit} of ${selectedItem.name}\n${srcLabel} → ${destLabel}`, [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      };
+      const res = await sendOrQueue('/v1/inventory/movements/create/', 'post', payload, 'Stock Transfer');
+      if (res) {
+        Alert.alert('Success', `Transferred ${qty} ${selectedItem.unit} of ${selectedItem.name}\n${srcLabel} → ${destLabel}`, [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      } else {
+        Alert.alert('Saved Offline', 'Stock transfer saved and will sync when online.', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to transfer stock');
     } finally { setSaving(false); }

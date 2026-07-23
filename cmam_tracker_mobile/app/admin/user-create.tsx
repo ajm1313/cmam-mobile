@@ -12,6 +12,7 @@ import { sendOrReject } from '../../lib/offlineQueue';
 
 interface RoleOption { id: number; name: string; display_name: string; level: number }
 interface LocationOption { id: number; name: string; code: string }
+interface FacilityOption { id: number; name: string; district_id: number | null; sub_district_id: number | null }
 
 export default function UserCreateScreen() {
   const router = useRouter();
@@ -22,11 +23,25 @@ export default function UserCreateScreen() {
   const [regions, setRegions] = useState<LocationOption[]>([]);
   const [districts, setDistricts] = useState<LocationOption[]>([]);
   const [subDistricts, setSubDistricts] = useState<LocationOption[]>([]);
-  const [facilities, setFacilities] = useState<{ id: number; name: string }[]>([]);
+  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
 
   const [form, setForm] = useState({
-    name: '', email: '', password: '', phone: '',
+    name: '', email: '', password: '', password_confirm: '', phone: '',
     role_id: '', region_id: '', district_id: '', sub_district_id: '', facility_id: '',
+  });
+
+  const selectedRole = roles.find(r => String(r.id) === form.role_id);
+  const roleLevel = selectedRole?.level || 0;
+  const showRegion = roleLevel >= 2;
+  const showDistrict = roleLevel >= 3;
+  const showSubDistrict = roleLevel >= 4;
+  const showFacility = roleLevel >= 5;
+
+  // Filter facilities based on selected district and sub-district
+  const filteredFacilities = facilities.filter(f => {
+    if (form.district_id && f.district_id !== parseInt(form.district_id)) return false;
+    if (form.sub_district_id && f.sub_district_id && f.sub_district_id !== parseInt(form.sub_district_id)) return false;
+    return true;
   });
 
   useEffect(() => {
@@ -39,7 +54,7 @@ export default function UserCreateScreen() {
         ]);
         setRoles(rolesRes.data.data || []);
         setRegions(regionsRes.data.data || []);
-        setFacilities((facilitiesRes.data.data || []).map((f: any) => ({ id: f.id, name: f.name })));
+        setFacilities((facilitiesRes.data.data || []).map((f: any) => ({ id: f.id, name: f.name, district_id: f.district_id ?? null, sub_district_id: f.sub_district_id ?? null })));
       } catch (e: any) {
         console.warn('[UserCreate] Failed to load form data:', e.message);
       }
@@ -73,14 +88,35 @@ export default function UserCreateScreen() {
       Alert.alert('Validation', 'Name, email, and password are required');
       return;
     }
+    if (form.password !== form.password_confirm) {
+      Alert.alert('Validation', 'Passwords do not match');
+      return;
+    }
     if (!form.role_id) {
       Alert.alert('Validation', 'Please select a role for the user');
+      return;
+    }
+    // Validate location fields based on role level
+    if (showRegion && !form.region_id) {
+      Alert.alert('Validation', 'Please select a region for this role');
+      return;
+    }
+    if (showDistrict && !form.district_id) {
+      Alert.alert('Validation', 'Please select a district for this role');
+      return;
+    }
+    if (showSubDistrict && !form.sub_district_id) {
+      Alert.alert('Validation', 'Please select a sub-district for this role');
+      return;
+    }
+    if (showFacility && !form.facility_id) {
+      Alert.alert('Validation', 'Please select a facility for this role');
       return;
     }
     setSaving(true);
     try {
       await sendOrReject('/v1/users/create/', 'post', {
-        name: form.name, email: form.email, password: form.password, phone: form.phone,
+        name: form.name, email: form.email, password: form.password, password_confirm: form.password_confirm, phone: form.phone,
         role_id: form.role_id ? parseInt(form.role_id) : undefined,
         region_id: form.region_id ? parseInt(form.region_id) : undefined,
         district_id: form.district_id ? parseInt(form.district_id) : undefined,
@@ -114,20 +150,28 @@ export default function UserCreateScreen() {
           <Field label="Full Name *" value={form.name} onChangeText={(v: string) => update('name', v)} colors={colors} />
           <Field label="Email *" value={form.email} onChangeText={(v: string) => update('email', v)} keyboardType="email-address" autoCapitalize="none" colors={colors} />
           <Field label="Password *" value={form.password} onChangeText={(v: string) => update('password', v)} secureTextEntry colors={colors} />
+          <Field label="Confirm Password *" value={form.password_confirm} onChangeText={(v: string) => update('password_confirm', v)} secureTextEntry colors={colors} />
           <Field label="Phone" value={form.phone} onChangeText={(v: string) => update('phone', v)} keyboardType="phone-pad" colors={colors} />
         </View>
 
         <SectionHeader title="Role & Location" icon="shield-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <ListPickerField label="Role *" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => update('role_id', v)} colors={colors} />
-          <ListPickerField label="Region" value={form.region_id} options={regions.map((r) => ({ key: String(r.id), label: r.name }))} onSelect={(v: string) => update('region_id', v)} colors={colors} />
-          {districts.length > 0 && (
-            <ListPickerField label="District" value={form.district_id} options={districts.map((d) => ({ key: String(d.id), label: d.name }))} onSelect={(v: string) => update('district_id', v)} colors={colors} />
+          <ListPickerField label="Role *" value={form.role_id} options={roles.map((r) => ({ key: String(r.id), label: r.display_name || r.name }))} onSelect={(v: string) => { update('role_id', v); update('region_id', ''); update('district_id', ''); update('sub_district_id', ''); update('facility_id', ''); }} colors={colors} />
+          {showRegion && (
+            <ListPickerField label="Region *" value={form.region_id} options={regions.map((r) => ({ key: String(r.id), label: r.name }))} onSelect={(v: string) => update('region_id', v)} colors={colors} />
           )}
-          {subDistricts.length > 0 && (
-            <ListPickerField label="Sub-District" value={form.sub_district_id} options={subDistricts.map((s) => ({ key: String(s.id), label: s.name }))} onSelect={(v: string) => update('sub_district_id', v)} colors={colors} />
+          {showDistrict && districts.length > 0 && (
+            <ListPickerField label="District *" value={form.district_id} options={districts.map((d) => ({ key: String(d.id), label: d.name }))} onSelect={(v: string) => update('district_id', v)} colors={colors} />
           )}
-          <ListPickerField label="Facility" value={form.facility_id} options={facilities.map((f) => ({ key: String(f.id), label: f.name }))} onSelect={(v: string) => update('facility_id', v)} colors={colors} />
+          {showSubDistrict && subDistricts.length > 0 && (
+            <ListPickerField label="Sub-District *" value={form.sub_district_id} options={subDistricts.map((s) => ({ key: String(s.id), label: s.name }))} onSelect={(v: string) => update('sub_district_id', v)} colors={colors} />
+          )}
+          {showFacility && filteredFacilities.length > 0 && (
+            <ListPickerField label="Facility *" value={form.facility_id} options={filteredFacilities.map((f) => ({ key: String(f.id), label: f.name }))} onSelect={(v: string) => update('facility_id', v)} colors={colors} />
+          )}
+          {roleLevel === 1 && (
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 8 }}>National-level role — no location assignment needed.</Text>
+          )}
         </View>
 
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>

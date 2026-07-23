@@ -4,6 +4,7 @@ import {
   RefreshControl, ActivityIndicator, Alert, TextInput, Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
@@ -52,19 +53,18 @@ export default function InventoryItemsScreen() {
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchItems();
+    }, [fetchItems])
+  );
+
   const openCreate = () => {
-    setEditItem(null);
-    setForm({ name: '', category: '', unit: '', reorder_level: '', description: '' });
-    setModalVisible(true);
+    router.push('/admin/inventory-create');
   };
 
   const openEdit = (item: InventoryItemData) => {
-    setEditItem(item);
-    setForm({
-      name: item.name, category: item.category, unit: item.unit,
-      reorder_level: item.reorder_level?.toString() || '', description: item.description || '',
-    });
-    setModalVisible(true);
+    router.push(`/admin/inventory-edit?id=${item.id}`);
   };
 
   const handleSave = async () => {
@@ -79,12 +79,9 @@ export default function InventoryItemsScreen() {
       if (editItem) {
         await api.put(`/v1/inventory/items/${editItem.id}/edit/`, body);
         Alert.alert('Success', 'Item updated');
-      } else {
-        await api.post('/v1/inventory/items/create/', body);
-        Alert.alert('Success', 'Item created');
+        setModalVisible(false);
+        fetchItems();
       }
-      setModalVisible(false);
-      fetchItems();
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to save');
     } finally { setSaving(false); }

@@ -25,7 +25,9 @@ interface DueVisit {
 
 interface VisitEntry {
   caseId: number;
+  visitDate: string;
   weight: string;
+  height: string;
   muac: string;
   notes: string;
   selected: boolean;
@@ -40,15 +42,21 @@ export default function BatchVisitScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await api.get('/v1/cases/due-visits/', { params: { type: 'SAM' } });
-      const visits: DueVisit[] = res.data.data?.due_visits ?? [];
+      const [samRes, mamRes] = await Promise.all([
+        api.get('/v1/cases/due-visits/', { params: { type: 'SAM' } }),
+        api.get('/v1/cases/due-visits/', { params: { type: 'MAM' } }),
+      ]);
+      const samVisits: DueVisit[] = samRes.data.data?.due_visits ?? [];
+      const mamVisits: DueVisit[] = mamRes.data.data?.due_visits ?? [];
+      const visits = [...samVisits, ...mamVisits];
       setDueVisits(visits);
       const init: Record<number, VisitEntry> = {};
       visits.forEach((v: DueVisit) => {
-        init[v.id] = { caseId: v.id, weight: '', muac: '', notes: '', selected: true };
+        init[v.id] = { caseId: v.id, visitDate: today, weight: '', height: '', muac: '', notes: '', selected: true };
       });
       setEntries(init);
     } catch {
@@ -81,7 +89,7 @@ export default function BatchVisitScreen() {
   };
 
   const selectedEntries = Object.values(entries).filter(e => e.selected);
-  const validEntries = selectedEntries.filter(e => e.weight || e.muac);
+  const validEntries = selectedEntries.filter(e => e.weight || e.muac || e.height);
 
   const handleSubmit = async () => {
     if (validEntries.length === 0) {
@@ -103,8 +111,9 @@ export default function BatchVisitScreen() {
             let queued = 0;
             for (const entry of validEntries) {
               try {
-                const payload: Record<string, any> = {};
+                const payload: Record<string, any> = { visit_date: entry.visitDate };
                 if (entry.weight) payload.weight_kg = parseFloat(entry.weight);
+                if (entry.height) payload.height_cm = parseFloat(entry.height);
                 if (entry.muac) payload.muac_cm = parseFloat(entry.muac);
                 if (entry.notes) payload.medical_notes = entry.notes;
                 const res = await sendOrQueue(`/v1/cases/${entry.caseId}/visits/record/`, 'post', payload, `Batch Visit #${entry.caseId}`);
@@ -152,7 +161,7 @@ export default function BatchVisitScreen() {
         <View style={[styles.infoBanner, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
           <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            Enter weight and/or MUAC for due cases. Only selected cases with data will be submitted.
+            Fill in visit date, weight, height, and/or MUAC for due cases. Only selected cases with data will be submitted.
           </Text>
         </View>
 
@@ -182,12 +191,24 @@ export default function BatchVisitScreen() {
                 {entry.selected && (
                   <View style={styles.cardBody}>
                     <View style={styles.fieldGroup}>
+                      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Visit Date</Text>
+                      <TextInput style={[inp, { width: 120 }]} value={entry.visitDate} onChangeText={(val: string) => updateEntry(v.id, 'visitDate', val)} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted} />
+                    </View>
+                    <View style={styles.fieldGroup}>
                       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Weight (kg)</Text>
                       <TextInput style={inp} value={entry.weight} onChangeText={(val: string) => updateEntry(v.id, 'weight', val)} keyboardType="decimal-pad" placeholder="0.0" placeholderTextColor={colors.textMuted} />
                     </View>
                     <View style={styles.fieldGroup}>
+                      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Height (cm)</Text>
+                      <TextInput style={inp} value={entry.height} onChangeText={(val: string) => updateEntry(v.id, 'height', val)} keyboardType="decimal-pad" placeholder="0.0" placeholderTextColor={colors.textMuted} />
+                    </View>
+                    <View style={styles.fieldGroup}>
                       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MUAC (cm)</Text>
                       <TextInput style={inp} value={entry.muac} onChangeText={(val: string) => updateEntry(v.id, 'muac', val)} keyboardType="decimal-pad" placeholder="0.0" placeholderTextColor={colors.textMuted} />
+                    </View>
+                    <View style={[styles.fieldGroup, { flex: 2 }]}>
+                      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Notes</Text>
+                      <TextInput style={[inp, { width: '100%' }]} value={entry.notes} onChangeText={(val: string) => updateEntry(v.id, 'notes', val)} placeholder="Optional" placeholderTextColor={colors.textMuted} />
                     </View>
                   </View>
                 )}
@@ -226,8 +247,8 @@ const styles = StyleSheet.create({
   cardSub: { fontSize: 11, marginTop: 2 },
   typeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   typeText: { fontSize: 10, fontWeight: '800' },
-  cardBody: { flexDirection: 'row', gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
-  fieldGroup: { flex: 1 },
+  cardBody: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+  fieldGroup: { flex: 1, minWidth: 80 },
   fieldLabel: { fontSize: 10, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' },
   submitBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1 },
   submitBarText: { fontSize: 13, fontWeight: '600' },

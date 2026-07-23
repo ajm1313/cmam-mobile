@@ -1,8 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Alert, Modal, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Print from 'expo-print';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 
@@ -111,6 +114,7 @@ export default function MonthlyReportScreen() {
   const [districtModal, setDistrictModal] = useState(false);
   const [subDistrictModal, setSubDistrictModal] = useState(false);
   const [facilityModal, setFacilityModal] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     api.get('/v1/locations/regions/').then(r => setRegions(r.data.data || [])).catch(() => {});
@@ -175,6 +179,81 @@ export default function MonthlyReportScreen() {
   const bgTotal = colors.textMuted + '18';
   const bgFinal = colors.textMuted + '30';
 
+  const handleSharePDF = async () => {
+    if (!data) return;
+    setSharing(true);
+    try {
+      const periodLabel = `${MONTHS[selMonth - 1]} ${selYear}`;
+      const locLabel = selFacility?.name || selSubDistrict?.name || selDistrict?.name || selRegion?.name || 'All Locations';
+
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 24px; color: #1e293b; }
+        h1 { font-size: 20px; color: #1e3a8a; margin: 0 0 4px; }
+        h2 { font-size: 13px; color: #64748b; margin: 0 0 20px; font-weight: 400; }
+        .meta { background: #f1f5f9; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; color: #475569; }
+        .meta span { margin-right: 16px; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #6366f1; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; padding: 8px 12px; background: #1e3a8a; color: #fff; font-weight: 600; }
+        td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; }
+        td.num { text-align: right; font-weight: 700; }
+        .footer { margin-top: 24px; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+      </style></head><body>
+        <h1>Monthly Facility Report</h1>
+        <h2>Health Facility Monthly Management of SAM and MAM</h2>
+        <div class="meta"><span><b>Period:</b> ${periodLabel}</span><span><b>Location:</b> ${locLabel}</span><span><b>Facilities:</b> ${facs.length}</span></div>
+        <div class="section">
+          <div class="section-title">SAM Summary</div>
+          <table><thead><tr><th>Metric</th><th style="text-align:right">Value</th></tr></thead><tbody>
+            <tr><td>Start of Period</td><td class="num">${sam.start_of_period}</td></tr>
+            <tr><td>New Admissions</td><td class="num">${sam.new_admissions}</td></tr>
+            <tr><td>Total Enrolment</td><td class="num">${sam.total_enrolment}</td></tr>
+            <tr><td>Cured</td><td class="num">${samCuredTotal}</td></tr>
+            <tr><td>Died</td><td class="num">${samDiedTotal}</td></tr>
+            <tr><td>Defaulted</td><td class="num">${samDefaultedTotal}</td></tr>
+            <tr><td>Total Discharges</td><td class="num">${samTotalDischarges}</td></tr>
+            <tr><td>End of Period</td><td class="num">${sam.end_of_period}</td></tr>
+            <tr><td>Cure Rate</td><td class="num">${samCureRate.toFixed(1)}%</td></tr>
+            <tr><td>Death Rate</td><td class="num">${samDeathRate.toFixed(1)}%</td></tr>
+            <tr><td>Default Rate</td><td class="num">${samDefaultRate.toFixed(1)}%</td></tr>
+          </tbody></table>
+        </div>
+        <div class="section">
+          <div class="section-title">MAM Summary</div>
+          <table><thead><tr><th>Metric</th><th style="text-align:right">Value</th></tr></thead><tbody>
+            <tr><td>Start of Period</td><td class="num">${mam.start_of_period}</td></tr>
+            <tr><td>New Admissions</td><td class="num">${mam.new_admissions}</td></tr>
+            <tr><td>Total Enrolment</td><td class="num">${mam.total_enrolment}</td></tr>
+            <tr><td>Cured</td><td class="num">${mamCuredTotal}</td></tr>
+            <tr><td>Died</td><td class="num">${mamDiedTotal}</td></tr>
+            <tr><td>Defaulted</td><td class="num">${mamDefaultedTotal}</td></tr>
+            <tr><td>Total Discharges</td><td class="num">${mamTotalDischarges}</td></tr>
+            <tr><td>End of Period</td><td class="num">${mam.end_of_period}</td></tr>
+            <tr><td>Cure Rate</td><td class="num">${mamCureRate.toFixed(1)}%</td></tr>
+            <tr><td>Death Rate</td><td class="num">${mamDeathRate.toFixed(1)}%</td></tr>
+            <tr><td>Default Rate</td><td class="num">${mamDefaultRate.toFixed(1)}%</td></tr>
+          </tbody></table>
+        </div>
+        <div class="footer">Generated by CMAM Tracker on ${new Date().toLocaleString('en-GB')}</div>
+      </body></html>`;
+
+      const { uri: pdfUri } = await Print.printToFileAsync({ html });
+      const fileName = `monthly_${selMonth}_${selYear}_${Date.now()}.pdf`;
+      const finalUri = `${FileSystem.cacheDirectory}${fileName}`;
+      await FileSystem.copyAsync({ from: pdfUri, to: finalUri });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(finalUri, { mimeType: 'application/pdf', dialogTitle: 'Share Monthly Report', UTI: 'com.adobe.pdf' });
+      } else {
+        Share.share({ message: `Monthly Report - ${periodLabel} (${locLabel})`, title: 'CMAM Tracker Report' });
+      }
+    } catch (e: any) {
+      Alert.alert('Share Failed', e?.message || 'Could not share report.');
+    } finally {
+      setSharing(false);
+    }
+  };
+
   if (loading) {
     return <View style={[styles.centered, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
@@ -197,6 +276,11 @@ export default function MonthlyReportScreen() {
         <TouchableOpacity style={styles.filterIconBtn} onPress={() => setFilterVisible(v => !v)}>
           <Ionicons name="options-outline" size={20} color="#fff" />
         </TouchableOpacity>
+        {data && (
+          <TouchableOpacity style={styles.filterIconBtn} onPress={handleSharePDF} disabled={sharing}>
+            {sharing ? <ActivityIndicator size={18} color="#fff" /> : <Ionicons name="share-outline" size={20} color="#fff" />}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Filter Panel */}
