@@ -29,11 +29,18 @@ const IMPORT_TYPES = [
   { key: 'inventory', label: 'Inventory', icon: 'cube-outline', desc: 'Import stock items' },
 ];
 
+const CASE_SUB_TYPES = [
+  { key: 'SAM', label: 'SAM', color: '#dc2626', desc: 'Severe Acute Malnutrition' },
+  { key: 'MAM', label: 'MAM', color: '#d97706', desc: 'Moderate Acute Malnutrition' },
+  { key: 'IPC', label: 'IPC', color: '#7c3aed', desc: 'Inpatient Care' },
+];
+
 export default function ImportDataScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedCaseSubType, setSelectedCaseSubType] = useState<string | null>(null);
   const [facilities, setFacilities] = useState<{id: number; name: string}[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<number | null>(null);
   const [selectedFile, setSelectedFile] = useState<{name: string; uri: string; mimeType?: string} | null>(null);
@@ -56,14 +63,15 @@ export default function ImportDataScreen() {
     }
   };
 
-  const downloadTemplate = async () => {
-    if (!selectedType) {
+  const downloadTemplate = async (templateType?: string) => {
+    const typeKey = templateType || selectedType;
+    if (!typeKey) {
       Alert.alert('Error', 'Please select an import type first');
       return;
     }
 
     try {
-      const url = `/v1/import/template/${selectedType}/`;
+      const url = `/v1/import/template/${typeKey}/`;
       const response = await api.get(url, { responseType: 'arraybuffer' });
 
       if (Platform.OS === 'web') {
@@ -74,7 +82,7 @@ export default function ImportDataScreen() {
         const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `${selectedType}_import_template.xlsx`;
+        a.download = `${typeKey}_import_template.xlsx`;
         a.click();
         URL.revokeObjectURL(downloadUrl);
         Alert.alert('Success', 'Template downloaded');
@@ -85,7 +93,7 @@ export default function ImportDataScreen() {
           return;
         }
 
-        const filename = `${selectedType}_import_template.xlsx`;
+        const filename = `${typeKey}_import_template.xlsx`;
         const fileUri = FileSystem.cacheDirectory + filename;
 
         // Convert arraybuffer to base64
@@ -145,6 +153,11 @@ export default function ImportDataScreen() {
       return;
     }
 
+    if (selectedType === 'cases' && !selectedCaseSubType) {
+      Alert.alert('Error', 'Please select a case type (SAM, MAM, or IPC)');
+      return;
+    }
+
     if (selectedType && !selectedFacility) {
       Alert.alert('Error', `Please select a destination facility for ${selectedType} import`);
       return;
@@ -172,6 +185,9 @@ export default function ImportDataScreen() {
 
       if (selectedFacility) {
         formData.append('facility_id', selectedFacility.toString());
+      }
+      if (selectedType === 'cases' && selectedCaseSubType) {
+        formData.append('malnutrition_type', selectedCaseSubType);
       }
 
       const endpoint = selectedType === 'cases' 
@@ -218,6 +234,9 @@ export default function ImportDataScreen() {
 
       if (selectedFacility) {
         formData.append('facility_id', selectedFacility.toString());
+      }
+      if (selectedType === 'cases' && selectedCaseSubType) {
+        formData.append('malnutrition_type', selectedCaseSubType);
       }
 
       const endpoint = selectedType === 'cases'
@@ -272,6 +291,7 @@ export default function ImportDataScreen() {
               ]}
               onPress={() => {
                 setSelectedType(type.key);
+                setSelectedCaseSubType(null);
                 setPreviewData(null);
               }}
             >
@@ -283,21 +303,68 @@ export default function ImportDataScreen() {
         </View>
       </View>
 
+      {/* Case Sub-Type Selection (SAM/MAM/IPC) */}
+      {selectedType === 'cases' && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Select Case Type</Text>
+          <View style={styles.typeGrid}>
+            {CASE_SUB_TYPES.map((sub) => (
+              <TouchableOpacity
+                key={sub.key}
+                style={[
+                  styles.typeCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  selectedCaseSubType === sub.key && { borderColor: sub.color, backgroundColor: sub.color + '10' },
+                ]}
+                onPress={() => {
+                  setSelectedCaseSubType(sub.key);
+                  setPreviewData(null);
+                }}
+              >
+                <Ionicons name="medkit-outline" size={24} color={selectedCaseSubType === sub.key ? sub.color : colors.textSecondary} />
+                <Text style={[styles.typeLabel, { color: colors.textPrimary }]}>{sub.label}</Text>
+                <Text style={[styles.typeDesc, { color: colors.textMuted }]}>{sub.desc}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Template Download */}
-      {selectedType && (
+      {selectedType === 'inventory' && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Step 1: Download Template</Text>
           <TouchableOpacity
             style={[styles.templateBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={downloadTemplate}
+            onPress={() => downloadTemplate('inventory')}
           >
             <Ionicons name="download-outline" size={20} color={colors.primary} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.templateTitle, { color: colors.textPrimary }]}>
-                Download {selectedType === 'cases' ? 'Cases' : 'Inventory'} Template
+                Download Inventory Template
               </Text>
               <Text style={[styles.templateDesc, { color: colors.textMuted }]}>
                 Get the Excel template with correct columns
+              </Text>
+            </View>
+            <Ionicons name="document-outline" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+      )}
+      {selectedType === 'cases' && selectedCaseSubType && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Step 1: Download Template</Text>
+          <TouchableOpacity
+            style={[styles.templateBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => downloadTemplate(`cases-${selectedCaseSubType.toLowerCase()}`)}
+          >
+            <Ionicons name="download-outline" size={20} color={colors.primary} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[styles.templateTitle, { color: colors.textPrimary }]}>
+                Download {selectedCaseSubType} Template
+              </Text>
+              <Text style={[styles.templateDesc, { color: colors.textMuted }]}>
+                Get the Excel template with all {selectedCaseSubType} registration fields
               </Text>
             </View>
             <Ionicons name="document-outline" size={20} color={colors.textMuted} />
@@ -333,7 +400,7 @@ export default function ImportDataScreen() {
       )}
 
       {/* File Selection */}
-      {selectedType && (
+      {selectedType && (selectedType !== 'cases' || selectedCaseSubType) && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Step 2: Select Your File</Text>
           <TouchableOpacity
