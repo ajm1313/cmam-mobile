@@ -407,7 +407,7 @@ export default function ProfileScreen() {
         <Text style={[styles.logoutText, { color: colors.danger }]}>{loggingOut ? 'Signing out...' : 'Sign Out'}</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker • Community Management of Acute Malnutrition</Text>
+      <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker • Community-based Management of Severe Acute Malnutrition</Text>
     </ScrollView>
   );
 }

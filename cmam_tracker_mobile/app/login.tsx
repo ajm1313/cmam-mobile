@@ -58,7 +58,7 @@ export default function LoginScreen() {
             <Image source={require('../assets/logo.jpg')} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>CMAM Tracker</Text>
-          <Text style={styles.tagline}>Community-based Management of Acute Malnutrition (CMAM)</Text>
+          <Text style={styles.tagline}>Community-based Management of Severe Acute Malnutrition (CMAM)</Text>
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>SECURE ACCESS</Text>

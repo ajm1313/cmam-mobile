@@ -1,6 +1,6 @@
 # CMAM Tracker Mobile
 
-A premium React Native / Expo mobile app for the CMAM (Community Management of Acute Malnutrition) Tracker system.
+A premium React Native / Expo mobile app for the CMAM (Community-based Management of Severe Acute Malnutrition) Tracker system.
 
 ## Framework
 - **Expo** ~54 with **Expo Router** (file-based routing)
