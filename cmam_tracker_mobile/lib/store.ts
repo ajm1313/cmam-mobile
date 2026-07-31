@@ -23,13 +23,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user: User) => set({ user }),
 
   login: async (email: string, password: string) => {
-    console.log('[LOGIN] baseURL:', api.defaults.baseURL);
-    console.log('[LOGIN] Attempting login with email:', email);
-    console.log('[LOGIN] Full URL:', api.defaults.baseURL + '/v1/login/');
     try {
       const response = await api.post('/v1/login/', { email, password });
-      console.log('[LOGIN] SUCCESS:', response.status);
-      console.log('[LOGIN] Response data:', JSON.stringify(response.data));
       const { user, token, refresh_token } = response.data.data;
       await storage.setItem('auth_token', token);
       if (refresh_token) {
@@ -38,12 +33,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       await storage.setItem('auth_user', JSON.stringify(user));
       set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (e: any) {
-      console.log('[LOGIN] ERROR:', e.message);
-      console.log('[LOGIN] response status:', e.response?.status);
-      console.log('[LOGIN] response data:', JSON.stringify(e.response?.data));
-      console.log('[LOGIN] response headers:', JSON.stringify(e.response?.headers));
-      console.log('[LOGIN] request:', JSON.stringify(e.config));
-      console.log('[LOGIN] code:', e.code);
       throw e;
     }
   },

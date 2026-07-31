@@ -73,6 +73,7 @@ export default function VisitEditScreen() {
   const isSAM = caseType === 'SAM';
   const isAnthropometryVisit = ANTHROPOMETRY_VISITS.includes(visitNum);
   const maxWeeks = isSAM ? 16 : 10;
+  const today = new Date().toISOString().slice(0, 10);
 
   // Fetch case (includes visits) and stock
   useEffect(() => {
@@ -173,7 +174,6 @@ export default function VisitEditScreen() {
     fetchData();
   }, [caseId, id]);
 
-  const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     visit_date: today,
     visit_type: 'Routine',
@@ -240,7 +240,7 @@ export default function VisitEditScreen() {
       age_months: parseInt(caseAge || '12'),
       weight_kg: parseFloat(form.weight_kg),
       oedema: form.oedema,
-      appetite_test: form.rutf_test === 'Fail' ? 'Failed' : form.rutf_test === 'Pass' ? 'Passed' : undefined,
+      appetite_test: form.appetite === 'Poor' ? 'Failed' : form.appetite ? 'Passed' : undefined,
       temperature_c: parseFloat(form.temperature),
       respiratory_rate: parseInt(form.respiratory_rate) || 0,
       visit_number: visitNum,

@@ -137,7 +137,7 @@ function RootLayoutInner() {
           <Stack.Screen name="case/discharge" options={{ title: 'Discharge Management', headerShown: false }} />
           <Stack.Screen name="case/due-visits" options={{ title: 'Due Visits', headerShown: false }} />
           <Stack.Screen name="visit/[caseId]" options={{ title: 'Record Visit', headerShown: false }} />
-          <Stack.Screen name="visit/edit" options={{ title: 'Edit Visit', headerShown: false }} />
+          <Stack.Screen name="visit/edit/[id]" options={{ title: 'Edit Visit', headerShown: false }} />
           <Stack.Screen name="facility/[id]" options={{ title: 'Facility Details' }} />
           <Stack.Screen name="change-password" options={{ title: 'Change Password', presentation: 'modal' }} />
           <Stack.Screen name="admin/index" options={{ title: 'Admin & Tools', headerShown: false }} />

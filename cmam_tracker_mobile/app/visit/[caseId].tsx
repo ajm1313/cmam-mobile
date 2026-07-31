@@ -164,7 +164,7 @@ export default function VisitFormScreen() {
       age_months: parseInt(caseAge || '12'),
       weight_kg: parseFloat(form.weight_kg),
       oedema: form.oedema,
-      appetite_test: form.rutf_test === 'Fail' ? 'Failed' : form.rutf_test === 'Pass' ? 'Passed' : undefined,
+      appetite_test: form.appetite === 'Poor' ? 'Failed' : form.appetite ? 'Passed' : undefined,
       temperature_c: parseFloat(form.temperature),
       respiratory_rate: parseInt(form.respiratory_rate) || 0,
       visit_number: parseInt(visitNumber || '1'),
