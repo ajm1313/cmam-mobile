@@ -1,6 +1,6 @@
 # CMAM Tracker System
 
-A comprehensive Community Management of Acute Malnutrition (CMAM) tracking system with Django backend, web interface, and React Native mobile application.
+A comprehensive Community-based Management of Severe Acute Malnutrition (CMAM) tracking system with Django backend, web interface, and React Native mobile application.
 
 ## 🎯 Project Overview
 
