@@ -26,6 +26,7 @@ export interface User {
   is_staff?: boolean;
   is_superuser?: boolean;
   is_facility_level_only?: boolean;
+  can_import_export?: boolean;
   role: UserRole;
   location: UserLocation;
   created_at: string | null;

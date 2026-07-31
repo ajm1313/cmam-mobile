@@ -22,6 +22,7 @@ const THEME_OPTIONS: { key: ThemeMode; label: string; icon: string }[] = [
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const canImportExport = !!user?.can_import_export;
   const { mode, setMode } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
   const { queue: syncQueue, isSyncing: syncing, sync: runSync } = useSyncStore();
@@ -371,29 +372,33 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Import Data */}
-        <TouchableOpacity style={styles.dataRow} onPress={() => router.push('/import-data')} activeOpacity={0.7}>
-          <View style={[styles.dataIconWrap, { backgroundColor: colors.info + '10' }]}>
-            <Ionicons name="cloud-upload-outline" size={16} color={colors.info} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.dataLabel, { color: colors.textPrimary }]}>Import Data</Text>
-            <Text style={[styles.dataHint, { color: colors.textMuted }]}>Bulk import cases or inventory</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        </TouchableOpacity>
+        {canImportExport && (
+          <>
+            {/* Import Data */}
+            <TouchableOpacity style={styles.dataRow} onPress={() => router.push('/import-data')} activeOpacity={0.7}>
+              <View style={[styles.dataIconWrap, { backgroundColor: colors.info + '10' }]}>
+                <Ionicons name="cloud-upload-outline" size={16} color={colors.info} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.dataLabel, { color: colors.textPrimary }]}>Import Data</Text>
+                <Text style={[styles.dataHint, { color: colors.textMuted }]}>Bulk import cases or inventory</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
 
-        {/* Export Data */}
-        <TouchableOpacity style={styles.exportBtn} onPress={handleExportData} activeOpacity={0.7}>
-          <View style={[styles.dataIconWrap, { backgroundColor: colors.warning + '10' }]}>
-            <Ionicons name="download-outline" size={16} color={colors.warning} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.dataLabel, { color: colors.textPrimary }]}>Export Local Data</Text>
-            <Text style={[styles.dataHint, { color: colors.textMuted }]}>Backup cases & visits</Text>
-          </View>
-          <Ionicons name="share-outline" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
+            {/* Export Data */}
+            <TouchableOpacity style={styles.exportBtn} onPress={handleExportData} activeOpacity={0.7}>
+              <View style={[styles.dataIconWrap, { backgroundColor: colors.warning + '10' }]}>
+                <Ionicons name="download-outline" size={16} color={colors.warning} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.dataLabel, { color: colors.textPrimary }]}>Export Local Data</Text>
+                <Text style={[styles.dataHint, { color: colors.textMuted }]}>Backup cases & visits</Text>
+              </View>
+              <Ionicons name="share-outline" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Sign Out */}

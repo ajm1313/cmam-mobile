@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/theme';
+import { useAuthStore } from '../lib/store';
 import api from '../lib/api';
 
 // Note: Install expo-document-picker and expo-sharing for full functionality
@@ -38,7 +39,28 @@ const CASE_SUB_TYPES = [
 export default function ImportDataScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  
+  const { user } = useAuthStore();
+
+  if (!user?.can_import_export) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Import Data</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Ionicons name="lock-closed-outline" size={48} color={colors.textMuted} />
+          <Text style={{ marginTop: 16, color: colors.textPrimary, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+            Import/Export is not available for facility or sub-district users.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedCaseSubType, setSelectedCaseSubType] = useState<string | null>(null);
   const [facilities, setFacilities] = useState<{id: number; name: string}[]>([]);
