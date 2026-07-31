@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/theme';
 import { useAuthStore } from '../lib/store';
 import api from '../lib/api';
+import { logger } from '../lib/logger';
 
 // Note: Install expo-document-picker and expo-sharing for full functionality
 // npx expo install expo-document-picker expo-sharing
@@ -82,7 +83,7 @@ export default function ImportDataScreen() {
       const list = response.data.data || [];
       setFacilities(list.map((f: any) => ({ id: f.id, name: f.name })));
     } catch (e) {
-      console.error('Failed to load facilities', e);
+      logger.error('Failed to load facilities', e);
     }
   };
 

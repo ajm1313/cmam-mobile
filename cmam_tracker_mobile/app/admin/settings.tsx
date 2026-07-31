@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import { useSyncStore } from '../../lib/sync-store';
 import { logger } from '../../lib/logger';

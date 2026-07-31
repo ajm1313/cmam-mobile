@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';

@@ -11,6 +11,7 @@ import { useNetworkStatus } from '../../lib/useNetworkStatus';
 import { setCache, getCacheFallback } from '../../lib/cache';
 import api from '../../lib/api';
 import { useAuthStore } from '../../lib/store';
+import { logger } from '../../lib/logger';
 import OfflineBanner from '../../components/OfflineBanner';
 import { Skeleton } from '../../components/LoadingSkeleton';
 import {
@@ -148,7 +149,7 @@ function OverviewTab({ colors, isConnected }: { colors: any; isConnected: boolea
         await setCache('ai_overview', resp.data, 5 * 60 * 1000);
       }
     } catch (e) {
-      console.error('[AI Overview] Error:', e);
+      logger.error('[AI Overview] Error:', e);
       setError('Failed to load AI overview. Pull to retry.');
     } finally {
       setLoading(false);
@@ -315,7 +316,7 @@ function RiskTab({ colors, isConnected }: { colors: any; isConnected: boolean })
         await setCache('ai_risk_batch', resp.data, 5 * 60 * 1000);
       }
     } catch (e) {
-      console.error('[AI Risk] Error:', e);
+      logger.error('[AI Risk] Error:', e);
       setError('Failed to load risk predictions. Pull to retry.');
     } finally {
       setLoading(false);
@@ -472,7 +473,7 @@ function ForecastTab({ colors, isConnected }: { colors: any; isConnected: boolea
         await setCache('ai_forecast_batch', resp.data, 5 * 60 * 1000);
       }
     } catch (e) {
-      console.error('[AI Forecast] Error:', e);
+      logger.error('[AI Forecast] Error:', e);
       setError('Failed to load stock forecasts. Pull to retry.');
     } finally {
       setLoading(false);

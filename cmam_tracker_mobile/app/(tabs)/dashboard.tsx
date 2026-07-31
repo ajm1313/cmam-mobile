@@ -9,6 +9,7 @@ import { useAuthStore } from '../../lib/store';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { logger } from '../../lib/logger';
 import { setCache, getCacheFallback } from '../../lib/cache';
 import { useOfflineSync } from '../../lib/useOfflineSync';
 import OfflineBanner from '../../components/OfflineBanner';
@@ -116,7 +117,7 @@ export default function DashboardScreen() {
       setIsStale(false);
       await setCache(CACHE_KEY, freshData, 15 * 60 * 1000); // 15 min TTL
     } catch (e) {
-      console.error('Dashboard fetch error:', e);
+      logger.error('Dashboard fetch error:', e);
       // If we already showed cached data, just mark stale
       if (!data && cached) {
         setIsStale(true);
