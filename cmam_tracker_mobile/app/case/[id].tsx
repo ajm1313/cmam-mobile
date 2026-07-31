@@ -61,14 +61,20 @@ export default function CaseDetailScreen() {
   const reverseDischarge = async () => {
     try {
       const res = await sendOrQueue(`/v1/cases/${id}/reverse-discharge/`, 'post', null, 'Reverse Discharge');
-      if (res) {
-        Alert.alert('Success', 'Case reactivated successfully.');
-        fetchCase();
-      } else {
+      if (!res) {
         Alert.alert('Saved Offline', 'Reverse discharge saved and will sync when online.');
+        return;
       }
-    } catch {
-      Alert.alert('Error', 'Failed to reverse discharge');
+      const data = res.data;
+      if (data && data.success === false) {
+        Alert.alert('Not reactivated', data.message || 'Server refused the request.');
+      } else {
+        Alert.alert('Success', data?.message || 'Case reactivated successfully.');
+        fetchCase();
+      }
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to reverse discharge';
+      Alert.alert('Error', message);
     }
   };
 
