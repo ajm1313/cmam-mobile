@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { logger } from './logger';
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
@@ -53,7 +54,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
     return tokenData.data;
   } catch (e) {
-    console.warn('Push token registration failed (expected in Expo Go):', e);
+    logger.warn('Push token registration failed (expected in Expo Go)', e);
     return null;
   }
 }

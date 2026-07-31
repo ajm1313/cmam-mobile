@@ -50,7 +50,7 @@ export default function EditProfileScreen() {
 
     setLoading(true);
     try {
-      const payload: any = {
+      const payload: Record<string, string> = {
         name: name.trim(),
         phone: phone.trim(),
       };

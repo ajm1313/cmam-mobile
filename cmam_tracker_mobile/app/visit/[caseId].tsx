@@ -10,6 +10,7 @@ import { useTheme } from '../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import { logger } from '../../lib/logger';
 import DatePickerField from '../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../lib/samOpcAutomation';
 
@@ -83,7 +84,7 @@ export default function VisitFormScreen() {
           const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
           setWeeksInProgram(weeks);
         }
-        const params: any = {};
+        const params: { facility_id?: number } = {};
         if (facilityId) params.facility_id = facilityId;
         const res = await api.get('/stock-levels/', { params });
         if (res.data?.success && Array.isArray(res.data.data)) {
@@ -92,7 +93,7 @@ export default function VisitFormScreen() {
           );
           if (rutfItem) setRutfStock(rutfItem.available_stock ?? rutfItem.current_stock ?? 0);
         }
-      } catch (e: any) { console.warn('Stock check failed', e?.message); }
+      } catch (e: any) { logger.warn('Stock check failed', e?.message); }
     };
     fetchStock();
   }, [caseId]);
@@ -232,7 +233,7 @@ export default function VisitFormScreen() {
   const doSubmit = async () => {
     setSubmitting(true);
     try {
-      const payload: any = {
+      const payload: Record<string, string | number | boolean | undefined> = {
         visit_date: form.visit_date,
         visit_type: form.visit_type,
         weight_lost: form.weight_lost,

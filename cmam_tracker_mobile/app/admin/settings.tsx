@@ -11,6 +11,7 @@ import { useAuthStore } from '../../lib/store';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import { useSyncStore } from '../../lib/sync-store';
+import { logger } from '../../lib/logger';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -36,13 +37,13 @@ export default function SettingsScreen() {
         setCacheTtl(ttl || '10');
         setSyncInterval(interval || '5');
         setBiometric(bio === 'true');
-      } catch (e: any) { console.warn('Failed to load settings', e?.message); }
+      } catch (e: any) { logger.warn('Failed to load settings', e?.message); }
       setLoaded(true);
     })();
   }, []);
 
   const saveSetting = async (key: string, value: string) => {
-    try { await AsyncStorage.setItem(key, value); } catch (e: any) { console.warn('Failed to save setting', key, e?.message); }
+    try { await AsyncStorage.setItem(key, value); } catch (e: any) { logger.warn('Failed to save setting', { key, message: e?.message }); }
   };
 
   const handleSave = () => {

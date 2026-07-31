@@ -10,6 +10,7 @@ import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import { logger } from '../../lib/logger';
 import OfflineBanner from '../../components/OfflineBanner';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
@@ -123,7 +124,7 @@ export default function BatchVisitScreen() {
                   queued++;
                 }
               } catch (e: any) {
-                console.warn('Batch visit failed for case', entry.caseId, e?.message);
+                logger.warn('Batch visit failed for case', { caseId: entry.caseId, message: e?.message });
                 failed++;
               }
             }

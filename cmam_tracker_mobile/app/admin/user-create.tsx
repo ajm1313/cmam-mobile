@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrReject } from '../../lib/offlineQueue';
+import { logger } from '../../lib/logger';
 
 interface RoleOption { id: number; name: string; display_name: string; level: number }
 interface LocationOption { id: number; name: string; code: string }
@@ -56,7 +57,7 @@ export default function UserCreateScreen() {
         setRegions(regionsRes.data.data || []);
         setFacilities((facilitiesRes.data.data || []).map((f: any) => ({ id: f.id, name: f.name, district_id: f.district_id ?? null, sub_district_id: f.sub_district_id ?? null })));
       } catch (e: any) {
-        console.warn('[UserCreate] Failed to load form data:', e.message);
+        logger.warn('[UserCreate] Failed to load form data', e.message);
       }
     })();
   }, []);

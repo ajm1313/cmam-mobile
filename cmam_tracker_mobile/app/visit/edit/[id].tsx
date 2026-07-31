@@ -10,6 +10,7 @@ import { useTheme } from '../../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../lib/api';
 import { sendOrQueue } from '../../../lib/offlineQueue';
+import { logger } from '../../../lib/logger';
 import DatePickerField from '../../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../../lib/samOpcAutomation';
 
@@ -101,7 +102,7 @@ export default function VisitEditScreen() {
           const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
           setWeeksInProgram(weeks);
         }
-        const params: any = {};
+        const params: { facility_id?: number } = {};
         const facilityId = caseData?.facility_id;
         if (facilityId) params.facility_id = facilityId;
         const res = await api.get('/stock-levels/', { params });
@@ -165,7 +166,7 @@ export default function VisitEditScreen() {
           home_visit_notes: visit.home_visit_notes || '',
         });
       } catch (e: any) {
-        console.warn('Data load failed', e?.message);
+        logger.warn('Data load failed', e?.message);
         Alert.alert('Error', 'Failed to load visit');
       } finally {
         setLoading(false);
@@ -308,7 +309,7 @@ export default function VisitEditScreen() {
   const doSubmit = async () => {
     setSubmitting(true);
     try {
-      const payload: any = {
+      const payload: Record<string, string | number | boolean | undefined> = {
         visit_date: form.visit_date,
         visit_type: form.visit_type,
         weight_lost: form.weight_lost,
@@ -363,7 +364,7 @@ export default function VisitEditScreen() {
       if (form.community_volunteer) payload.community_volunteer = form.community_volunteer;
       if (form.home_visit_notes) payload.home_visit_notes = form.home_visit_notes;
 
-      payload._updated_at = updatedAt;
+      payload._updated_at = updatedAt ?? undefined;
       const res = await sendOrQueue(`/v1/cases/${caseId}/visits/${id}/edit/`, 'put', payload, 'Visit Edit');
       if (res) {
         Alert.alert('Success', 'Visit updated.', [

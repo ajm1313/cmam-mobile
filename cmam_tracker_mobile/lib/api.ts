@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { appConfig } from './config';
+import { logger } from './logger';
 
 const isWeb = Platform.OS === 'web';
 
@@ -147,7 +148,7 @@ api.interceptors.response.use(
       error.userMessage = message;
 
       // Could implement automatic retry with exponential backoff here
-      console.warn(`[API] Rate limited. Retry after: ${retryAfter}s`);
+      logger.warn(`[API] Rate limited. Retry after: ${retryAfter}s`);
     }
 
     return Promise.reject(error);

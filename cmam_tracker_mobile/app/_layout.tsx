@@ -31,8 +31,8 @@ function RootLayoutInner() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const router = useRouter();
   const { isDark, colors } = useTheme();
-  const notificationListener = useRef<any>(null);
-  const responseListener = useRef<any>(null);
+  const notificationListener = useRef<{ remove(): void } | null>(null);
+  const responseListener = useRef<{ remove(): void } | null>(null);
   const wasAuthenticated = useRef(false);
 
   useOfflineSync();
