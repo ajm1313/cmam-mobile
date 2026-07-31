@@ -58,24 +58,26 @@ export default function IpcRegisterScreen() {
 
     setSubmitting(true);
     try {
+      const toInt = (v: string) => { const n = parseInt(v, 10); return Number.isNaN(n) ? undefined : n; };
+      const toFloat = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
       const payload: Record<string, any> = {
         patient_name: form.patient_name,
-        patient_age: parseInt(form.patient_age) || 0,
+        patient_age: toInt(form.patient_age) ?? 0,
         gender: form.gender,
         admission_date: form.admission_date,
-        weight: parseFloat(form.weight),
-        height: parseFloat(form.height),
-        facility_id: parseInt(form.facility_id),
+        weight: toFloat(form.weight),
+        height: toFloat(form.height),
+        facility_id: toInt(form.facility_id),
         status: form.status,
       };
-      if (form.muac) payload.muac = parseFloat(form.muac);
+      if (form.muac) { const n = toFloat(form.muac); if (n !== undefined) payload.muac = n; }
 
       await sendOrQueue('/v1/ipc/cases/', 'post', payload, 'IPC Case Registration');
 
       if (params.caseId) {
         await sendOrQueue(`/v1/cases/${params.caseId}/transfer/`, 'post', {
           transfer_type: 'ipc',
-          target_facility_id: parseInt(form.facility_id),
+          target_facility_id: toInt(form.facility_id),
           reason: form.reason,
           notes: form.notes,
         }, 'IPC Transfer').catch(() => {});

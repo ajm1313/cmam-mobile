@@ -294,8 +294,8 @@ export default function VisitEditScreen() {
     }
     // Stock-out warning for RUTF
     if (form.rutf_sachets_given && rutfStock !== null) {
-      const qty = parseInt(form.rutf_sachets_given);
-      if (qty > rutfStock) {
+      const qty = parseInt(form.rutf_sachets_given, 10);
+      if (!Number.isNaN(qty) && qty > rutfStock) {
         Alert.alert('Stock Warning', `Only ${rutfStock} RUTF sachets in stock. You are dispensing ${qty}. Continue anyway?`, [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Continue', style: 'destructive', onPress: () => doSubmit() },
@@ -342,7 +342,7 @@ export default function VisitEditScreen() {
         remarks: form.remarks || undefined,
       };
       const toFloat = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
-      const toInt = (v: string) => { const n = parseInt(v); return Number.isNaN(n) ? undefined : n; };
+      const toInt = (v: string) => { const n = parseInt(v, 10); return Number.isNaN(n) ? undefined : n; };
       if (form.weight_kg) payload.weight_kg = toFloat(form.weight_kg);
       if (form.height_cm) payload.height_cm = toFloat(form.height_cm);
       if (form.muac_cm) payload.muac_cm = toFloat(form.muac_cm);
@@ -477,6 +477,7 @@ export default function VisitEditScreen() {
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.weight_kg} onChangeText={v => {
                 set('weight_kg', v);
                 const w = parseFloat(v);
+                if (Number.isNaN(w)) { set('rutf_sachets_given', ''); checkAutomation(); return; }
                 const sachets = calcRutf(w);
                 if (sachets && isSAM) set('rutf_sachets_given', sachets.toString());
                 checkAutomation();

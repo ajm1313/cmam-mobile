@@ -21,7 +21,7 @@ Notifications.setNotificationHandler({
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
+    logger.warn('Push notifications require a physical device');
     return null;
   }
 

@@ -168,7 +168,7 @@ export default function CaseRegisterScreen() {
   }, [f.date_of_birth, s]);
 
   const ageToDoB = (v: string) => {
-    const m = parseInt(v); if (isNaN(m) || m < 0) return;
+    const m = parseInt(v, 10); if (Number.isNaN(m) || m < 0) return;
     const now = new Date();
     const dob = new Date(now.getFullYear(), now.getMonth() - m, now.getDate());
     s('date_of_birth', dob.toISOString().split('T')[0]);
@@ -180,7 +180,7 @@ export default function CaseRegisterScreen() {
   const checkAutomation = () => {
     if (caseType !== 'SAM') return;
     
-    const ageMonths = parseInt(f.age_months) || 0;
+    const ageMonths = parseInt(f.age_months, 10) || 0;
     
     const data = {
       age_months: ageMonths,
@@ -272,7 +272,7 @@ export default function CaseRegisterScreen() {
 
     // MUAC range validation
     const muacVal = parseFloat(f.muac_cm);
-    if (isNaN(muacVal) || muacVal < 5 || muacVal > 30) {
+    if (Number.isNaN(muacVal) || muacVal < 5 || muacVal > 30) {
       Alert.alert('Invalid MUAC', 'MUAC must be between 5 and 30 cm.'); return;
     }
     if (caseType === 'SAM' && muacVal >= 11.5 && f.oedema === 'None') {
@@ -283,7 +283,7 @@ export default function CaseRegisterScreen() {
     }
     
     // CRITICAL: Block MAM admission for infants <6 months
-    if (caseType === 'MAM' && parseInt(f.age_months || '0') < 6) {
+    if (caseType === 'MAM' && parseInt(f.age_months || '0', 10) < 6) {
       Alert.alert(
         '🚨 MAM Exclusion',
         'Infants under 6 months cannot be admitted for MAM management.\n\n' +
@@ -296,16 +296,18 @@ export default function CaseRegisterScreen() {
     
     setSubmitting(true);
     try {
+      const toInt = (v: string) => { const n = parseInt(v, 10); return Number.isNaN(n) ? undefined : n; };
+      const toFloat = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
       const payload: Record<string, any> = {
         child_name: f.child_name, child_gender: f.child_gender, date_of_birth: f.date_of_birth,
-        age_months: parseInt(f.age_months) || 0, malnutrition_type: caseType,
-        admission_date: f.admission_date, weight_kg: parseFloat(f.weight_kg),
-        height_cm: parseFloat(f.height_cm), facility_id: parseInt(f.facility_id),
+        age_months: toInt(f.age_months) ?? 0, malnutrition_type: caseType,
+        admission_date: f.admission_date, weight_kg: toFloat(f.weight_kg),
+        height_cm: toFloat(f.height_cm), facility_id: toInt(f.facility_id),
         caregiver_name: f.caregiver_name, caregiver_phone: f.caregiver_phone,
         caregiver_relationship: f.caregiver_relationship, address: f.community,
         admission_type: f.admission_type || 'New Admission',
       };
-      payload.muac_cm = parseFloat(f.muac_cm);
+      payload.muac_cm = toFloat(f.muac_cm);
       if (f.oedema) payload.oedema = f.oedema;
       if (f.appetite_test) payload.appetite_test = f.appetite_test;
       if (f.mam_type) payload.mam_type = f.mam_type;
@@ -376,8 +378,8 @@ export default function CaseRegisterScreen() {
       if (f.antimalarial_dosage) payload.antimalarial_dosage = f.antimalarial_dosage;
 
       // RUTF and Other Supplies
-      if (f.rutf_sachets_given) payload.rutf_sachets_given = parseInt(f.rutf_sachets_given);
-      if (f.rutf_ration_per_day) payload.rutf_ration_per_day = parseFloat(f.rutf_ration_per_day);
+      if (f.rutf_sachets_given) { const n = toInt(f.rutf_sachets_given); if (n !== undefined) payload.rutf_sachets_given = n; }
+      if (f.rutf_ration_per_day) { const n = toFloat(f.rutf_ration_per_day); if (n !== undefined) payload.rutf_ration_per_day = n; }
       if (f.next_visit_date) payload.next_visit_date = f.next_visit_date;
 
       // Other Medicines
@@ -412,10 +414,11 @@ export default function CaseRegisterScreen() {
       }
       if (res) {
         const newId = res.data.data?.id;
-        Alert.alert('Success', 'Case registered successfully.', [
-          { text: 'View Case', onPress: () => newId ? router.replace({ pathname: '/case/[id]', params: { id: String(newId) } }) : router.back() },
-          { text: 'Done', onPress: () => router.back() },
-        ]);
+        const buttons = [{ text: 'Done', onPress: () => router.back() }];
+        if (newId) {
+          buttons.unshift({ text: 'View Case', onPress: () => router.replace({ pathname: '/case/[id]', params: { id: String(newId) } }) });
+        }
+        Alert.alert('Success', 'Case registered successfully.', buttons);
       } else {
         Alert.alert('Saved Offline', 'Case registration saved and will sync when online.', [
           { text: 'OK', onPress: () => router.back() },
@@ -635,7 +638,7 @@ export default function CaseRegisterScreen() {
               )}
               
               {/* INFANT UNDER 6 MONTHS SPECIFIC FIELDS */}
-              {parseInt(f.age_months || '0') < 6 && (
+              {parseInt(f.age_months || '0', 10) < 6 && (
                 <>
                   <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary, marginBottom: 8 }}>⚠️ Infant Under 6 Months Assessment</Text>
@@ -809,7 +812,7 @@ export default function CaseRegisterScreen() {
           {caseType === 'MAM' && stepIdx === 2 && (
             <Card c={colors} title="Entry Criteria & Anthropometry" accent={accent}>
               {/* INFANT <6 MONTHS EXCLUSION WARNING */}
-              {parseInt(f.age_months || '0') < 6 && (
+              {parseInt(f.age_months || '0', 10) < 6 && (
                 <View style={{ backgroundColor: '#fee2e2', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#dc2626' }}>
                   <Text style={{ fontSize: 14, fontWeight: '700', color: '#dc2626', marginBottom: 4 }}>🚨 MAM Exclusion: Infant Under 6 Months</Text>
                   <Text style={{ fontSize: 12, color: '#991b1b', lineHeight: 18 }}>
@@ -834,7 +837,7 @@ export default function CaseRegisterScreen() {
               <TextInput style={inp} value={f.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" placeholder="11.5 - 12.4 cm for MAM" placeholderTextColor={colors.textMuted} />
               
               {/* AGGRAVATING FACTORS ASSESSMENT */}
-              {parseInt(f.age_months || '0') >= 6 && (
+              {parseInt(f.age_months || '0', 10) >= 6 && (
                 <>
                   <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: colors.primary, marginBottom: 8 }}>
