@@ -74,17 +74,14 @@ export default function VisitEditScreen() {
   const isAnthropometryVisit = ANTHROPOMETRY_VISITS.includes(visitNum);
   const maxWeeks = isSAM ? 16 : 10;
 
-  // Fetch case, visits and stock
+  // Fetch case (includes visits) and stock
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [caseRes, visitsRes] = await Promise.all([
-          api.get(`/v1/cases/${caseId}/`),
-          api.get(`/v1/cases/${caseId}/visits/`),
-        ]);
+        const caseRes = await api.get(`/v1/cases/${caseId}/`);
         const caseData = caseRes.data?.data;
-        const visits = visitsRes.data?.data || visitsRes.data || [];
-        const visit = visits.find((v: any) => v.id === parseInt(id));
+        const visits = caseData?.visits || [];
+        const visit = visits.find((v: any) => v.id == id);
         if (!visit) {
           Alert.alert('Error', 'Visit not found');
           setLoading(false);

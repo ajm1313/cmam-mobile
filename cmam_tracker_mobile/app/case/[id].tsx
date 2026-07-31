@@ -369,7 +369,7 @@ export default function CaseDetailScreen() {
                 style={[styles.timelineCard, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, idx === 0 && { backgroundColor: colors.primary + '08', borderColor: colors.primary + '30' }]}
                 onPress={() => {
                   if (isSuper) {
-                    router.push({ pathname: '/visit/edit/[id]', params: { id: String(v.id), caseId: String(caseData.id) } });
+                    router.push({ pathname: `/visit/edit/${v.id}`, params: { caseId: String(caseData.id) } });
                   } else {
                     Alert.alert('Restricted', 'Only super administrators can edit visits.');
                   }
