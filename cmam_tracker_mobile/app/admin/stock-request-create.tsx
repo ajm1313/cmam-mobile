@@ -100,6 +100,15 @@ export default function StockRequestCreateScreen() {
     } else { setSupFacilities([]); setSupplierFacility(null); }
   }, [supDistrict]);
 
+  // Auto-route facility requests to their parent district and show available supplier facilities
+  useEffect(() => {
+    if (requestingFacility && reqDistrict && reqRegion) {
+      setSupRegion(reqRegion);
+      setSupDistrict(reqDistrict);
+      setSupplierFacility(null); // default to district store unless user picks a facility
+    }
+  }, [requestingFacility, reqDistrict, reqRegion]);
+
   const addItem = (item: InventoryItem) => {
     if (requestItems.find((ri) => ri.item_id === item.id)) {
       Alert.alert('Info', 'Item already added'); return;
