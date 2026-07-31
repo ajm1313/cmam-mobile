@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../lib/config';
-import { useTheme } from '../../lib/theme';
+import { useTheme, type ThemeColors } from '../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
@@ -58,6 +57,7 @@ export default function VisitFormScreen() {
   const { caseId, caseName, caseType, caseAge, admissionWeight, visitNumber } = useLocalSearchParams<{ caseId: string; caseName: string; caseType: string; caseAge?: string; admissionWeight?: string; visitNumber?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('anthropometry');
   const [submitting, setSubmitting] = useState(false);
@@ -386,13 +386,13 @@ export default function VisitFormScreen() {
                 </View>
               )}
 
-              <Label text="Visit Date" colors={colors} />
+              <Label styles={styles} text="Visit Date" colors={colors} />
               <DatePickerField label="Visit Date" value={form.visit_date} onChange={v => set('visit_date', v)} colors={colors} maxDate={new Date().toISOString().slice(0, 10)} />
 
-              <Label text="Visit Type" colors={colors} />
-              <ChipRow options={VISIT_TYPES} selected={form.visit_type} onSelect={v => set('visit_type', v)} colors={colors} />
+              <Label styles={styles} text="Visit Type" colors={colors} />
+              <ChipRow styles={styles} options={VISIT_TYPES} selected={form.visit_type} onSelect={v => set('visit_type', v)} colors={colors} />
 
-              <Label text="Weight (kg) *" colors={colors} />
+              <Label styles={styles} text="Weight (kg) *" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.weight_kg} onChangeText={v => {
                 set('weight_kg', v);
                 const w = parseFloat(v);
@@ -401,21 +401,21 @@ export default function VisitFormScreen() {
                 checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 8.5" placeholderTextColor={colors.textMuted} />
 
-              <Label text={isAnthropometryVisit ? 'Height (cm) *' : 'Height (cm)'} colors={colors} />
+              <Label styles={styles} text={isAnthropometryVisit ? 'Height (cm) *' : 'Height (cm)'} colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.height_cm} onChangeText={v => set('height_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 75.0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="MUAC (cm) *" colors={colors} />
+              <Label styles={styles} text="MUAC (cm) *" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.muac_cm} onChangeText={v => set('muac_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 11.5" placeholderTextColor={colors.textMuted} />
 
               {isSAM && (
                 <>
-                  <Label text="Bilateral Pitting Oedema" colors={colors} />
-                  <ChipRow options={['0', '+', '++', '+++']} selected={form.oedema} onSelect={v => { set('oedema', v); checkAutomation(); }} colors={colors} />
+                  <Label styles={styles} text="Bilateral Pitting Oedema" colors={colors} />
+                  <ChipRow styles={styles} options={['0', '+', '++', '+++']} selected={form.oedema} onSelect={v => { set('oedema', v); checkAutomation(); }} colors={colors} />
                 </>
               )}
 
-              <Label text={isAnthropometryVisit ? 'W/H Z-Score *' : 'W/H Z-Score'} colors={colors} />
-              <ChipRow options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
+              <Label styles={styles} text={isAnthropometryVisit ? 'W/H Z-Score *' : 'W/H Z-Score'} colors={colors} />
+              <ChipRow styles={styles} options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
               {!isAnthropometryVisit && (
                 <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 4, 8, 12, and 16.</Text>
               )}
@@ -426,36 +426,36 @@ export default function VisitFormScreen() {
             <View style={[styles.formCard, { backgroundColor: colors.surface }]}>
               <Text style={[styles.formSectionTitle, { color: colors.textPrimary }]}>Medical History & Exam</Text>
 
-              <Label text="Diarrhoea (days)" colors={colors} />
+              <Label styles={styles} text="Diarrhoea (days)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.diarrhoea_days} onChangeText={v => set('diarrhoea_days', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Vomiting (days)" colors={colors} />
+              <Label styles={styles} text="Vomiting (days)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.vomiting_days} onChangeText={v => set('vomiting_days', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Fever (days)" colors={colors} />
+              <Label styles={styles} text="Fever (days)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.fever_days} onChangeText={v => set('fever_days', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Cough (days)" colors={colors} />
+              <Label styles={styles} text="Cough (days)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.cough_days} onChangeText={v => set('cough_days', v)} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Temperature (°C)" colors={colors} />
+              <Label styles={styles} text="Temperature (°C)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.temperature} onChangeText={v => { set('temperature', v); checkAutomation(); }} keyboardType="decimal-pad" placeholder="e.g. 37.5" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Respiratory Rate (breaths/min)" colors={colors} />
+              <Label styles={styles} text="Respiratory Rate (breaths/min)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.respiratory_rate} onChangeText={v => set('respiratory_rate', v)} keyboardType="number-pad" placeholder="e.g. 40" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Appetite Test" colors={colors} />
-              <ChipRow options={APPETITE_OPTIONS} selected={form.appetite} onSelect={v => { set('appetite', v); checkAutomation(); }} colors={colors} />
+              <Label styles={styles} text="Appetite Test" colors={colors} />
+              <ChipRow styles={styles} options={APPETITE_OPTIONS} selected={form.appetite} onSelect={v => { set('appetite', v); checkAutomation(); }} colors={colors} />
 
               {isSAM && (
                 <>
-                  <Label text="Breastfeeding Status" colors={colors} />
-                  <ChipRow options={BREASTFEEDING_OPTIONS} selected={form.breastfeeding_status} onSelect={v => set('breastfeeding_status', v)} colors={colors} />
+                  <Label styles={styles} text="Breastfeeding Status" colors={colors} />
+                  <ChipRow styles={styles} options={BREASTFEEDING_OPTIONS} selected={form.breastfeeding_status} onSelect={v => set('breastfeeding_status', v)} colors={colors} />
                 </>
               )}
 
-              <Label text="General Condition" colors={colors} />
-              <ChipRow options={['Good', 'Fair', 'Poor', 'Critical']} selected={form.general_condition} onSelect={v => set('general_condition', v)} colors={colors} />
+              <Label styles={styles} text="General Condition" colors={colors} />
+              <ChipRow styles={styles} options={['Good', 'Fair', 'Poor', 'Critical']} selected={form.general_condition} onSelect={v => set('general_condition', v)} colors={colors} />
 
               {/* Physical exam checkboxes */}
               <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16, marginBottom: 8 }]}>Physical Examination</Text>
@@ -477,7 +477,7 @@ export default function VisitFormScreen() {
 
               {form.has_complications && (
                 <>
-                  <Label text="Complications Notes" colors={colors} />
+                  <Label styles={styles} text="Complications Notes" colors={colors} />
                   <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.complications_notes} onChangeText={v => set('complications_notes', v)} placeholder="Describe complications..." placeholderTextColor={colors.textMuted} multiline numberOfLines={2} textAlignVertical="top" />
                 </>
               )}
@@ -519,7 +519,7 @@ export default function VisitFormScreen() {
               {isSAM ? (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, marginBottom: 6 }}>
-                    <Label text="RUTF Sachets Given" colors={colors} />
+                    <Label styles={styles} text="RUTF Sachets Given" colors={colors} />
                     <TouchableOpacity onPress={() => Alert.alert('RUTF Dosage Guide', RUTF_GUIDE.map(r => `${r.weight} kg → ${r.week}/week (${r.day}/day)`).join('\n'), [{ text: 'OK' }])} activeOpacity={0.7}>
                       <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>📊 Guide</Text>
                     </TouchableOpacity>
@@ -541,48 +541,48 @@ export default function VisitFormScreen() {
                 </>
               ) : (
                 <>
-                  <Label text="Food Product Type" colors={colors} />
-                  <ChipRow options={FOOD_PRODUCT_OPTIONS} selected={form.food_product_type} onSelect={v => set('food_product_type', v)} colors={colors} />
+                  <Label styles={styles} text="Food Product Type" colors={colors} />
+                  <ChipRow styles={styles} options={FOOD_PRODUCT_OPTIONS} selected={form.food_product_type} onSelect={v => set('food_product_type', v)} colors={colors} />
 
-                  <Label text="Food Product Quantity" colors={colors} />
+                  <Label styles={styles} text="Food Product Quantity" colors={colors} />
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.food_product_quantity} onChangeText={v => set('food_product_quantity', v)} placeholder="e.g. 6 kg" placeholderTextColor={colors.textMuted} />
                 </>
               )}
 
-              <Label text="CSB+ Given (kg)" colors={colors} />
+              <Label styles={styles} text="CSB+ Given (kg)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.csb_plus_given} onChangeText={v => set('csb_plus_given', v)} keyboardType="decimal-pad" placeholder="e.g. 3.5" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Oil Given (L)" colors={colors} />
+              <Label styles={styles} text="Oil Given (L)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.oil_given} onChangeText={v => set('oil_given', v)} keyboardType="decimal-pad" placeholder="e.g. 1.0" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Other Supplies" colors={colors} />
+              <Label styles={styles} text="Other Supplies" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.other_supplies} onChangeText={v => set('other_supplies', v)} placeholder="e.g. soap, mosquito net" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Other Medication" colors={colors} />
+              <Label styles={styles} text="Other Medication" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.other_medication} onChangeText={v => set('other_medication', v)} placeholder="e.g. paracetamol, zinc" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Counseling Topics" colors={colors} />
+              <Label styles={styles} text="Counseling Topics" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.counseling_topics} onChangeText={v => set('counseling_topics', v)} placeholder="e.g. nutrition, hygiene" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Caregiver Understanding" colors={colors} />
-              <ChipRow options={['Good', 'Fair', 'Poor']} selected={form.caregiver_understanding} onSelect={v => set('caregiver_understanding', v)} colors={colors} />
+              <Label styles={styles} text="Caregiver Understanding" colors={colors} />
+              <ChipRow styles={styles} options={['Good', 'Fair', 'Poor']} selected={form.caregiver_understanding} onSelect={v => set('caregiver_understanding', v)} colors={colors} />
 
-              <Label text="Treatment Response" colors={colors} />
-              <ChipRow options={TREATMENT_RESPONSE_OPTIONS} selected={form.treatment_response} onSelect={v => set('treatment_response', v)} colors={colors} />
+              <Label styles={styles} text="Treatment Response" colors={colors} />
+              <ChipRow styles={styles} options={TREATMENT_RESPONSE_OPTIONS} selected={form.treatment_response} onSelect={v => set('treatment_response', v)} colors={colors} />
 
-              <Label text="Next Visit Date" colors={colors} />
+              <Label styles={styles} text="Next Visit Date" colors={colors} />
               <DatePickerField label="Next Visit Date" value={form.next_visit_date} onChange={v => set('next_visit_date', v)} colors={colors} minDate={new Date().toISOString().slice(0, 10)} />
 
-              <Label text="Staff Name" colors={colors} />
+              <Label styles={styles} text="Staff Name" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.staff_name} onChangeText={v => set('staff_name', v)} placeholder="Name of staff conducting visit" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Medical Notes" colors={colors} />
+              <Label styles={styles} text="Medical Notes" colors={colors} />
               <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.medical_notes} onChangeText={v => set('medical_notes', v)} placeholder="Any additional notes..." placeholderTextColor={colors.textMuted} multiline numberOfLines={3} textAlignVertical="top" />
 
               {/* MAM Remarks */}
               {!isSAM && (
                 <>
-                  <Label text="Visit Remarks" colors={colors} />
+                  <Label styles={styles} text="Visit Remarks" colors={colors} />
                   <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.remarks} onChangeText={v => set('remarks', v)} placeholder="Any observations or notes about this visit" placeholderTextColor={colors.textMuted} multiline numberOfLines={3} textAlignVertical="top" />
                 </>
               )}
@@ -604,13 +604,13 @@ export default function VisitFormScreen() {
 
               {form.home_visit_needed && (
                 <>
-                  <Label text="Home Visit Date" colors={colors} />
+                  <Label styles={styles} text="Home Visit Date" colors={colors} />
                   <DatePickerField label="Home Visit Date" value={form.home_visit_date} onChange={v => set('home_visit_date', v)} colors={colors} minDate={new Date().toISOString().slice(0, 10)} />
 
-                  <Label text="Community Volunteer Name" colors={colors} />
+                  <Label styles={styles} text="Community Volunteer Name" colors={colors} />
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.community_volunteer} onChangeText={v => set('community_volunteer', v)} placeholder="Name of community volunteer" placeholderTextColor={colors.textMuted} />
 
-                  <Label text="Home Visit Notes" colors={colors} />
+                  <Label styles={styles} text="Home Visit Notes" colors={colors} />
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.home_visit_notes} onChangeText={v => set('home_visit_notes', v)} placeholder="Notes from home visit" placeholderTextColor={colors.textMuted} />
                 </>
               )}
@@ -629,7 +629,7 @@ export default function VisitFormScreen() {
                 </View>
               )}
 
-              <Label text="Outcome" colors={colors} />
+              <Label styles={styles} text="Outcome" colors={colors} />
               <View style={styles.outcomeGrid}>
                 {(isSAM ? SAM_OUTCOME_OPTIONS : MAM_OUTCOME_OPTIONS).map(o => {
                   const active = form.visit_outcome === o;
@@ -644,7 +644,7 @@ export default function VisitFormScreen() {
                 })}
               </View>
 
-              <Label text="Outcome Notes" colors={colors} />
+              <Label styles={styles} text="Outcome Notes" colors={colors} />
               <TextInput style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.outcome_notes} onChangeText={v => set('outcome_notes', v)} placeholder="Additional details..." placeholderTextColor={colors.textMuted} multiline numberOfLines={3} textAlignVertical="top" />
             </View>
           )}
@@ -687,11 +687,11 @@ export default function VisitFormScreen() {
 
 // ── Reusable form components ────────────────────────────────────────────────
 
-function Label({ text, colors }: { text: string; colors: any }) {
+function Label({ text, colors, styles }: { text: string; colors: any; styles: any }) {
   return <Text style={[styles.label, { color: colors.textSecondary }]}>{text}</Text>;
 }
 
-function ChipRow({ options, selected, onSelect, colors }: { options: string[]; selected: string; onSelect: (v: string) => void; colors: any }) {
+function ChipRow({ options, selected, onSelect, colors, styles }: { options: string[]; selected: string; onSelect: (v: string) => void; colors: any; styles: any }) {
   return (
     <View style={styles.chipRow}>
       {options.map(o => (
@@ -706,82 +706,82 @@ function ChipRow({ options, selected, onSelect, colors }: { options: string[]; s
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const getStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
-    paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+    paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  headerSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+  headerSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   caseTypePill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
   caseTypePillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
 
-  stepsBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 14, justifyContent: 'space-between' },
+  stepsBar: { flexDirection: 'row', backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 14, justifyContent: 'space-between' },
   stepItem: { alignItems: 'center', flex: 1, position: 'relative' },
   stepDot: {
-    width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: COLORS.border,
-    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+    width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: colors.border,
+    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', marginBottom: 4,
   },
-  stepLabel: { fontSize: 9, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  stepLabel: { fontSize: 9, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
   stepLine: {
     position: 'absolute', top: 13, left: '60%', right: '-40%', height: 2,
-    backgroundColor: COLORS.border, zIndex: -1,
+    backgroundColor: colors.border, zIndex: -1,
   },
 
   formScroll: { flex: 1 },
   formCard: {
-    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    backgroundColor: colors.surface, marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16,
+    shadowColor: colors.cardShadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  formSectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
+  formSectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 16 },
 
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 14, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginTop: 14, marginBottom: 6 },
   input: {
-    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14,
-    paddingVertical: 12, fontSize: 15, color: COLORS.textPrimary, backgroundColor: '#f8fafc',
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14,
+    paddingVertical: 12, fontSize: 15, color: colors.textPrimary, backgroundColor: colors.inputBg,
   },
   textArea: { minHeight: 80, paddingTop: 12 },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12,
-    borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: '#f8fafc',
+    borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.inputBg,
   },
-  chipActive: { backgroundColor: COLORS.primary + '12', borderColor: COLORS.primary },
-  chipText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
-  chipTextActive: { color: COLORS.primary, fontWeight: '700' },
+  chipActive: { backgroundColor: colors.primary + '12', borderColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
+  chipTextActive: { color: colors.primary, fontWeight: '700' },
 
   outcomeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   outcomeChip: {
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12,
-    borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: '#f8fafc',
+    borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.inputBg,
   },
-  outcomeChipText: { fontSize: 12, fontWeight: '500', color: COLORS.textSecondary },
+  outcomeChipText: { fontSize: 12, fontWeight: '500', color: colors.textSecondary },
 
   checkboxChip: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8,
-    borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: '#f8fafc',
+    borderRadius: 10, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.inputBg,
   },
 
   bottomBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff',
-    borderTopWidth: 1, borderTopColor: COLORS.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 4,
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface,
+    borderTopWidth: 1, borderTopColor: colors.border,
+    shadowColor: colors.cardShadow, shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 4,
   },
   prevBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 12, flex: 1 },
-  prevBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.primary },
+  prevBtnText: { fontSize: 15, fontWeight: '600', color: colors.primary },
   nextBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
-  nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  nextBtnText: { color: colors.headerText, fontSize: 15, fontWeight: '700' },
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.success, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
-    shadowColor: COLORS.success, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    backgroundColor: colors.success, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
+    shadowColor: colors.success, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
-  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  submitBtnText: { color: colors.headerText, fontSize: 15, fontWeight: '700' },
 });
