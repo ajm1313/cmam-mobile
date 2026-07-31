@@ -93,12 +93,16 @@ export default function StockRequestCreateScreen() {
   }, [supRegion]);
 
   useEffect(() => {
-    if (supDistrict) {
+    if (supDistrict && requestingFacility) {
+      api.get('/v1/inventory/supplier-facilities/', { params: { requesting_facility_id: requestingFacility.id } })
+        .then(r => setSupFacilities((r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name }))))
+        .catch(() => setSupFacilities([]));
+    } else if (supDistrict) {
       api.get('/v1/facilities/', { params: { district: supDistrict.id } })
         .then(r => setSupFacilities((r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name }))))
         .catch(() => setSupFacilities([]));
     } else { setSupFacilities([]); setSupplierFacility(null); }
-  }, [supDistrict]);
+  }, [supDistrict, requestingFacility]);
 
   // Auto-route facility requests to their parent district and show available supplier facilities
   useEffect(() => {
