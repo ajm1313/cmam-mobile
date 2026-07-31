@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { useIsSuperAdmin } from '../../lib/useSuperAdmin';
 
 interface UserDetail {
   id: number;
@@ -32,6 +33,7 @@ export default function UserDetailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isSuper = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<UserDetail | null>(null);
@@ -79,9 +81,11 @@ export default function UserDetailScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>User Detail</Text>
+        {isSuper && (
         <TouchableOpacity onPress={() => router.push({ pathname: '/admin/user-edit', params: { id: String(user.id) } })} style={styles.editBtn}>
           <Ionicons name="create-outline" size={20} color="#fff" />
         </TouchableOpacity>
+        )}
       </View>
 
       {/* Profile Card */}
@@ -132,6 +136,7 @@ export default function UserDetailScreen() {
       )}
 
       {/* Actions */}
+      {isSuper && (
       <View style={styles.actionsRow}>
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: colors.primary }]}
@@ -141,6 +146,7 @@ export default function UserDetailScreen() {
           <Text style={styles.actionBtnText}>Edit User</Text>
         </TouchableOpacity>
       </View>
+      )}
     </ScrollView>
   );
 }

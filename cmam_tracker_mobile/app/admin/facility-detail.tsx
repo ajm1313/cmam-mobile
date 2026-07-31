@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { useIsSuperAdmin } from '../../lib/useSuperAdmin';
 
 interface FacilityData {
   id: number; name: string; code: string; type: string;
@@ -25,6 +26,7 @@ export default function FacilityDetailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isSuper = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [facility, setFacility] = useState<FacilityData | null>(null);
@@ -59,9 +61,11 @@ export default function FacilityDetailScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>Facility Details</Text>
+        {isSuper && (
         <TouchableOpacity onPress={() => router.push({ pathname: '/admin/facility-edit', params: { id: String(facility.id) } } as any)} style={styles.backBtn}>
           <Ionicons name="create-outline" size={22} color="#fff" />
         </TouchableOpacity>
+        )}
       </View>
 
       {/* Hero Card */}
@@ -152,6 +156,7 @@ export default function FacilityDetailScreen() {
       )}
 
       {/* Actions */}
+      {isSuper && (
       <View style={styles.actionRow}>
         <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.primary }]}
           onPress={() => router.push({ pathname: '/admin/facility-edit', params: { id: String(facility.id) } } as any)}>
@@ -159,6 +164,7 @@ export default function FacilityDetailScreen() {
           <Text style={styles.actionCardText}>Edit Facility</Text>
         </TouchableOpacity>
       </View>
+      )}
     </ScrollView>
   );
 }

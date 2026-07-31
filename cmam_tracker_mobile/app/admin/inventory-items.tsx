@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { useIsSuperAdmin } from '../../lib/useSuperAdmin';
 
 interface InventoryItemData {
   id: number;
@@ -33,6 +34,7 @@ export default function InventoryItemsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isSuper = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<InventoryItemData[]>([]);
@@ -191,6 +193,7 @@ export default function InventoryItemsScreen() {
                 </View>
 
                 {/* Actions */}
+                {isSuper && (
                 <View style={styles.cardActions}>
                   <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary + '0A', borderColor: colors.primary + '20' }]} onPress={() => openEdit(item)} activeOpacity={0.7}>
                     <Ionicons name="create-outline" size={15} color={colors.primary} />
@@ -201,6 +204,7 @@ export default function InventoryItemsScreen() {
                     <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
                   </TouchableOpacity>
                 </View>
+                )}
               </View>
             </View>
           );

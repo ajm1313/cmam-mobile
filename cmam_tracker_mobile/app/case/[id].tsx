@@ -361,7 +361,13 @@ export default function CaseDetailScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.timelineCard, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, idx === 0 && { backgroundColor: colors.primary + '08', borderColor: colors.primary + '30' }]}
-                onPress={() => router.push({ pathname: '/visit/edit/[id]', params: { id: String(v.id), caseId: String(caseData.id) } })}
+                onPress={() => {
+                  if (isSuper) {
+                    router.push({ pathname: '/visit/edit/[id]', params: { id: String(v.id), caseId: String(caseData.id) } });
+                  } else {
+                    Alert.alert('Restricted', 'Only super administrators can edit visits.');
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 <View style={styles.timelineCardHeader}>

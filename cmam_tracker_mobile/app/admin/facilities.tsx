@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { useIsSuperAdmin } from '../../lib/useSuperAdmin';
 
 interface FacilityItem {
   id: number;
@@ -29,6 +30,7 @@ export default function FacilitiesListScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isSuper = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [facilities, setFacilities] = useState<FacilityItem[]>([]);
@@ -159,6 +161,8 @@ export default function FacilitiesListScreen() {
                   <Ionicons name="eye-outline" size={15} color={colors.secondary} />
                   <Text style={[styles.actionText, { color: colors.secondary }]}>View</Text>
                 </TouchableOpacity>
+                {isSuper && (
+                  <>
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary + '10' }]} onPress={() => router.push({ pathname: '/admin/facility-edit', params: { id: String(fac.id) } } as any)}>
                   <Ionicons name="create-outline" size={15} color={colors.primary} />
                   <Text style={[styles.actionText, { color: colors.primary }]}>Edit</Text>
@@ -167,6 +171,8 @@ export default function FacilitiesListScreen() {
                   <Ionicons name="trash-outline" size={15} color={colors.danger} />
                   <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
                 </TouchableOpacity>
+                  </>
+                )}
               </View>
             </TouchableOpacity>
           );

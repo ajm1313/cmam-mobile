@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import { useIsSuperAdmin } from '../../lib/useSuperAdmin';
 import { sendOrReject } from '../../lib/offlineQueue';
 
 interface UserItem {
@@ -26,6 +27,7 @@ export default function UsersListScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isSuper = useIsSuperAdmin();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -157,6 +159,8 @@ export default function UsersListScreen() {
                   <Ionicons name="eye-outline" size={16} color={colors.secondary} />
                   <Text style={[styles.actionText, { color: colors.secondary }]}>View</Text>
                 </TouchableOpacity>
+                {isSuper && (
+                  <>
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary + '10' }]} onPress={() => router.push({ pathname: '/admin/user-edit', params: { id: String(user.id) } })}>
                   <Ionicons name="create-outline" size={16} color={colors.primary} />
                   <Text style={[styles.actionText, { color: colors.primary }]}>Edit</Text>
@@ -165,6 +169,8 @@ export default function UsersListScreen() {
                   <Ionicons name="trash-outline" size={16} color={colors.danger} />
                   <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
                 </TouchableOpacity>
+                  </>
+                )}
               </View>
             </TouchableOpacity>
           );
