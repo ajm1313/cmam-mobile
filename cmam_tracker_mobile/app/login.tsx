@@ -21,24 +21,16 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    console.log('[LOGIN SCREEN] Button clicked!');
-    console.log('[LOGIN SCREEN] Email:', email);
-    console.log('[LOGIN SCREEN] Password length:', password.length);
-    
     if (!email.trim() || !password.trim()) {
-      console.log('[LOGIN SCREEN] Validation failed - empty fields');
       Alert.alert('Error', 'Please enter your email and password.');
       return;
     }
-    
-    console.log('[LOGIN SCREEN] Starting login...');
+
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
-      console.log('[LOGIN SCREEN] Login successful, redirecting...');
       router.replace('/(tabs)/dashboard');
     } catch (error: any) {
-      console.log('[LOGIN SCREEN] Login failed:', error);
       const message = error.response?.data?.message || 'Login failed. Check your credentials.';
       Alert.alert('Login Failed', message);
     } finally {

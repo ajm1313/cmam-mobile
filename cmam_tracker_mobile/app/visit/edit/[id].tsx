@@ -340,22 +340,24 @@ export default function VisitEditScreen() {
         home_visit_needed: form.home_visit_needed,
         remarks: form.remarks || undefined,
       };
-      if (form.weight_kg) payload.weight_kg = parseFloat(form.weight_kg);
-      if (form.height_cm) payload.height_cm = parseFloat(form.height_cm);
-      if (form.muac_cm) payload.muac_cm = parseFloat(form.muac_cm);
-      if (form.z_score_wfh) payload.z_score_wfh = form.z_score_wfh;
+      const toFloat = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
+      const toInt = (v: string) => { const n = parseInt(v); return Number.isNaN(n) ? undefined : n; };
+      if (form.weight_kg) payload.weight_kg = toFloat(form.weight_kg);
+      if (form.height_cm) payload.height_cm = toFloat(form.height_cm);
+      if (form.muac_cm) payload.muac_cm = toFloat(form.muac_cm);
+      if (form.z_score_wfh) payload.z_score_wfh = toFloat(form.z_score_wfh);
       if (form.oedema) payload.oedema = form.oedema;
-      if (form.diarrhoea_days) payload.diarrhoea_days = parseInt(form.diarrhoea_days);
-      if (form.vomiting_days) payload.vomiting_days = parseInt(form.vomiting_days);
-      if (form.fever_days) payload.fever_days = parseInt(form.fever_days);
-      if (form.cough_days) payload.cough_days = parseInt(form.cough_days);
-      if (form.temperature) payload.temperature = parseFloat(form.temperature);
-      if (form.respiratory_rate) payload.respiratory_rate = parseInt(form.respiratory_rate);
-      if (form.rutf_sachets_given) payload.rutf_sachets_given = parseInt(form.rutf_sachets_given);
-      if (form.csb_plus_given) payload.csb_plus_given = parseFloat(form.csb_plus_given);
-      if (form.oil_given) payload.oil_given = parseFloat(form.oil_given);
+      if (form.diarrhoea_days) payload.diarrhoea_days = toInt(form.diarrhoea_days);
+      if (form.vomiting_days) payload.vomiting_days = toInt(form.vomiting_days);
+      if (form.fever_days) payload.fever_days = toInt(form.fever_days);
+      if (form.cough_days) payload.cough_days = toInt(form.cough_days);
+      if (form.temperature) payload.temperature = toFloat(form.temperature);
+      if (form.respiratory_rate) payload.respiratory_rate = toInt(form.respiratory_rate);
+      if (form.rutf_sachets_given) payload.rutf_sachets_given = toInt(form.rutf_sachets_given);
+      if (form.csb_plus_given) payload.csb_plus_given = toFloat(form.csb_plus_given);
+      if (form.oil_given) payload.oil_given = toFloat(form.oil_given);
       if (form.food_product_type) payload.food_product_type = form.food_product_type;
-      if (form.food_product_quantity) payload.food_product_quantity = form.food_product_quantity;
+      if (form.food_product_quantity) payload.food_product_quantity = toInt(form.food_product_quantity);
       if (form.next_visit_date) payload.next_visit_date = form.next_visit_date;
       if (form.home_visit_date) payload.home_visit_date = form.home_visit_date;
       if (form.community_volunteer) payload.community_volunteer = form.community_volunteer;
