@@ -29,7 +29,6 @@
         "backgroundColor": "#1e3a8a"
       },
       "package": "org.pharn.cmamtracker",
-      "usesCleartextTraffic": true,
       "versionCode": 13,
       "permissions": [
         "android.permission.RECORD_AUDIO"
