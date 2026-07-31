@@ -19,7 +19,7 @@ export interface QueuedRequest {
 export async function enqueue(req: Omit<QueuedRequest, 'id' | 'timestamp'>): Promise<void> {
   useSyncStore.getState().enqueue({
     url: req.url,
-    method: req.method.toUpperCase() as 'POST' | 'PATCH' | 'DELETE',
+    method: req.method.toUpperCase() as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     data: req.data,
     label: req.label,
   });

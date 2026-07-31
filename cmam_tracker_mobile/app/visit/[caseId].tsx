@@ -296,7 +296,7 @@ export default function VisitFormScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top + 14 }]}>
@@ -522,6 +522,11 @@ export default function VisitFormScreen() {
                   {rutfStock !== null && (
                     <Text style={{ fontSize: 11, color: rutfStock > 0 ? colors.textMuted : '#dc2626', marginBottom: 4 }}>
                       In stock: {rutfStock} sachets{rutfStock === 0 ? ' — STOCK OUT!' : ''}
+                    </Text>
+                  )}
+                  {rutfStock !== null && rutfStock > 0 && (
+                    <Text style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6, fontStyle: 'italic' }}>
+                      The oldest/expiring RUTF batch will be consumed automatically (FEFO/FIFO).
                     </Text>
                   )}
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.rutf_sachets_given} onChangeText={v => set('rutf_sachets_given', v)} keyboardType="number-pad" placeholder="e.g. 14" placeholderTextColor={colors.textMuted} />

@@ -16,6 +16,8 @@ interface InventoryItemData {
   code: string | null;
   category: string;
   unit: string;
+  unit_of_measure?: string;
+  conversion_factor?: string | number;
   min_stock_level: number | null;
   reorder_level: number;
   max_stock_level: number | null;
@@ -146,7 +148,9 @@ export default function InventoryItemsScreen() {
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={[styles.itemName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
                     {item.code ? <Text style={[styles.itemCode, { color: colors.textMuted }]}>{item.code}</Text> : null}
-                    <Text style={[styles.itemMeta, { color: colors.textMuted }]}>{item.unit}</Text>
+                    <Text style={[styles.itemMeta, { color: colors.textMuted }]}>
+                      {item.unit}{item.conversion_factor && item.conversion_factor !== '1' && item.conversion_factor !== 1 ? ` • CF: ${item.conversion_factor}` : ''}
+                    </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 5 }}>
                     <View style={[styles.catPill, { backgroundColor: catColor + '12', borderColor: catColor + '30' }]}>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
-  ActivityIndicator, Platform,
+  ActivityIndicator, Platform, Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -48,6 +48,7 @@ export default function ImportDataScreen() {
   const [loading, setLoading] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [facilityPickerVisible, setFacilityPickerVisible] = useState(false);
 
   useEffect(() => {
     loadFacilities();
@@ -101,7 +102,7 @@ export default function ImportDataScreen() {
           new Uint8Array(response.data).reduce((data: string, byte: number) => data + String.fromCharCode(byte), '')
         );
         await FileSystem.writeAsStringAsync(fileUri, base64, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(fileUri, {
@@ -249,10 +250,12 @@ export default function ImportDataScreen() {
 
       if (response.data.success) {
         const data = response.data.data;
-        const msg = selectedType === 'cases'
+        let msg = selectedType === 'cases'
           ? `Created: ${data.created}\nFailed: ${data.failed}`
           : `Created: ${data.created}\nUpdated: ${data.updated}\nFailed: ${data.failed}`;
-        
+        if (data.failed > 0 && data.errors && data.errors.length > 0) {
+          msg += '\n\nErrors:\n' + data.errors.join('\n');
+        }
         Alert.alert('Import Complete', msg, [
           { text: 'OK', onPress: () => router.back() }
         ]);
@@ -376,28 +379,68 @@ export default function ImportDataScreen() {
       {selectedType && facilities.length > 0 && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Select Destination Facility</Text>
-          <View style={[styles.facilitySelector, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            {facilities.map((facility) => (
-              <TouchableOpacity
-                key={facility.id}
-                style={[
-                  styles.facilityOption,
-                  { borderBottomColor: colors.border },
-                  selectedFacility === facility.id && { backgroundColor: colors.primary + '10' },
-                ]}
-                onPress={() => setSelectedFacility(facility.id)}
-              >
-                <Ionicons
-                  name={selectedFacility === facility.id ? 'radio-button-on' : 'radio-button-off'}
-                  size={20}
-                  color={selectedFacility === facility.id ? colors.primary : colors.textMuted}
-                />
-                <Text style={[styles.facilityName, { color: colors.textPrimary }]}>{facility.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity
+            style={[styles.facilityDropdown, { backgroundColor: colors.surface, borderColor: selectedFacility ? colors.primary : colors.border }]}
+            onPress={() => setFacilityPickerVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="business-outline" size={18} color={selectedFacility ? colors.primary : colors.textMuted} />
+            <Text
+              style={[
+                styles.facilityDropdownText,
+                { color: selectedFacility ? colors.textPrimary : colors.textMuted },
+              ]}
+              numberOfLines={1}
+            >
+              {selectedFacility
+                ? facilities.find((f) => f.id === selectedFacility)?.name
+                : 'Select a facility...'}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
       )}
+
+      {/* Facility Picker Modal */}
+      <Modal visible={facilityPickerVisible} animationType="slide" transparent onRequestClose={() => setFacilityPickerVisible(false)}>
+        <View style={styles.facilityModalOverlay}>
+          <View style={[styles.facilitySheet, { backgroundColor: colors.surface }]}>
+            <View style={[styles.facilitySheetHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.facilitySheetTitle, { color: colors.textPrimary }]}>Select Facility</Text>
+              <TouchableOpacity onPress={() => setFacilityPickerVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={facilities}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item: f }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.facilitySheetItem,
+                    { borderBottomColor: colors.border, backgroundColor: selectedFacility === f.id ? colors.primary + '10' : 'transparent' },
+                  ]}
+                  onPress={() => { setSelectedFacility(f.id); setFacilityPickerVisible(false); }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="business-outline" size={16} color={selectedFacility === f.id ? colors.primary : colors.textMuted} />
+                  <Text
+                    style={[
+                      styles.facilitySheetItemText,
+                      { color: selectedFacility === f.id ? colors.primary : colors.textPrimary },
+                    ]}
+                  >
+                    {f.name}
+                  </Text>
+                  {selectedFacility === f.id && (
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* File Selection */}
       {selectedType && (selectedType !== 'cases' || selectedCaseSubType) && (
@@ -509,14 +552,18 @@ const styles = StyleSheet.create({
   },
   templateTitle: { fontSize: 14, fontWeight: '600' },
   templateDesc: { fontSize: 12, marginTop: 2 },
-  facilitySelector: {
-    borderRadius: 12, borderWidth: 1.5, overflow: 'hidden',
+  facilityDropdown: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 12, borderWidth: 1.5,
   },
-  facilityOption: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, borderBottomWidth: 1,
-  },
-  facilityName: { fontSize: 14, fontWeight: '600' },
+  facilityDropdownText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  facilityModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  facilitySheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '60%' },
+  facilitySheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  facilitySheetTitle: { fontSize: 16, fontWeight: '700' },
+  facilitySheetItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  facilitySheetItemText: { flex: 1, fontSize: 14, fontWeight: '500' },
   fileBtn: {
     flexDirection: 'row', alignItems: 'center',
     padding: 16, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed',

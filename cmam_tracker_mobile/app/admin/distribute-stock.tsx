@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, TextInput,
+  ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -165,6 +165,7 @@ export default function DistributeStockScreen() {
   );
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -237,9 +238,12 @@ export default function DistributeStockScreen() {
               value={quantity}
               onChangeText={setQuantity}
               keyboardType="numeric"
-              placeholder="0"
+              placeholder={selectedItem ? `Enter quantity in ${selectedItem.unit}` : '0'}
               placeholderTextColor={colors.textMuted}
             />
+            {selectedItem && (
+              <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Unit: {selectedItem.unit}</Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: colors.textMuted }]}>Reference #</Text>
@@ -385,6 +389,7 @@ export default function DistributeStockScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, TextInput,
+  ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
 interface InventoryItem { id: number; name: string; code: string; unit: string; }
 interface Loc { id: number; name: string; }
@@ -35,6 +36,8 @@ export default function ReceiveStockScreen() {
   const [selDistrict, setSelDistrict] = useState<Loc | null>(null);
   const [selFacility, setSelFacility] = useState<Loc | null>(null);
   const [itemSearch, setItemSearch] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   const fetchData = useCallback(async () => {
     try {
@@ -109,6 +112,8 @@ export default function ReceiveStockScreen() {
         destination_facility_id: selFacility?.id || null,
         reference_number: referenceNumber,
         notes: notes || `Received ${qty} ${selectedItem.unit} at ${getLocationLabel()}`,
+        batch_number: batchNumber || undefined,
+        expiry_date: expiryDate || undefined,
       }, 'Receive Stock');
       if (res) {
         Alert.alert('Success', `Received ${qty} ${selectedItem.unit} of ${selectedItem.name} at ${getLocationLabel()}`, [
@@ -133,7 +138,47 @@ export default function ReceiveStockScreen() {
     i.code.toLowerCase().includes(itemSearch.toLowerCase())
   );
 
+  const handleBarCodeScanned = ({ data }: { data: string }) => {
+    setBatchNumber(data);
+    setShowScanner(false);
+  };
+
+  const openScanner = async () => {
+    if (!permission?.granted) {
+      const res = await requestPermission();
+      if (!res.granted) {
+        Alert.alert('Permission needed', 'Camera permission is required to scan batch numbers.');
+        return;
+      }
+    }
+    setShowScanner(true);
+  };
+
+  if (showScanner) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        <CameraView
+          style={{ flex: 1 }}
+          facing="back"
+          onBarcodeScanned={handleBarCodeScanned}
+          barcodeScannerSettings={{ barcodeTypes: ['qr', 'code128', 'ean13', 'upc_a', 'code39'] }}
+        />
+        <View style={{ position: 'absolute', top: insets.top + 16, right: 16, zIndex: 10 }}>
+          <TouchableOpacity onPress={() => setShowScanner(false)} style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 24 }}>
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <View style={{ position: 'absolute', bottom: 80, left: 20, right: 20, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 14, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 8 }}>
+            Scan the batch or QR code on the item
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.success, paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -190,9 +235,12 @@ export default function ReceiveStockScreen() {
               value={quantity}
               onChangeText={setQuantity}
               keyboardType="numeric"
-              placeholder="0"
+              placeholder={selectedItem ? `Enter quantity in ${selectedItem.unit}` : '0'}
               placeholderTextColor={colors.textMuted}
             />
+            {selectedItem && (
+              <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Unit: {selectedItem.unit}</Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: colors.textMuted }]}>Reference #</Text>
@@ -210,13 +258,18 @@ export default function ReceiveStockScreen() {
         <View style={[styles.row, { gap: 12, marginTop: 12 }]}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: colors.textMuted }]}>Batch / Lot #</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
-              value={batchNumber}
-              onChangeText={setBatchNumber}
-              placeholder="LOT-2026-A1"
-              placeholderTextColor={colors.textMuted}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                value={batchNumber}
+                onChangeText={setBatchNumber}
+                placeholder="LOT-2026-A1"
+                placeholderTextColor={colors.textMuted}
+              />
+              <TouchableOpacity onPress={openScanner} style={[styles.scanBtn, { backgroundColor: colors.primary }]}>
+                <Ionicons name="scan-outline" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: colors.textMuted }]}>Expiry (YYYY-MM-DD)</Text>
@@ -334,6 +387,7 @@ export default function ReceiveStockScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -365,4 +419,5 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '600' },
   submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 14, marginTop: 24 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  scanBtn: { width: 44, height: 44, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
 });

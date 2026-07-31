@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrReject } from '../../lib/offlineQueue';
-import DatePickerField from '../../components/DatePickerField';
 
 const CATEGORIES = ['RUTF', 'RUSF', 'Medication', 'Equipment', 'Supplement', 'Other'];
 const UNITS = ['Sachet', 'Carton', 'Piece', 'Bottle', 'Pack', 'Tablet', 'kg', 'Litre'];
@@ -25,16 +24,20 @@ export default function InventoryEditScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pickerVisible, setPickerVisible] = useState<{ field: string; options: string[] } | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
     name: '', code: '', category: '', unit_of_measure: '', unit_cost: '',
-    initial_stock: '', batch_number: '', manufacture_date: '', expiry_date: '',
+    initial_stock: '', conversion_factor: '1',
     manufacturer: '', supplier: '', storage_conditions: '',
     reorder_level: '', min_stock_level: '', max_stock_level: '',
     has_expiry: 'No', is_active: 'Active', description: '',
   });
 
-  const update = useCallback((key: string, val: string) => setForm((p) => ({ ...p, [key]: val })), []);
+  const update = useCallback((key: string, val: string) => {
+    setForm((p) => ({ ...p, [key]: val }));
+    setErrors((p) => { const next = { ...p }; delete next[key]; return next; });
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -48,9 +51,7 @@ export default function InventoryEditScreen() {
           unit_of_measure: item.unit || item.unit_of_measure || '',
           unit_cost: item.unit_cost?.toString() || '',
           initial_stock: item.initial_stock?.toString() || '',
-          batch_number: item.batch_number || '',
-          manufacture_date: item.manufacture_date || '',
-          expiry_date: item.expiry_date || '',
+          conversion_factor: item.conversion_factor?.toString() || '1',
           manufacturer: item.manufacturer || '',
           supplier: item.supplier || '',
           storage_conditions: item.storage_conditions || '',
@@ -69,11 +70,18 @@ export default function InventoryEditScreen() {
     })();
   }, [id]);
 
+  const validate = useCallback(() => {
+    const next: Record<string, string> = {};
+    if (!form.name.trim()) next.name = 'Item name is required';
+    if (!form.category) next.category = 'Category is required';
+    if (!form.unit_of_measure) next.unit_of_measure = 'Unit of measure is required';
+    if (!form.reorder_level) next.reorder_level = 'Reorder level is required';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }, [form]);
+
   const handleSave = async () => {
-    if (!form.name.trim()) { Alert.alert('Validation', 'Item name is required'); return; }
-    if (!form.category) { Alert.alert('Validation', 'Category is required'); return; }
-    if (!form.unit_of_measure) { Alert.alert('Validation', 'Unit of measure is required'); return; }
-    if (!form.reorder_level) { Alert.alert('Validation', 'Reorder level is required'); return; }
+    if (!validate()) return;
 
     setSaving(true);
     try {
@@ -84,9 +92,7 @@ export default function InventoryEditScreen() {
         unit_of_measure: form.unit_of_measure,
         unit_cost: form.unit_cost ? parseFloat(form.unit_cost) : undefined,
         initial_stock: form.initial_stock ? parseInt(form.initial_stock) : 0,
-        batch_number: form.batch_number || undefined,
-        manufacture_date: form.manufacture_date || undefined,
-        expiry_date: form.expiry_date || undefined,
+        conversion_factor: form.conversion_factor ? parseFloat(form.conversion_factor) : 1,
         manufacturer: form.manufacturer || undefined,
         supplier: form.supplier || undefined,
         storage_conditions: form.storage_conditions || undefined,
@@ -117,7 +123,7 @@ export default function InventoryEditScreen() {
   const pickerValue = pickerField ? (form as any)[pickerField] : '';
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -131,19 +137,16 @@ export default function InventoryEditScreen() {
         <SectionHeader title="Basic Information" icon="cube-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Field label="Item Name *" value={form.name} onChangeText={(v: string) => update('name', v)} colors={colors} />
+          {errors.name ? <Text style={[styles.error, { color: colors.danger }]}>{errors.name}</Text> : null}
           <Field label="Item Code *" value={form.code} onChangeText={(v: string) => update('code', v.toUpperCase())} autoCapitalize="characters" colors={colors} />
+          {errors.code ? <Text style={[styles.error, { color: colors.danger }]}>{errors.code}</Text> : null}
           <PickerRow label="Category *" value={form.category} onPress={() => openPicker('category', CATEGORIES)} colors={colors} />
+          {errors.category ? <Text style={[styles.error, { color: colors.danger }]}>{errors.category}</Text> : null}
           <PickerRow label="Unit of Measure *" value={form.unit_of_measure} onPress={() => openPicker('unit_of_measure', UNITS)} colors={colors} />
+          {errors.unit_of_measure ? <Text style={[styles.error, { color: colors.danger }]}>{errors.unit_of_measure}</Text> : null}
           <Field label="Unit Cost" value={form.unit_cost} onChangeText={(v: string) => update('unit_cost', v)} keyboardType="decimal-pad" colors={colors} />
           <Field label="Initial Stock Quantity" value={form.initial_stock} onChangeText={(v: string) => update('initial_stock', v)} keyboardType="numeric" colors={colors} />
-        </View>
-
-        {/* Batch & Expiry */}
-        <SectionHeader title="Batch & Expiry Information" icon="calendar-outline" colors={colors} />
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Field label="Batch/Lot Number" value={form.batch_number} onChangeText={(v: string) => update('batch_number', v)} colors={colors} />
-          <DatePickerField label="Manufacture Date" value={form.manufacture_date} onChange={(v: string) => update('manufacture_date', v)} colors={colors} />
-          <DatePickerField label="Expiry Date" value={form.expiry_date} onChange={(v: string) => update('expiry_date', v)} colors={colors} />
+          <Field label="Conversion Factor" value={form.conversion_factor} onChangeText={(v: string) => update('conversion_factor', v)} keyboardType="decimal-pad" colors={colors} hint="e.g. 10 (1 kg = 10 sachets)" />
         </View>
 
         {/* Supplier Information */}
@@ -158,6 +161,7 @@ export default function InventoryEditScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <PickerRow label="Storage Conditions" value={form.storage_conditions} onPress={() => openPicker('storage_conditions', STORAGE_CONDITIONS)} colors={colors} />
           <Field label="Reorder Level *" value={form.reorder_level} onChangeText={(v: string) => update('reorder_level', v)} keyboardType="numeric" colors={colors} hint="Minimum stock level before reorder alert" />
+          {errors.reorder_level ? <Text style={[styles.error, { color: colors.danger }]}>{errors.reorder_level}</Text> : null}
           <Field label="Min Stock Level" value={form.min_stock_level} onChangeText={(v: string) => update('min_stock_level', v)} keyboardType="numeric" colors={colors} hint="Critical threshold below which stock is urgent" />
           <Field label="Max Stock Level" value={form.max_stock_level} onChangeText={(v: string) => update('max_stock_level', v)} keyboardType="numeric" colors={colors} hint="Maximum storage capacity" />
           <PickerRow label="Has Expiry Date?" value={form.has_expiry} onPress={() => openPicker('has_expiry', YES_NO)} colors={colors} />
@@ -251,6 +255,7 @@ const styles = StyleSheet.create({
   fieldWrap: { gap: 4 },
   fieldLabel: { fontSize: 12, fontWeight: '600' },
   fieldInput: { borderRadius: 10, paddingHorizontal: 12, fontSize: 15 },
+  error: { fontSize: 12, marginTop: 2 },
   pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, paddingHorizontal: 12, height: 46 },
   pickerText: { fontSize: 15 },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 20, borderRadius: 14, paddingVertical: 14 },

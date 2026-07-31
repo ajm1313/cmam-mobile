@@ -197,7 +197,7 @@ export default function InventoryScreen() {
         <QuickLink icon="layers-outline" label="All Stock" color={colors.secondary} bg={colors.secondary} onPress={() => router.push('/admin/stock-levels' as any)} />
       </View>
       <View style={styles.quickRow}>
-        <QuickLink icon="pulse-outline" label="Movements" color={colors.secondary} bg={colors.secondary} onPress={() => router.push('/admin/stock-movements' as any)} />
+        {user?.is_superuser && <QuickLink icon="pulse-outline" label="Movements" color={colors.secondary} bg={colors.secondary} onPress={() => router.push('/admin/stock-movements' as any)} />}
         <QuickLink icon="time-outline" label="Expiry" color={colors.danger} bg={colors.danger} onPress={() => router.push('/admin/expiry-management' as any)} />
         <QuickLink icon="bar-chart-outline" label="Reports" color={colors.primary} bg={colors.primary} onPress={() => router.push('/admin/inventory-reports' as any)} />
       </View>

@@ -184,7 +184,7 @@ export default function VisitEditScreen() {
   const update = (key: string, val: string) => setForm((prev) => ({ ...prev, [key]: val }));
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -260,6 +260,9 @@ export default function VisitEditScreen() {
           {form.weight_kg && calcRutf(parseFloat(form.weight_kg)) && (
             <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 4 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
           )}
+          <Text style={{ fontSize: 10, color: colors.textMuted, marginBottom: 4, fontStyle: 'italic' }}>
+            The oldest/expiring RUTF batch will be consumed automatically (FEFO/FIFO).
+          </Text>
           <Field label="" value={form.rutf_sachets_given} onChangeText={(v: string) => update('rutf_sachets_given', v)} keyboardType="numeric" colors={colors} />
           <PickerRow label="Breastfeeding Status" value={form.breastfeeding_status} options={BREASTFEEDING_OPTS} onSelect={(v: string) => update('breastfeeding_status', v)} colors={colors} />
           <Field label="CSB+ Given" value={form.csb_plus_given} onChangeText={(v: string) => update('csb_plus_given', v)} keyboardType="decimal-pad" colors={colors} />

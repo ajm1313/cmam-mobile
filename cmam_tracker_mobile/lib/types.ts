@@ -45,8 +45,13 @@ export interface InventoryItem {
   id: number;
   name: string;
   unit: string;
+  unit_of_measure?: string;
   category: string;
-  reorder_level: number;
+  conversion_factor?: string | number;
+  reorder_level?: number;
+  min_stock_level?: number;
+  max_stock_level?: number;
+  has_expiry?: boolean;
   is_active: boolean;
 }
 
@@ -105,6 +110,7 @@ export interface OpcCase {
   status: string;
   admission_date: string;
   facility_name: string;
+  facility_id: number;
   weight_kg: number;
   height_cm: number;
   muac_cm: number | null;

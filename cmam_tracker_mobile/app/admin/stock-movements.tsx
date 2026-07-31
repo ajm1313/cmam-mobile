@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import { useAuthStore } from '../../lib/store';
 
 interface Movement {
   id: number; item_name: string; item_code: string;
@@ -16,6 +17,7 @@ interface Movement {
   source: string; destination: string;
   notes: string; created_by_name: string | null;
   movement_date: string | null; reference_number: string;
+  batch_number: string | null;
 }
 interface InventoryItem { id: number; name: string; code: string; }
 interface Facility { id: number; name: string; }
@@ -37,6 +39,8 @@ export default function StockMovementsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = !!user?.is_superuser;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -158,6 +162,37 @@ export default function StockMovementsScreen() {
     return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleDelete = (m: Movement) => {
+    Alert.alert(
+      'Delete Movement',
+      `Delete ${m.movement_type} of ${m.quantity} — ${m.item_name}?\n\nThis will reverse the stock level changes.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/v1/inventory/movements/${m.id}/delete/`);
+              Alert.alert('Success', 'Movement deleted');
+              fetchData();
+            } catch (e: any) {
+              Alert.alert('Error', e.response?.data?.message || 'Failed to delete movement');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEdit = (m: Movement) => {
+    Alert.alert(
+      'Edit Movement',
+      `Editing: ${m.item_name} — ${m.movement_type} (${m.quantity})\n\nUse the webapp for full edit functionality.`,
+      [{ text: 'OK' }]
+    );
+  };
+
   if (loading) {
     return <View style={[styles.centered, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
@@ -172,9 +207,13 @@ export default function StockMovementsScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Stock Movements</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.backBtn}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        {isSuperAdmin ? (
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.backBtn}>
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       {/* Summary Cards */}
@@ -239,7 +278,7 @@ export default function StockMovementsScreen() {
                         <Text style={[styles.typeText, { color: meta.color }]}>{m.movement_type}</Text>
                       </View>
                     </View>
-                    <Text style={[styles.itemCode, { color: colors.textMuted }]}>{m.item_code}</Text>
+                    <Text style={[styles.itemCode, { color: colors.textMuted }]}>{m.item_code}{m.batch_number ? ` · Batch: ${m.batch_number}` : ''}</Text>
                   </View>
                   <Text style={[styles.qty, { color: meta.color }]}>
                     {['OUT', 'EXPIRED'].includes(m.movement_type) ? '-' : '+'}{m.quantity}
@@ -269,6 +308,18 @@ export default function StockMovementsScreen() {
                   {m.reference_number && <Text style={[styles.metaText, { color: colors.textMuted }]}> • #{m.reference_number}</Text>}
                 </View>
                 {m.notes ? <Text style={[styles.notes, { color: colors.textSecondary }]}>{m.notes}</Text> : null}
+                {isSuperAdmin && (
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
+                    <TouchableOpacity onPress={() => handleEdit(m)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="create-outline" size={16} color={colors.primary} />
+                      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDelete(m)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                      <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             );
           })

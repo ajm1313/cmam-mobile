@@ -1,16 +1,16 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Alert, Image,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import type { OpcCaseDetail, OpcVisit } from '../../lib/types';
-import ZScoreChart from '../../components/ZScoreChart';
+import WHOGrowthChart from '../../components/WHOGrowthChart';
 import OfflineBanner from '../../components/OfflineBanner';
 
 export default function CaseDetailScreen() {
@@ -33,7 +33,11 @@ export default function CaseDetailScreen() {
     }
   }, [id]);
 
-  useEffect(() => { fetchCase(); }, [fetchCase]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchCase();
+    }, [fetchCase])
+  );
 
   const onRefresh = () => { setRefreshing(true); fetchCase(); };
 
@@ -255,18 +259,16 @@ export default function CaseDetailScreen() {
         />
       )}
 
-      {/* WHO Z-Score Trajectory Chart */}
-      {caseData.visits && caseData.visits.length > 0 && (
-        <ZScoreChart
-          visits={caseData.visits}
-          regWeight={caseData.weight_kg}
-          regHeight={caseData.height_cm}
-          regZScore={caseData.z_score_wfh}
-          regDate={caseData.admission_date}
-          colors={colors}
-          typeColor={typeColor}
-        />
-      )}
+      {/* WHO Growth Chart — Weight-for-Length/Height */}
+      <WHOGrowthChart
+        gender={caseData.child_gender}
+        regWeight={caseData.weight_kg}
+        regHeight={caseData.height_cm}
+        regDate={caseData.admission_date}
+        visits={caseData.visits || []}
+        colors={colors}
+        typeColor={typeColor}
+      />
 
       {/* Latest Visit Summary */}
       {latestVisit && (

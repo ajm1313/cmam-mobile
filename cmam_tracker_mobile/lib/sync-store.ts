@@ -7,7 +7,7 @@ import { clearAllCache } from './cache';
 export interface SyncQueueItem {
   id: string;
   url: string;
-  method: 'POST' | 'PATCH' | 'DELETE';
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   data?: Record<string, any>;
   timestamp: number;
   retries: number;
@@ -64,6 +64,8 @@ export const useSyncStore = create<SyncState>()(
               await api.delete(item.url);
             } else if (item.method === 'PATCH') {
               await api.patch(item.url, item.data);
+            } else if (item.method === 'PUT') {
+              await api.put(item.url, item.data);
             } else {
               await api.post(item.url, item.data);
             }
@@ -112,6 +114,8 @@ export const useSyncStore = create<SyncState>()(
               await api.delete(item.url);
             } else if (item.method === 'PATCH') {
               await api.patch(item.url, dataWithoutTs);
+            } else if (item.method === 'PUT') {
+              await api.put(item.url, dataWithoutTs);
             } else {
               await api.post(item.url, dataWithoutTs);
             }

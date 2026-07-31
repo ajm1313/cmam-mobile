@@ -30,7 +30,7 @@
       },
       "package": "org.pharn.cmamtracker",
       "usesCleartextTraffic": true,
-      "versionCode": 12,
+      "versionCode": 13,
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]

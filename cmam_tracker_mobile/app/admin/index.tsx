@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../lib/theme';
 import { useAuthStore } from '../../lib/store';
+import { useOfflineSync } from '../../lib/useOfflineSync';
 
 interface AdminMenuItem {
   title: string;
@@ -12,6 +13,7 @@ interface AdminMenuItem {
   route: string;
   color: string;
   requiresAdmin?: boolean;
+  requiresSuperuser?: boolean;
 }
 
 export default function AdminHubScreen() {
@@ -19,6 +21,7 @@ export default function AdminHubScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
+  const { pendingCount, isSyncing } = useOfflineSync();
   const isAdmin = user?.is_superuser || user?.is_staff;
 
   const menuSections: { title: string; items: AdminMenuItem[] }[] = [
@@ -48,7 +51,7 @@ export default function AdminHubScreen() {
       items: [
         { title: 'Inventory Items', subtitle: 'Manage items catalog', icon: 'cube-outline', route: '/admin/inventory-items', color: colors.primary },
         { title: 'Stock Levels', subtitle: 'View and adjust stock per facility', icon: 'layers-outline', route: '/admin/stock-levels', color: '#0369a1' },
-        { title: 'Stock Movements', subtitle: 'Track and record stock movements', icon: 'swap-vertical-outline', route: '/admin/stock-movements', color: colors.secondary },
+        { title: 'Stock Movements', subtitle: 'Track and record stock movements', icon: 'swap-vertical-outline', route: '/admin/stock-movements', color: colors.secondary, requiresSuperuser: true },
         { title: 'Stock Requests', subtitle: 'View and process stock requests', icon: 'document-text-outline', route: '/admin/stock-requests', color: colors.warning },
         { title: 'New Stock Request', subtitle: 'Submit a new stock request', icon: 'add-circle-outline', route: '/admin/stock-request-create', color: colors.success },
         { title: 'Expiry Management', subtitle: 'Batch tracking and expiry alerts', icon: 'calendar-outline', route: '/admin/expiry-management', color: colors.danger },
@@ -71,7 +74,18 @@ export default function AdminHubScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Admin & Tools</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => router.push('/admin/offline-sync' as any)} style={[styles.backBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+          {isSyncing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name={pendingCount > 0 ? 'cloud-upload' : 'cloud-done'} size={20} color="#fff" />
+          )}
+          {pendingCount > 0 && (
+            <View style={[styles.syncBadge, { backgroundColor: colors.danger }]}>
+              <Text style={styles.syncBadgeText}>{pendingCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Welcome Card */}
@@ -88,7 +102,8 @@ export default function AdminHubScreen() {
       </View>
 
       {menuSections.map((section) => {
-        const visibleItems = section.items.filter((item) => !item.requiresAdmin || isAdmin);
+        const visibleItems = section.items.filter((item) => !item.requiresAdmin || isAdmin)
+          .filter((item) => !item.requiresSuperuser || user?.is_superuser);
         if (visibleItems.length === 0) return null;
         return (
           <View key={section.title}>
@@ -124,6 +139,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, paddingTop: 16 },
   backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  syncBadge: { position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  syncBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   welcomeCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16 },
   welcomeIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   welcomeName: { fontSize: 17, fontWeight: '700' },

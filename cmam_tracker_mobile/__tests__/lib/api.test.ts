@@ -19,10 +19,11 @@ describe('API Client', () => {
     (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(mockToken);
 
     const mockRequest = { headers: {} };
-    const interceptor = api.interceptors.request.handlers[0];
+    const requestHandlers = api.interceptors.request.handlers || [];
+    const interceptor = requestHandlers[0];
     
     // Note: This is a simplified test. In reality, you'd need to properly test the interceptor
-    expect(api.interceptors.request.handlers.length).toBeGreaterThan(0);
+    expect(requestHandlers.length).toBeGreaterThan(0);
   });
 
   it('should handle 401 errors and clear token', async () => {
@@ -32,6 +33,7 @@ describe('API Client', () => {
     };
 
     // Test that 401 errors are handled
-    expect(api.interceptors.response.handlers.length).toBeGreaterThan(0);
+    const responseHandlers = api.interceptors.response.handlers || [];
+    expect(responseHandlers.length).toBeGreaterThan(0);
   });
 });

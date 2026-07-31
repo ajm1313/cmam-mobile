@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import EmptyState from '../../components/EmptyState';
 
 interface StockLevel {
   id: number; item_id: number; item_name: string; item_code: string;
@@ -144,13 +145,13 @@ export default function StockLevelsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} colors={[colors.primary]} />}
       >
         {displayed.length === 0 ? (
-          <View style={styles.empty}><Ionicons name="cube-outline" size={48} color={colors.textMuted} /><Text style={[styles.emptyText, { color: colors.textMuted }]}>No stock records</Text></View>
+          <EmptyState icon="cube-outline" title="No stock records" subtitle={filterLow ? 'No low or out-of-stock items at the moment.' : 'No stock records found for the selected filters.'} />
         ) : (
           displayed.map((sl) => {
             const status = getStockStatus(sl);
             const pct = sl.reorder_level > 0 ? Math.min(100, Math.round((sl.current_stock / (sl.reorder_level * 3)) * 100)) : 100;
             return (
-              <View key={sl.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View key={sl.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, borderLeftWidth: 5, borderLeftColor: status.color }]}>
                 <View style={styles.cardTop}>
                   <View style={[styles.itemIcon, { backgroundColor: status.color + '15' }]}>
                     <Ionicons name="cube" size={18} color={status.color} />

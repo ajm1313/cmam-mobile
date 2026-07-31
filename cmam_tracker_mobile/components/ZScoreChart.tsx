@@ -19,6 +19,20 @@ interface ZScoreChartProps {
   typeColor: string;
 }
 
+function parseZScore(raw: any): number | null {
+  if (raw == null) return null;
+  if (typeof raw === 'number') return raw;
+  const s = String(raw).trim();
+  const match = s.match(/-?\d+\.?\d*/);
+  if (match) {
+    const val = parseFloat(match[0]);
+    if (!isNaN(val)) return val;
+  }
+  if (s.includes('<') && s.includes('3')) return -3.5;
+  if (s.includes('<') && s.includes('2')) return -2.5;
+  return null;
+}
+
 export default function ZScoreChart({ visits, regWeight, regHeight, regZScore, regDate, colors, typeColor }: ZScoreChartProps) {
   const formatShort = (d: string) => {
     try { return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
@@ -37,7 +51,7 @@ export default function ZScoreChart({ visits, regWeight, regHeight, regZScore, r
     },
     ...sortedVisits.map(v => ({
       label: formatShort(v.visit_date),
-      zScore: v.z_score_wfh,
+      zScore: parseZScore(v.z_score_wfh),
       visitNum: v.visit_number,
       weight: v.weight_kg,
       height: v.height_cm,

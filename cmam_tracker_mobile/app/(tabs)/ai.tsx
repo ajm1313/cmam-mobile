@@ -2,13 +2,15 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity, ActivityIndicator, FlatList, TextInput,
-  KeyboardAvoidingView, Platform, Keyboard,
+  KeyboardAvoidingView, Platform, Keyboard, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import { useNetworkStatus } from '../../lib/useNetworkStatus';
 import { setCache, getCacheFallback } from '../../lib/cache';
+import api from '../../lib/api';
+import { useAuthStore } from '../../lib/store';
 import OfflineBanner from '../../components/OfflineBanner';
 import { Skeleton } from '../../components/LoadingSkeleton';
 import {
@@ -102,6 +104,34 @@ function OverviewTab({ colors, isConnected }: { colors: any; isConnected: boolea
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draftSaving, setDraftSaving] = useState<number | null>(null);
+  const user = useAuthStore((s: any) => s.user);
+
+  const createDraftRequest = useCallback(async (item: any) => {
+    if (!isConnected) {
+      Alert.alert('Offline', 'Draft requests can only be created when online.');
+      return;
+    }
+    const qty = item.recommended_quantity || item.total_forecast || 0;
+    if (!qty) {
+      Alert.alert('No quantity', 'No recommended quantity for this item.');
+      return;
+    }
+    setDraftSaving(item.item_id);
+    try {
+      await api.post('/v1/inventory/requests/create/', {
+        requesting_facility_id: user?.location?.facility_id || null,
+        priority: 'High',
+        justification: 'Auto-generated from AI stock forecast',
+        items: [{ item_id: item.item_id, quantity: qty, notes: 'Recommended by forecast' }],
+      });
+      Alert.alert('Success', `Draft stock request created for ${item.item_name}`);
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.message || 'Failed to create draft request');
+    } finally {
+      setDraftSaving(null);
+    }
+  }, [isConnected, user]);
 
   const loadData = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
@@ -234,8 +264,19 @@ function OverviewTab({ colors, isConnected }: { colors: any; isConnected: boolea
                 </Text>
               </View>
               {item.reorder_recommended && (
-                <View style={[styles.riskBadge, { backgroundColor: colors.warning + '20' }]}>
-                  <Text style={[styles.riskBadgeText, { color: colors.warning }]}>Reorder</Text>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <View style={[styles.riskBadge, { backgroundColor: colors.warning + '20' }]}>
+                    <Text style={[styles.riskBadgeText, { color: colors.warning }]}>Reorder</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => createDraftRequest(item)}
+                    disabled={draftSaving === item.item_id}
+                    style={[styles.draftBtn, { backgroundColor: colors.primary + '15' }]}
+                  >
+                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>
+                      {draftSaving === item.item_id ? '...' : 'Draft Request'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -677,7 +718,7 @@ function AssistantTab({ colors, isConnected }: { colors: any; isConnected: boole
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
       <ScrollView
@@ -826,6 +867,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   riskBadgeText: { fontSize: 13, fontWeight: '700' },
+  draftBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   emptyText: { fontSize: 14, textAlign: 'center', marginTop: 12 },
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 12 },
