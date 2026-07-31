@@ -9,6 +9,7 @@ import { COLORS } from '../../lib/config';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import { useAuthStore } from '../../lib/store';
 import type { OpcCaseDetail, OpcVisit } from '../../lib/types';
 import WHOGrowthChart from '../../components/WHOGrowthChart';
 import OfflineBanner from '../../components/OfflineBanner';
@@ -17,6 +18,8 @@ export default function CaseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const { user } = useAuthStore();
+  const isSuper = user?.is_superuser === true;
   const [caseData, setCaseData] = useState<OpcCaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,6 +55,20 @@ export default function CaseDetailScreen() {
       }
     } catch {
       Alert.alert('Error', 'Failed to process discharge');
+    }
+  };
+
+  const reverseDischarge = async () => {
+    try {
+      const res = await sendOrQueue(`/v1/cases/${id}/reverse-discharge/`, 'post', null, 'Reverse Discharge');
+      if (res) {
+        Alert.alert('Success', 'Case reactivated successfully.');
+        fetchCase();
+      } else {
+        Alert.alert('Saved Offline', 'Reverse discharge saved and will sync when online.');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to reverse discharge');
     }
   };
 
@@ -152,6 +169,7 @@ export default function CaseDetailScreen() {
 
       {/* Management Actions */}
       <View style={[styles.mgmtRow, { marginHorizontal: 12, marginTop: 12, gap: 8 }]}>
+        {isSuper && (
         <TouchableOpacity
           style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.primary + '30', borderWidth: 1 }]}
           onPress={() => router.push({ pathname: '/case/edit', params: { id: String(caseData.id) } })}
@@ -160,6 +178,22 @@ export default function CaseDetailScreen() {
           <Ionicons name="create-outline" size={18} color={colors.primary} />
           <Text style={[styles.mgmtBtnText, { color: colors.primary }]}>Edit</Text>
         </TouchableOpacity>
+        )}
+        {!isActive && isSuper && (
+          <TouchableOpacity
+            style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.success + '30', borderWidth: 1 }]}
+            onPress={() => {
+              Alert.alert('Reactivate Case', 'Reverse discharge and set case back to Active?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Reactivate', onPress: reverseDischarge },
+              ]);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh-circle-outline" size={18} color={colors.success} />
+            <Text style={[styles.mgmtBtnText, { color: colors.success }]}>Reactivate</Text>
+          </TouchableOpacity>
+        )}
         {isActive && (
           <TouchableOpacity
             style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.warning + '30', borderWidth: 1 }]}
@@ -186,6 +220,7 @@ export default function CaseDetailScreen() {
           <Ionicons name="swap-horizontal-outline" size={18} color="#7c3aed" />
           <Text style={[styles.mgmtBtnText, { color: '#7c3aed' }]}>Transfer</Text>
         </TouchableOpacity>
+        {isSuper && (
         <TouchableOpacity
           style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.danger + '30', borderWidth: 1 }]}
           onPress={() => {
@@ -211,6 +246,7 @@ export default function CaseDetailScreen() {
           <Ionicons name="close-circle-outline" size={18} color={colors.danger} />
           <Text style={[styles.mgmtBtnText, { color: colors.danger }]}>Close</Text>
         </TouchableOpacity>
+        )}
       </View>
 
       {/* Child Photo */}
