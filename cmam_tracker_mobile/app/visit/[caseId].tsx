@@ -24,7 +24,7 @@ const STEPS: { key: Step; label: string; icon: string }[] = [
 const VISIT_TYPES = ['Routine', 'Follow-up', 'Unscheduled'];
 const APPETITE_OPTIONS = ['Good', 'Fair', 'Poor'];
 const SAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Defaulted', 'Referral', 'Refused-Referral', 'Cured', 'Non-Response', 'Home-Visit', 'Death', 'Transfer-to-IPC'];
-const MAM_OUTCOME_OPTIONS = ['Continue', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
+const MAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
 const TREATMENT_RESPONSE_OPTIONS = ['Good', 'Moderate', 'Poor', 'No-Response'];
 const BREASTFEEDING_OPTIONS = ['BFW', 'BFC', 'NBF'];
 const Z_SCORE_OPTIONS = ['N', 'MAM', 'SAM'];
@@ -189,22 +189,31 @@ export default function VisitFormScreen() {
   const goNext = () => { if (!isLast) setStep(STEPS[stepIndex + 1].key); };
   const goPrev = () => { if (!isFirst) setStep(STEPS[stepIndex - 1].key); };
 
+  const isAbsentOrDefaulted = form.visit_outcome === 'Absent' || form.visit_outcome === 'Defaulted';
+
   const handleSubmit = async () => {
-    if (!form.weight_kg) {
-      Alert.alert('Required', 'Weight is required.');
-      setStep('anthropometry');
-      return;
-    }
-    if (!form.muac_cm) {
-      Alert.alert('Required', 'MUAC is required.');
-      setStep('anthropometry');
-      return;
-    }
-    // Anthropometry visit validation (visits 4, 8, 12, 16)
-    if (isAnthropometryVisit && (!form.height_cm || !form.z_score_wfh)) {
-      Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 4, 8, 12, 16).');
-      setStep('anthropometry');
-      return;
+    if (!isAbsentOrDefaulted) {
+      if (!form.weight_kg) {
+        Alert.alert('Required', 'Weight is required.');
+        setStep('anthropometry');
+        return;
+      }
+      if (!form.muac_cm) {
+        Alert.alert('Required', 'MUAC is required.');
+        setStep('anthropometry');
+        return;
+      }
+      if (!form.appetite) {
+        Alert.alert('Required', 'Appetite Test is required.');
+        setStep('medical');
+        return;
+      }
+      // Anthropometry visit validation (visits 4, 8, 12, 16)
+      if (isAnthropometryVisit && (!form.height_cm || !form.z_score_wfh)) {
+        Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 4, 8, 12, 16).');
+        setStep('anthropometry');
+        return;
+      }
     }
     // Stock-out warning for RUTF
     if (form.rutf_sachets_given && rutfStock !== null) {
@@ -226,14 +235,12 @@ export default function VisitFormScreen() {
       const payload: any = {
         visit_date: form.visit_date,
         visit_type: form.visit_type,
-        weight_kg: parseFloat(form.weight_kg),
         weight_lost: form.weight_lost,
         visit_outcome: form.visit_outcome,
         outcome_notes: form.outcome_notes,
         staff_name: form.staff_name,
         medical_notes: form.medical_notes,
         appetite: form.appetite || undefined,
-        rutf_test: form.rutf_test || undefined,
         breastfeeding_status: form.breastfeeding_status || undefined,
         general_condition: form.general_condition || undefined,
         has_complications: form.has_complications,
@@ -257,6 +264,7 @@ export default function VisitFormScreen() {
         home_visit_needed: form.home_visit_needed,
         remarks: form.remarks || undefined,
       };
+      if (form.weight_kg) payload.weight_kg = parseFloat(form.weight_kg);
       if (form.height_cm) payload.height_cm = parseFloat(form.height_cm);
       if (form.muac_cm) payload.muac_cm = parseFloat(form.muac_cm);
       if (form.z_score_wfh) payload.z_score_wfh = form.z_score_wfh;
@@ -433,14 +441,11 @@ export default function VisitFormScreen() {
               <Label text="Respiratory Rate (breaths/min)" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.respiratory_rate} onChangeText={v => set('respiratory_rate', v)} keyboardType="number-pad" placeholder="e.g. 40" placeholderTextColor={colors.textMuted} />
 
-              <Label text="Appetite" colors={colors} />
+              <Label text="Appetite Test" colors={colors} />
               <ChipRow options={APPETITE_OPTIONS} selected={form.appetite} onSelect={v => { set('appetite', v); checkAutomation(); }} colors={colors} />
 
               {isSAM && (
                 <>
-                  <Label text="RUTF Test" colors={colors} />
-                  <ChipRow options={['Passed', 'Failed']} selected={form.rutf_test} onSelect={v => { set('rutf_test', v); checkAutomation(); }} colors={colors} />
-
                   <Label text="Breastfeeding Status" colors={colors} />
                   <ChipRow options={BREASTFEEDING_OPTIONS} selected={form.breastfeeding_status} onSelect={v => set('breastfeeding_status', v)} colors={colors} />
                 </>

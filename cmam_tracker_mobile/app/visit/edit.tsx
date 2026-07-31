@@ -12,7 +12,7 @@ import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 
 const SAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Defaulted', 'Referral', 'Refused-Referral', 'Cured', 'Non-Response', 'Home-Visit', 'Death', 'Transfer-to-IPC'];
-const MAM_OUTCOME_OPTIONS = ['Continue', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
+const MAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
 const APPETITE_OPTIONS = ['Good', 'Fair', 'Poor'];
 const RUTF_OPTIONS = ['Passed', 'Failed'];
 const VISIT_TYPES = ['Routine', 'Follow-up', 'Unscheduled'];
@@ -151,7 +151,14 @@ export default function VisitEditScreen() {
     })();
   }, [caseId, visitId]);
 
+  const isAbsentOrDefaulted = form.visit_outcome === 'Absent' || form.visit_outcome === 'Defaulted';
+
   const handleSave = async () => {
+    if (!isAbsentOrDefaulted) {
+      if (!form.weight_kg) { Alert.alert('Required', 'Weight is required.'); return; }
+      if (!form.muac_cm) { Alert.alert('Required', 'MUAC is required.'); return; }
+      if (!form.appetite) { Alert.alert('Required', 'Appetite Test is required.'); return; }
+    }
     setSaving(true);
     try {
       const payload: Record<string, any> = {};
@@ -249,8 +256,7 @@ export default function VisitEditScreen() {
 
         <SectionHeader title="Feeding & Treatment" icon="nutrition-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <PickerRow label="Appetite" value={form.appetite} options={APPETITE_OPTIONS} onSelect={(v: string) => update('appetite', v)} colors={colors} />
-          <PickerRow label="RUTF Test" value={form.rutf_test} options={RUTF_OPTIONS} onSelect={(v: string) => update('rutf_test', v)} colors={colors} />
+          <PickerRow label="Appetite Test" value={form.appetite} options={APPETITE_OPTIONS} onSelect={(v: string) => update('appetite', v)} colors={colors} />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>RUTF Sachets Given</Text>
             <TouchableOpacity onPress={() => Alert.alert('RUTF Dosage Guide', RUTF_GUIDE.map(r => `${r.weight} kg → ${r.week}/week (${r.day}/day)`).join('\n'), [{ text: 'OK' }])} activeOpacity={0.7}>

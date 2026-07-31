@@ -87,7 +87,14 @@ export default function VisitEditByIdScreen() {
     })();
   }, [caseId, id]);
 
+  const isAbsentOrDefaulted = form.visit_outcome === 'Absent' || form.visit_outcome === 'Defaulted';
+
   const handleSave = async () => {
+    if (!isAbsentOrDefaulted) {
+      if (!form.weight_kg) { Alert.alert('Required', 'Weight is required.'); return; }
+      if (!form.muac_cm) { Alert.alert('Required', 'MUAC is required.'); return; }
+      if (!form.appetite) { Alert.alert('Required', 'Appetite Test is required.'); return; }
+    }
     setSaving(true);
     try {
       const res = await sendOrQueue(`/v1/cases/${caseId}/visits/${id}/edit/`, 'put', {
@@ -165,8 +172,7 @@ export default function VisitEditByIdScreen() {
 
         <SectionHeader title="Feeding & Treatment" icon="nutrition-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <PickerRow label="Appetite" value={form.appetite} options={APPETITE_OPTIONS} onSelect={(v: string) => update('appetite', v)} colors={colors} />
-          <PickerRow label="RUTF Test" value={form.rutf_test} options={RUTF_OPTIONS} onSelect={(v: string) => update('rutf_test', v)} colors={colors} />
+          <PickerRow label="Appetite Test" value={form.appetite} options={APPETITE_OPTIONS} onSelect={(v: string) => update('appetite', v)} colors={colors} />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>RUTF Sachets Given</Text>
             <TouchableOpacity onPress={() => Alert.alert('RUTF Dosage Guide', RUTF_GUIDE.map(r => `${r.weight} kg → ${r.week}/week (${r.day}/day)`).join('\n'), [{ text: 'OK' }])} activeOpacity={0.7}>
