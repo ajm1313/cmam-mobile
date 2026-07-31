@@ -41,7 +41,7 @@ export default function IpcRegisterScreen() {
     api.get('/v1/facilities/').then(r => {
       const list = (r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name }));
       setFacilities(list);
-    }).catch(() => {});
+    }).catch((e: any) => { Alert.alert('Error', 'Could not load facilities.'); });
   }, []);
 
   const s = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));

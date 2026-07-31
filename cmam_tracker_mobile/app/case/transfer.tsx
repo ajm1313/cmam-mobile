@@ -28,7 +28,7 @@ export default function CaseTransferScreen() {
   useEffect(() => {
     api.get('/v1/facilities/').then(r => {
       setFacilities((r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name })));
-    }).catch(() => {});
+    }).catch((e: any) => { Alert.alert('Error', 'Could not load facilities.'); });
   }, []);
 
   const handleSubmit = async () => {
