@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity,
@@ -7,11 +7,54 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1 },
+  header: { paddingBottom: 14, paddingHorizontal: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
+  kpiCard: {
+    width: '48%', borderRadius: 12, padding: 14, alignItems: 'center',
+    borderTopWidth: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  kpiValue: { fontSize: 24, fontWeight: '800', marginTop: 6 },
+  kpiLabel: { fontSize: 10, color: colors.textMuted, marginTop: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, textAlign: 'center' },
+  section: {
+    marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  sectionSub: { fontSize: 11, marginBottom: 14 },
+  indicatorRow: { marginBottom: 16 },
+  indicatorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  indicatorLabel: { fontSize: 13, fontWeight: '600' },
+  indicatorValue: { fontSize: 15, fontWeight: '800' },
+  barTrack: { height: 8, borderRadius: 4, overflow: 'visible', position: 'relative' },
+  barFill: { height: '100%', borderRadius: 4 },
+  barTarget: { position: 'absolute', top: -2, bottom: -2, width: 2, backgroundColor: '#000', opacity: 0.3 },
+  indicatorDesc: { fontSize: 10, marginTop: 4 },
+  outcomeRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 8 },
+  outcomeItem: { alignItems: 'center', gap: 6 },
+  outcomeDot: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  outcomeDotValue: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  outcomeLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600' },
+  trendChart: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 160, paddingTop: 20 },
+  trendBar: { alignItems: 'center', flex: 1 },
+  trendValue: { fontSize: 10, fontWeight: '700', color: colors.textMuted, marginBottom: 4 },
+  trendLabel: { fontSize: 9, color: colors.textMuted, marginTop: 4, fontWeight: '600' },
+  trendLegend: { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 10, height: 10, borderRadius: 3 },
+  legendText: { fontSize: 10, fontWeight: '600' },
+});
 interface Stats {
   total_sam: number;
   total_mam: number;
@@ -33,6 +76,7 @@ interface Analytics {
 export default function CaseManagementDashboard() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<Stats | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
@@ -213,6 +257,9 @@ export default function CaseManagementDashboard() {
 }
 
 function KPI({ icon, label, value, color, bg }: { icon: any; label: string; value: number; color: string; bg: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.kpiCard, { backgroundColor: bg, borderTopColor: color }]}>
       <Ionicons name={icon} size={20} color={color} />
@@ -225,6 +272,8 @@ function KPI({ icon, label, value, color, bg }: { icon: any; label: string; valu
 function IndicatorBar({ label, value, target, good, color, colors, description, inverse }: {
   label: string; value: number; target: number; good: boolean; color: string; colors: any; description: string; inverse?: boolean;
 }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={styles.indicatorRow}>
       <View style={{ flex: 1 }}>
@@ -248,6 +297,9 @@ function IndicatorBar({ label, value, target, good, color, colors, description, 
 }
 
 function OutcomeDot({ label, value, color }: { label: string; value: number; color: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={styles.outcomeItem}>
       <View style={[styles.outcomeDot, { backgroundColor: color }]}>
@@ -258,46 +310,4 @@ function OutcomeDot({ label, value, color }: { label: string; value: number; col
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingBottom: 14, paddingHorizontal: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
-  kpiCard: {
-    width: '48%', borderRadius: 12, padding: 14, alignItems: 'center',
-    borderTopWidth: 3,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  kpiValue: { fontSize: 24, fontWeight: '800', marginTop: 6 },
-  kpiLabel: { fontSize: 10, color: COLORS.textMuted, marginTop: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, textAlign: 'center' },
-  section: {
-    marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  sectionSub: { fontSize: 11, marginBottom: 14 },
-  indicatorRow: { marginBottom: 16 },
-  indicatorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  indicatorLabel: { fontSize: 13, fontWeight: '600' },
-  indicatorValue: { fontSize: 15, fontWeight: '800' },
-  barTrack: { height: 8, borderRadius: 4, overflow: 'visible', position: 'relative' },
-  barFill: { height: '100%', borderRadius: 4 },
-  barTarget: { position: 'absolute', top: -2, bottom: -2, width: 2, backgroundColor: '#000', opacity: 0.3 },
-  indicatorDesc: { fontSize: 10, marginTop: 4 },
-  outcomeRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 8 },
-  outcomeItem: { alignItems: 'center', gap: 6 },
-  outcomeDot: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  outcomeDotValue: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  outcomeLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
-  trendChart: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 160, paddingTop: 20 },
-  trendBar: { alignItems: 'center', flex: 1 },
-  trendValue: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, marginBottom: 4 },
-  trendLabel: { fontSize: 9, color: COLORS.textMuted, marginTop: 4, fontWeight: '600' },
-  trendLegend: { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 12 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot: { width: 10, height: 10, borderRadius: 3 },
-  legendText: { fontSize: 10, fontWeight: '600' },
-});
+

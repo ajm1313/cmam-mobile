@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, RefreshControl,
@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import { useSyncStore, type SyncQueueItem } from '../../lib/sync-store';
 import EmptyState from '../../components/EmptyState';
@@ -15,6 +15,7 @@ import ConflictResolutionModal from '../../components/ConflictResolutionModal';
 export default function OfflineSyncScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { queue, isSyncing, lastSyncAt, sync, removeItem, clear, resolveConflict } = useSyncStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -167,7 +168,7 @@ export default function OfflineSyncScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1 },
   header: { paddingBottom: 14, paddingHorizontal: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

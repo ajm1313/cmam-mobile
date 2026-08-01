@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
   ActivityIndicator,
@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import EmptyState from '../../components/EmptyState';
@@ -51,6 +51,7 @@ const ACTION_ICONS: Record<string, string> = {
 export default function AuditLogScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +160,7 @@ export default function AuditLogScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1 },
   header: { paddingBottom: 14, paddingHorizontal: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -175,6 +176,6 @@ const styles = StyleSheet.create({
   cardAction: { fontSize: 12, marginTop: 2 },
   cardTime: { fontSize: 10, fontWeight: '500' },
   cardDetails: { fontSize: 12, marginTop: 8, lineHeight: 18 },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
   footerText: { fontSize: 10, fontWeight: '500' },
 });

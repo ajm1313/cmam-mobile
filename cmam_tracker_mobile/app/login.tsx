@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   Alert, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../lib/store';
-import { COLORS } from '../lib/config';
+
 import { useTheme } from '../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +14,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -128,8 +129,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.primary },
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.primary },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 32 },
   logoCircle: {
@@ -151,27 +152,27 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2, shadowRadius: 20, elevation: 10,
   },
-  cardTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
-  cardSubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 7, marginTop: 14 },
+  cardTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+  cardSubtitle: { fontSize: 13, color: colors.textMuted, marginTop: 4, marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 7, marginTop: 14 },
   inputWrapper: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 10,
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 10,
     backgroundColor: '#f8fafc', paddingHorizontal: 12,
   },
   inputIcon: { marginRight: 8 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 15, color: COLORS.textPrimary },
+  input: { flex: 1, paddingVertical: 13, fontSize: 15, color: colors.textPrimary },
   eyeBtn: { padding: 4 },
   btn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: COLORS.primary, borderRadius: 12,
+    backgroundColor: colors.primary, borderRadius: 12,
     paddingVertical: 15, marginTop: 28,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 10, elevation: 6,
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   forgotBtn: { alignItems: 'center', paddingVertical: 14 },
-  forgotText: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
+  forgotText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
   footer: { textAlign: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 28 },
 });

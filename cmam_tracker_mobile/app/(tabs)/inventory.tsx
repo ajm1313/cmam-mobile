@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, FlatList,
@@ -8,7 +8,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
@@ -19,19 +19,99 @@ import { CardSkeleton } from '../../components/LoadingSkeleton';
 import EmptyState from '../../components/EmptyState';
 import type { StockLevel, InventoryItem } from '../../lib/types';
 
-function QuickLink({ icon, label, color, bg, onPress }: { icon: string; label: string; color: string; bg: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={[styles.quickBtn, { backgroundColor: bg + '12', borderColor: bg + '30' }]} onPress={onPress} activeOpacity={0.7}>
-      <Ionicons name={icon as any} size={18} color={color} />
-      <Text style={[styles.quickLabel, { color }]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  quickRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 2 },
+  quickBtn: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
+  quickLabel: { fontSize: 10, fontWeight: '700' },
+  exportRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5,
+  },
+  exportBtnText: { fontSize: 12, fontWeight: '700' },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', margin: 12, borderRadius: 12, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: colors.border, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4,
+  },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.textPrimary },
+  infoBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.secondary + '14', marginHorizontal: 12, marginBottom: 8,
+    padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.secondary + '30',
+  },
+  infoText: { flex: 1, fontSize: 12, color: colors.secondary, fontWeight: '500' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: -0.1 },
+  card: {
+    marginHorizontal: 12, marginBottom: 10, borderRadius: 16, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+  },
+  cardAccent: { height: 3, width: '100%' },
+  cardInner: { padding: 14 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  cardIconWrap: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  itemName: { fontSize: 15, fontWeight: '700' },
+  itemCategory: { fontSize: 11, fontWeight: '500', marginTop: 2 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.2 },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 12 },
+  balanceValue: { fontSize: 24, fontWeight: '800' },
+  balanceReorder: { fontSize: 18, fontWeight: '700' },
+  balanceLabel: { fontSize: 10, fontWeight: '600', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
+  balanceDivider: { width: 1, height: 32, marginHorizontal: 12 },
+  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  progressBg: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+  progressPct: { fontSize: 10, fontWeight: '700', width: 30, textAlign: 'right' },
+  consumeRowBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
+  consumeRowText: { fontSize: 13, fontWeight: '600' },
+  itemInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1 },
+  itemInfoText: { fontSize: 12, fontWeight: '500' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 24, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+  modalItemName: { fontSize: 15, fontWeight: '700', color: colors.primary, marginBottom: 4 },
+  modalBalance: { fontSize: 13, color: colors.textSecondary, marginBottom: 18 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6, marginTop: 12 },
+  fieldInput: {
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 10, padding: 12,
+    fontSize: 15, color: colors.textPrimary, backgroundColor: '#f8fafc',
+  },
+  consumeBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
+    backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, marginTop: 20,
+  },
+  consumeBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  facilitySelector: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
+  facilitySelectorText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  facilityModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  facilitySheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '60%' },
+  facilitySheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  facilitySheetTitle: { fontSize: 16, fontWeight: '700' },
+  facilitySheetItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  facilitySheetItemText: { flex: 1, fontSize: 14 },
+});
 export default function InventoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+  const QuickLink = ({ icon, label, color, bg, onPress }: { icon: string; label: string; color: string; bg: string; onPress: () => void }) => {
+    const { colors } = useTheme();
+    const styles = React.useMemo(() => getStyles(colors), [colors]);
+
+    return (
+      <TouchableOpacity style={[styles.quickBtn, { backgroundColor: bg + '12', borderColor: bg + '30' }]} onPress={onPress} activeOpacity={0.7}>
+        <Ionicons name={icon as any} size={18} color={color} />
+        <Text style={[styles.quickLabel, { color }]}>{label}</Text>
+      </TouchableOpacity>
+    );
+  };
   const userFacilityId = user?.location?.facility_id;
   const isAdmin = !userFacilityId;
 
@@ -376,6 +456,8 @@ export default function InventoryScreen() {
 }
 
 function StockCard({ item, onConsume, canConsume, colors }: { item: StockLevel; onConsume: () => void; canConsume: boolean; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const isLow = item.current_balance <= (item.inventory_item?.reorder_level ?? 0);
   const statusColor = isLow ? colors.danger : colors.success;
   const pct = item.inventory_item?.reorder_level
@@ -446,6 +528,8 @@ function getCategoryIcon(category?: string) {
 }
 
 function ItemCard({ item, colors }: { item: InventoryItem; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const catIcon = getCategoryIcon(item.category);
   const catColor = getCatColor(item.category, colors);
   return (
@@ -481,80 +565,4 @@ function getCatColor(category: string, colors: any) {
   return map[category] || colors.textMuted;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  quickRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 2 },
-  quickBtn: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  quickLabel: { fontSize: 10, fontWeight: '700' },
-  exportRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
-  exportBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5,
-  },
-  exportBtnText: { fontSize: 12, fontWeight: '700' },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', margin: 12, borderRadius: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: COLORS.border, elevation: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4,
-  },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary },
-  infoBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.secondary + '14', marginHorizontal: 12, marginBottom: 8,
-    padding: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.secondary + '30',
-  },
-  infoText: { flex: 1, fontSize: 12, color: COLORS.secondary, fontWeight: '500' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: -0.1 },
-  card: {
-    marginHorizontal: 12, marginBottom: 10, borderRadius: 16, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-  },
-  cardAccent: { height: 3, width: '100%' },
-  cardInner: { padding: 14 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  cardIconWrap: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  itemName: { fontSize: 15, fontWeight: '700' },
-  itemCategory: { fontSize: 11, fontWeight: '500', marginTop: 2 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.2 },
-  balanceRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 12 },
-  balanceValue: { fontSize: 24, fontWeight: '800' },
-  balanceReorder: { fontSize: 18, fontWeight: '700' },
-  balanceLabel: { fontSize: 10, fontWeight: '600', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
-  balanceDivider: { width: 1, height: 32, marginHorizontal: 12 },
-  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  progressBg: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 3 },
-  progressPct: { fontSize: 10, fontWeight: '700', width: 30, textAlign: 'right' },
-  consumeRowBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
-  consumeRowText: { fontSize: 13, fontWeight: '600' },
-  itemInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1 },
-  itemInfoText: { fontSize: 12, fontWeight: '500' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 24, paddingBottom: 40 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  modalItemName: { fontSize: 15, fontWeight: '700', color: COLORS.primary, marginBottom: 4 },
-  modalBalance: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 18 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 6, marginTop: 12 },
-  fieldInput: {
-    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 10, padding: 12,
-    fontSize: 15, color: COLORS.textPrimary, backgroundColor: '#f8fafc',
-  },
-  consumeBtn: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, marginTop: 20,
-  },
-  consumeBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  facilitySelector: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
-  facilitySelectorText: { flex: 1, fontSize: 14, fontWeight: '600' },
-  facilityModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  facilitySheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '60%' },
-  facilitySheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
-  facilitySheetTitle: { fontSize: 16, fontWeight: '700' },
-  facilitySheetItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
-  facilitySheetItemText: { flex: 1, fontSize: 14 },
-});
+

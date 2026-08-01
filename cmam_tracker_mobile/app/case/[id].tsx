@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
@@ -14,10 +14,135 @@ import type { OpcCaseDetail, OpcVisit } from '../../lib/types';
 import WHOGrowthChart from '../../components/WHOGrowthChart';
 import OfflineBanner from '../../components/OfflineBanner';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: colors.textMuted, marginTop: 8 },
+  errorText: { fontSize: 16, color: colors.danger, fontWeight: '600' },
+  photoCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, overflow: 'hidden', alignItems: 'center' },
+  childPhoto: { width: '100%', height: 200, borderRadius: 16 },
+
+  // Hero
+  heroCard: {
+    paddingTop: 20, paddingBottom: 24, paddingHorizontal: 20,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 6,
+  },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  typeBadge: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
+  typeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 11, fontWeight: '700' },
+  heroName: { fontSize: 24, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginBottom: 4 },
+  heroReg: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '500', marginBottom: 12 },
+  heroMetaRow: { flexDirection: 'row', gap: 20 },
+  heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  heroMetaText: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
+
+  // Stats
+  statsRow: { flexDirection: 'row', marginHorizontal: 12, marginTop: -8, gap: 8 },
+  statCard: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 12, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  statValue: { fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+  statLabel: { fontSize: 9, fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+
+  // Actions
+  actionsRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginTop: 12, gap: 12 },
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 20, paddingVertical: 13, borderRadius: 14,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+  },
+  actionBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  dueBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+    backgroundColor: colors.danger + '12', borderWidth: 1, borderColor: colors.danger + '30',
+  },
+  dueText: { fontSize: 12, fontWeight: '700', color: colors.danger },
+
+  // Management actions
+  mgmtRow: { flexDirection: 'row' },
+  mgmtBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, borderRadius: 12,
+  },
+  mgmtBtnText: { fontSize: 13, fontWeight: '700' },
+
+  // Section
+  section: {
+    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  sectionIconWrap: {
+    width: 30, height: 30, borderRadius: 8, backgroundColor: colors.primary + '10',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1 },
+  visitCountPill: {
+    backgroundColor: colors.primary + '15', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
+  },
+  visitCountText: { fontSize: 12, fontWeight: '800', color: colors.primary },
+
+  // Info rows
+  infoRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
+  },
+  infoLabel: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+  infoValue: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, maxWidth: '55%', textAlign: 'right' },
+
+  // Timeline
+  timelineItem: { flexDirection: 'row', marginTop: 0 },
+  timelineFirst: {},
+  timelineDotCol: { width: 24, alignItems: 'center', paddingTop: 14 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5, zIndex: 1 },
+  timelineLine: { width: 2, flex: 1, backgroundColor: colors.border, marginTop: 2 },
+  timelineCard: {
+    flex: 1, backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginBottom: 8, marginLeft: 4,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  timelineCardActive: { backgroundColor: colors.primary + '08', borderColor: colors.primary + '30' },
+  timelineCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  timelineVisitNum: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  timelineDate: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+  timelineMetrics: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  miniMetric: { alignItems: 'center' },
+  miniLabel: { fontSize: 9, fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  miniValue: { fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginTop: 1 },
+
+  // Visit tap hint
+  visitTapHint: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    marginTop: 8, paddingTop: 8, borderTopWidth: 1,
+  },
+  visitTapText: { fontSize: 11, fontWeight: '600', color: colors.textMuted },
+
+  // Next visit
+  nextVisitCard: { flexDirection: 'row', alignItems: 'center' },
+  nextVisitLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  nextVisitDate: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
+  overdueChip: {
+    backgroundColor: colors.danger + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+  },
+  overdueText: { fontSize: 10, fontWeight: '800', color: colors.danger, letterSpacing: 1 },
+});
 export default function CaseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const { user } = useAuthStore();
   const isSuper = user?.is_superuser === true;
   const [caseData, setCaseData] = useState<OpcCaseDetail | null>(null);
@@ -439,6 +564,8 @@ interface ChartPoint { label: string; weight: number; visitNum: number | null; }
 function WeightProgressChart({ visits, regWeight, regDate, colors, typeColor }: {
   visits: OpcVisit[]; regWeight: number; regDate: string; colors: any; typeColor: string;
 }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const formatShort = (d: string) => {
     try { return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
     catch { return d; }
@@ -545,6 +672,9 @@ function WeightProgressChart({ visits, regWeight, regDate, colors, typeColor }: 
 }
 
 function StatCard({ label, value, icon, color, bg, textColor, mutedColor }: { label: string; value: string; icon: any; color: string; bg: string; textColor: string; mutedColor: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.statCard, { backgroundColor: bg }]}>
       <View style={[styles.statIconWrap, { backgroundColor: color + '15' }]}>
@@ -557,6 +687,8 @@ function StatCard({ label, value, icon, color, bg, textColor, mutedColor }: { la
 }
 
 function SectionCard({ title, icon, children, colors }: { title: string; icon: any; children: React.ReactNode; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.section, { backgroundColor: colors.surface }]}>
       <View style={styles.sectionHeader}>
@@ -571,6 +703,8 @@ function SectionCard({ title, icon, children, colors }: { title: string; icon: a
 }
 
 function InfoRow({ label, value, valueColor, colors }: { label: string; value: string; valueColor?: string; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
       <Text style={[styles.infoLabel, { color: colors.textMuted }]}>{label}</Text>
@@ -580,6 +714,9 @@ function InfoRow({ label, value, valueColor, colors }: { label: string; value: s
 }
 
 function MiniMetric({ label, value, color, textColor, mutedColor }: { label: string; value: string; color?: string; textColor?: string; mutedColor?: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={styles.miniMetric}>
       <Text style={[styles.miniLabel, mutedColor ? { color: mutedColor } : null]}>{label}</Text>
@@ -590,127 +727,4 @@ function MiniMetric({ label, value, color, textColor, mutedColor }: { label: str
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: COLORS.textMuted, marginTop: 8 },
-  errorText: { fontSize: 16, color: COLORS.danger, fontWeight: '600' },
-  photoCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, overflow: 'hidden', alignItems: 'center' },
-  childPhoto: { width: '100%', height: 200, borderRadius: 16 },
 
-  // Hero
-  heroCard: {
-    paddingTop: 20, paddingBottom: 24, paddingHorizontal: 20,
-    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 12, elevation: 6,
-  },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  typeBadge: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
-  typeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-  },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  heroName: { fontSize: 24, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginBottom: 4 },
-  heroReg: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '500', marginBottom: 12 },
-  heroMetaRow: { flexDirection: 'row', gap: 20 },
-  heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  heroMetaText: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-
-  // Stats
-  statsRow: { flexDirection: 'row', marginHorizontal: 12, marginTop: -8, gap: 8 },
-  statCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 12, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-  },
-  statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  statValue: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
-  statLabel: { fontSize: 9, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
-
-  // Actions
-  actionsRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginTop: 12, gap: 12 },
-  actionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 20, paddingVertical: 13, borderRadius: 14,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  actionBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  dueBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-    backgroundColor: COLORS.danger + '12', borderWidth: 1, borderColor: COLORS.danger + '30',
-  },
-  dueText: { fontSize: 12, fontWeight: '700', color: COLORS.danger },
-
-  // Management actions
-  mgmtRow: { flexDirection: 'row' },
-  mgmtBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: 12,
-  },
-  mgmtBtnText: { fontSize: 13, fontWeight: '700' },
-
-  // Section
-  section: {
-    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  sectionIconWrap: {
-    width: 30, height: 30, borderRadius: 8, backgroundColor: COLORS.primary + '10',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
-  visitCountPill: {
-    backgroundColor: COLORS.primary + '15', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
-  },
-  visitCountText: { fontSize: 12, fontWeight: '800', color: COLORS.primary },
-
-  // Info rows
-  infoRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
-  },
-  infoLabel: { fontSize: 13, color: COLORS.textMuted, fontWeight: '500' },
-  infoValue: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, maxWidth: '55%', textAlign: 'right' },
-
-  // Timeline
-  timelineItem: { flexDirection: 'row', marginTop: 0 },
-  timelineFirst: {},
-  timelineDotCol: { width: 24, alignItems: 'center', paddingTop: 14 },
-  timelineDot: { width: 10, height: 10, borderRadius: 5, zIndex: 1 },
-  timelineLine: { width: 2, flex: 1, backgroundColor: COLORS.border, marginTop: 2 },
-  timelineCard: {
-    flex: 1, backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginBottom: 8, marginLeft: 4,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  timelineCardActive: { backgroundColor: COLORS.primary + '08', borderColor: COLORS.primary + '30' },
-  timelineCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  timelineVisitNum: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
-  timelineDate: { fontSize: 12, color: COLORS.textMuted, fontWeight: '500' },
-  timelineMetrics: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  miniMetric: { alignItems: 'center' },
-  miniLabel: { fontSize: 9, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  miniValue: { fontSize: 12, fontWeight: '700', color: COLORS.textPrimary, marginTop: 1 },
-
-  // Visit tap hint
-  visitTapHint: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
-    marginTop: 8, paddingTop: 8, borderTopWidth: 1,
-  },
-  visitTapText: { fontSize: 11, fontWeight: '600', color: COLORS.textMuted },
-
-  // Next visit
-  nextVisitCard: { flexDirection: 'row', alignItems: 'center' },
-  nextVisitLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  nextVisitDate: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 2 },
-  overdueChip: {
-    backgroundColor: COLORS.danger + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
-  },
-  overdueText: { fontSize: 10, fontWeight: '800', color: COLORS.danger, letterSpacing: 1 },
-});

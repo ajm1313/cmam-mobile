@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform, Image as RNImage, ActivityIndicator,
 } from 'react-native';
@@ -7,12 +7,136 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
+
 import { useTheme, type ThemeMode } from '../../lib/theme';
 import { useSyncStore } from '../../lib/sync-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../lib/api';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  heroCard: {
+    backgroundColor: colors.primary, alignItems: 'center',
+    paddingTop: 36, paddingBottom: 32, paddingHorizontal: 24,
+    borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
+    marginBottom: 4,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35, shadowRadius: 14, elevation: 8,
+  },
+  avatar: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.45)',
+    marginBottom: 14,
+  },
+  avatarWrap: { marginBottom: 14, position: 'relative' },
+  avatarImage: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: 'rgba(255,255,255,0.45)' },
+  avatarBadge: {
+    position: 'absolute', bottom: 2, right: 2,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#fff',
+  },
+  avatarText: { color: '#fff', fontSize: 32, fontWeight: '800' },
+  userName: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  userEmail: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4, marginBottom: 14 },
+  rolePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1,
+  },
+  rolePillText: { fontSize: 12, fontWeight: '700' },
+  section: {
+    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12,
+    borderRadius: 16, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  sectionTitle: {
+    fontSize: 11, fontWeight: '700', color: colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  editPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 14, borderWidth: 1,
+  },
+  editPillText: { fontSize: 12, fontWeight: '700' },
+  infoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
+  },
+  infoIconWrap: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: colors.primary + '10',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  infoContent: { flex: 1 },
+  infoLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
+  infoValue: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12,
+  },
+  actionIconWrap: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: colors.primary + '10',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  actionLabel: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  actionHint: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  logoutBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
+    marginHorizontal: 12, marginTop: 16, paddingVertical: 15,
+    backgroundColor: colors.danger + '10', borderRadius: 14,
+    borderWidth: 1.5, borderColor: colors.danger + '30',
+  },
+  logoutText: { fontSize: 16, fontWeight: '700', color: colors.danger },
+  footer: { textAlign: 'center', color: colors.textMuted, fontSize: 11, marginTop: 24, paddingHorizontal: 24 },
+  themeRow: { flexDirection: 'row', gap: 10 },
+  themeChip: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1.5, borderColor: colors.border, backgroundColor: '#f8fafc',
+  },
+  themeChipActive: {
+    backgroundColor: colors.primary, borderColor: colors.primary,
+  },
+  themeChipText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  themeChipTextActive: { color: '#fff' },
+  dataRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
+  },
+  dataIconWrap: {
+    width: 34, height: 34, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  dataLabel: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  dataHint: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  syncBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 10,
+  },
+  syncBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  spin: { transform: [{ rotate: '45deg' }] },
+  dataActionBtn: {
+    paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 8, borderWidth: 1,
+  },
+  dataActionText: { fontSize: 13, fontWeight: '600' },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, marginTop: 8,
+    borderTopWidth: 1, borderTopColor: '#f8fafc',
+  },
+});
 const THEME_OPTIONS: { key: ThemeMode; label: string; icon: string }[] = [
   { key: 'light', label: 'Light', icon: 'sunny-outline' },
   { key: 'dark', label: 'Dark', icon: 'moon-outline' },
@@ -210,6 +334,7 @@ export default function ProfileScreen() {
   const regionName = user?.location?.region_name;
 
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   const roleColor = roleLevel === 0 ? colors.danger :
     roleLevel === 1 ? colors.primary :
@@ -415,9 +540,13 @@ export default function ProfileScreen() {
       <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker • Community-based Management of Severe Acute Malnutrition</Text>
     </ScrollView>
   );
+
+
 }
 
 function InfoRow({ icon, label, value, colors }: { icon: any; label: string; value: string; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
       <View style={[styles.infoIconWrap, { backgroundColor: colors.primary + '10' }]}>
@@ -431,127 +560,4 @@ function InfoRow({ icon, label, value, colors }: { icon: any; label: string; val
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  heroCard: {
-    backgroundColor: COLORS.primary, alignItems: 'center',
-    paddingTop: 36, paddingBottom: 32, paddingHorizontal: 24,
-    borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
-    marginBottom: 4,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35, shadowRadius: 14, elevation: 8,
-  },
-  avatar: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.45)',
-    marginBottom: 14,
-  },
-  avatarWrap: { marginBottom: 14, position: 'relative' },
-  avatarImage: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: 'rgba(255,255,255,0.45)' },
-  avatarBadge: {
-    position: 'absolute', bottom: 2, right: 2,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: '#fff',
-  },
-  avatarText: { color: '#fff', fontSize: 32, fontWeight: '800' },
-  userName: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  userEmail: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4, marginBottom: 14 },
-  rolePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1,
-  },
-  rolePillText: { fontSize: 12, fontWeight: '700' },
-  section: {
-    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12,
-    borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  sectionTitle: {
-    fontSize: 11, fontWeight: '700', color: COLORS.textMuted,
-    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  editPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 14, borderWidth: 1,
-  },
-  editPillText: { fontSize: 12, fontWeight: '700' },
-  infoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
-  },
-  infoIconWrap: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: COLORS.primary + '10',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: '500' },
-  infoValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginTop: 2 },
-  actionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12,
-  },
-  actionIconWrap: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: COLORS.primary + '10',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  actionLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  actionHint: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-  logoutBtn: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
-    marginHorizontal: 12, marginTop: 16, paddingVertical: 15,
-    backgroundColor: COLORS.danger + '10', borderRadius: 14,
-    borderWidth: 1.5, borderColor: COLORS.danger + '30',
-  },
-  logoutText: { fontSize: 16, fontWeight: '700', color: COLORS.danger },
-  footer: { textAlign: 'center', color: COLORS.textMuted, fontSize: 11, marginTop: 24, paddingHorizontal: 24 },
-  themeRow: { flexDirection: 'row', gap: 10 },
-  themeChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 10, borderRadius: 12,
-    borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: '#f8fafc',
-  },
-  themeChipActive: {
-    backgroundColor: COLORS.primary, borderColor: COLORS.primary,
-  },
-  themeChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
-  themeChipTextActive: { color: '#fff' },
-  dataRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
-  },
-  dataIconWrap: {
-    width: 34, height: 34, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  dataLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  dataHint: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-  syncBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 10,
-  },
-  syncBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  spin: { transform: [{ rotate: '45deg' }] },
-  dataActionBtn: {
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 8, borderWidth: 1,
-  },
-  dataActionText: { fontSize: 13, fontWeight: '600' },
-  exportBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, marginTop: 8,
-    borderTopWidth: 1, borderTopColor: '#f8fafc',
-  },
-});
+

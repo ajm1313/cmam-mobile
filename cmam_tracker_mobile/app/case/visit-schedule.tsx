@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, ActivityIndicator, RefreshControl,
@@ -8,13 +8,40 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import OfflineBanner from '../../components/OfflineBanner';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1 },
+  header: { paddingBottom: 14, paddingHorizontal: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  notifCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 12, marginTop: 12, borderRadius: 14, padding: 14, borderWidth: 1.5 },
+  notifIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  notifTitle: { fontSize: 14, fontWeight: '700' },
+  notifSub: { fontSize: 11, marginTop: 2 },
+  summaryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
+  summaryPill: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', borderTopWidth: 3 },
+  summaryValue: { fontSize: 22, fontWeight: '800' },
+  summaryLabel: { fontSize: 10, color: colors.textMuted, marginTop: 4, fontWeight: '600', textTransform: 'uppercase' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  sectionBadgeText: { fontSize: 11, fontWeight: '800' },
+  card: { marginHorizontal: 12, marginTop: 6, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
+  cardTitle: { fontSize: 14, fontWeight: '700' },
+  cardSub: { fontSize: 11, marginTop: 2 },
+  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  typeText: { fontSize: 10, fontWeight: '800' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
+  footerText: { fontSize: 11, fontWeight: '500' },
+});
 interface DueVisit {
   id: number;
   child_name: string;
@@ -40,6 +67,7 @@ interface CaseTask {
 export default function VisitScheduleScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [dueVisits, setDueVisits] = useState<DueVisit[]>([]);
   const [tasks, setTasks] = useState<Record<number, CaseTask[]>>({});
@@ -205,6 +233,9 @@ export default function VisitScheduleScreen() {
 }
 
 function SummaryPill({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.summaryPill, { backgroundColor: bg, borderTopColor: color }]}>
       <Text style={[styles.summaryValue, { color }]}>{value}</Text>
@@ -214,6 +245,9 @@ function SummaryPill({ label, value, color, bg }: { label: string; value: number
 }
 
 function SectionHeader({ title, count, color }: { title: string; count: number; color: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={styles.sectionHeader}>
       <View style={[styles.sectionDot, { backgroundColor: color }]} />
@@ -226,6 +260,8 @@ function SectionHeader({ title, count, color }: { title: string; count: number; 
 }
 
 function VisitCard({ visit, colors, taskCount, onPress }: { visit: DueVisit; colors: any; taskCount?: number; onPress: () => void }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const typeColor = visit.malnutrition_type === 'SAM' ? colors.danger : colors.warning;
   const isOverdue = visit.days_overdue > 0;
   const statusColor = isOverdue ? colors.danger : visit.days_overdue === 0 ? colors.warning : colors.success;
@@ -264,30 +300,4 @@ function VisitCard({ visit, colors, taskCount, onPress }: { visit: DueVisit; col
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingBottom: 14, paddingHorizontal: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  notifCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 12, marginTop: 12, borderRadius: 14, padding: 14, borderWidth: 1.5 },
-  notifIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  notifTitle: { fontSize: 14, fontWeight: '700' },
-  notifSub: { fontSize: 11, marginTop: 2 },
-  summaryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
-  summaryPill: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', borderTopWidth: 3 },
-  summaryValue: { fontSize: 22, fontWeight: '800' },
-  summaryLabel: { fontSize: 10, color: COLORS.textMuted, marginTop: 4, fontWeight: '600', textTransform: 'uppercase' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
-  sectionDot: { width: 8, height: 8, borderRadius: 4 },
-  sectionTitle: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  sectionBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  sectionBadgeText: { fontSize: 11, fontWeight: '800' },
-  card: { marginHorizontal: 12, marginTop: 6, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
-  cardTitle: { fontSize: 14, fontWeight: '700' },
-  cardSub: { fontSize: 11, marginTop: 2 },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
-  typeText: { fontSize: 10, fontWeight: '800' },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 8 },
-  footerText: { fontSize: 11, fontWeight: '500' },
-});
+

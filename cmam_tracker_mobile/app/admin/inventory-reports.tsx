@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl,
   TouchableOpacity, ActivityIndicator, Modal, FlatList,
@@ -7,12 +7,56 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1 },
+  header: { paddingBottom: 14, paddingHorizontal: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  tabRow: { flexDirection: 'row', borderBottomWidth: 1 },
+  tab: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  tabText: { fontSize: 13, fontWeight: '700' },
+  summaryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
+  summaryCard: {
+    flex: 1, borderRadius: 12, padding: 12, alignItems: 'center',
+    borderTopWidth: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  summaryValue: { fontSize: 22, fontWeight: '800' },
+  summaryLabel: { fontSize: 10, color: colors.textMuted, marginTop: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  card: {
+    marginHorizontal: 12, marginTop: 8, borderRadius: 14, padding: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
+  cardTitle: { fontSize: 14, fontWeight: '700' },
+  cardSub: { fontSize: 11, marginTop: 2 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1 },
+  statusText: { fontSize: 12, fontWeight: '800' },
+  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  typeText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
+  notes: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
+  footerText: { fontSize: 11, fontWeight: '500' },
+  facilitySelector: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginTop: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
+  facilityLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '60%' },
+  pickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  pickerTitle: { fontSize: 16, fontWeight: '700' },
+  pickerItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  pickerItemText: { flex: 1, fontSize: 14 },
+});
 interface FacilityOption {
   id: number;
   name: string;
@@ -44,6 +88,7 @@ export default function InventoryReportsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const userFacilityId = user?.location?.facility_id;
   const isAdmin = !userFacilityId;
@@ -285,6 +330,9 @@ export default function InventoryReportsScreen() {
 }
 
 function SummaryCard({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.summaryCard, { backgroundColor: bg, borderTopColor: color }]}>
       <Text style={[styles.summaryValue, { color }]}>{value}</Text>
@@ -293,47 +341,4 @@ function SummaryCard({ label, value, color, bg }: { label: string; value: number
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingBottom: 14, paddingHorizontal: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  tabRow: { flexDirection: 'row', borderBottomWidth: 1 },
-  tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
-  },
-  tabText: { fontSize: 13, fontWeight: '700' },
-  summaryRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12 },
-  summaryCard: {
-    flex: 1, borderRadius: 12, padding: 12, alignItems: 'center',
-    borderTopWidth: 3,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  summaryValue: { fontSize: 22, fontWeight: '800' },
-  summaryLabel: { fontSize: 10, color: COLORS.textMuted, marginTop: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  card: {
-    marginHorizontal: 12, marginTop: 8, borderRadius: 14, padding: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
-  cardTitle: { fontSize: 14, fontWeight: '700' },
-  cardSub: { fontSize: 11, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1 },
-  statusText: { fontSize: 12, fontWeight: '800' },
-  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
-  typeText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
-  notes: { fontSize: 12, marginBottom: 8, lineHeight: 18 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 8 },
-  footerText: { fontSize: 11, fontWeight: '500' },
-  facilitySelector: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginTop: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
-  facilityLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '60%' },
-  pickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
-  pickerTitle: { fontSize: 16, fontWeight: '700' },
-  pickerItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
-  pickerItemText: { flex: 1, fontSize: 14 },
-});
+

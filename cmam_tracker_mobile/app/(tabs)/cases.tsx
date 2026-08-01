@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, RefreshControl, FlatList,
   TouchableOpacity, TextInput, Share, Alert, ActivityIndicator, Modal,
@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../../lib/store';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { setCache, getCacheFallback } from '../../lib/cache';
@@ -19,6 +19,122 @@ import { CardSkeleton } from '../../components/LoadingSkeleton';
 import { useFocusEffect } from 'expo-router';
 import type { OpcCase } from '../../lib/types';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  quickScroll: { flexGrow: 0 },
+  quickCard: {
+    width: 100,
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  quickIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickCardText: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', margin: 12, borderRadius: 12, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: colors.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: colors.textPrimary },
+  filterRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 6, marginBottom: 8, flexWrap: 'wrap' },
+  chip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border,
+  },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipActiveSecondary: { backgroundColor: colors.secondary, borderColor: colors.secondary },
+  chipText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  chipTextActive: { color: '#fff' },
+  chipTextActiveSecondary: { color: '#fff' },
+  summaryRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, paddingBottom: 8,
+  },
+  summaryText: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+  legendRow: { flexDirection: 'row', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5,
+  },
+  exportBtnText: { fontSize: 11, fontWeight: '700' },
+  card: {
+    backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 8,
+    borderRadius: 14, padding: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 5, elevation: 2,
+  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  typeBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  statusText: { fontSize: 12, fontWeight: '600' },
+  childName: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  childId: { fontSize: 12, color: colors.textMuted, marginTop: 2, marginBottom: 10 },
+  cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
+  duePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: colors.danger + '10', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  dueText: { fontSize: 10, fontWeight: '700', color: colors.danger },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  cardFooter: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9',
+  },
+  cardMetric: { alignItems: 'center' },
+  metricLabel: { fontSize: 9, fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  metricValue: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginTop: 1 },
+  fab: {
+    position: 'absolute', bottom: 20, right: 20,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center',
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 8,
+  },
+  advToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginHorizontal: 12, marginTop: 8, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1.5,
+  },
+  advToggleText: { fontSize: 12, fontWeight: '600' },
+  advModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  advModalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, maxHeight: '80%' },
+  advModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  advModalTitle: { fontSize: 16, fontWeight: '800' },
+  advField: { paddingHorizontal: 20, paddingTop: 16 },
+  advLabel: { fontSize: 12, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  advInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginBottom: 8 },
+  advChipRow: { flexDirection: 'row', gap: 8 },
+  advChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5 },
+  advChipText: { fontSize: 13, fontWeight: '700' },
+  advRow: { flexDirection: 'row', gap: 8 },
+  advActions: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 20 },
+  advBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5 },
+  advBtnText: { fontSize: 14, fontWeight: '700' },
+});
 type CaseType = 'SAM' | 'MAM' | 'ALL';
 type StatusFilter = 'active' | 'discharged' | 'defaulter' | 'all';
 
@@ -27,6 +143,7 @@ export default function CasesScreen() {
   const { user } = useAuthStore();
   const canRegisterCase = !!(user?.is_superuser || user?.is_staff || user?.location?.facility_id);
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [cases, setCases] = useState<OpcCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -413,6 +530,8 @@ export default function CasesScreen() {
 }
 
 function CaseCard({ item, colors }: { item: OpcCase; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const typeColor = item.malnutrition_type === 'SAM' ? colors.sam : colors.mam;
   const statusColor = item.status === 'Active' ? colors.success :
     item.status === 'Defaulted' ? colors.danger :
@@ -464,6 +583,9 @@ function CaseCard({ item, colors }: { item: OpcCase; colors: any }) {
 }
 
 function MetaItem({ icon, label, color }: { icon: any; label: string; color: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={styles.metaItem}>
       <Ionicons name={icon} size={12} color={color} />
@@ -473,6 +595,9 @@ function MetaItem({ icon, label, color }: { icon: any; label: string; color: str
 }
 
 function LegendDot({ color, label, mutedColor }: { color: string; label: string; mutedColor: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -481,119 +606,4 @@ function LegendDot({ color, label, mutedColor }: { color: string; label: string;
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  quickScroll: { flexGrow: 0 },
-  quickCard: {
-    width: 100,
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  quickIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickCardText: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', margin: 12, borderRadius: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: COLORS.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary },
-  filterRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 6, marginBottom: 8, flexWrap: 'wrap' },
-  chip: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.border,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipActiveSecondary: { backgroundColor: COLORS.secondary, borderColor: COLORS.secondary },
-  chipText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  chipTextActiveSecondary: { color: '#fff' },
-  summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 14, paddingBottom: 8,
-  },
-  summaryText: { fontSize: 13, color: COLORS.textMuted, fontWeight: '500' },
-  legendRow: { flexDirection: 'row', gap: 12 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: '500' },
-  exportBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5,
-  },
-  exportBtnText: { fontSize: 11, fontWeight: '700' },
-  card: {
-    backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 8,
-    borderRadius: 14, padding: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 5, elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-  typeBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  childName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  childId: { fontSize: 12, color: COLORS.textMuted, marginTop: 2, marginBottom: 10 },
-  cardMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 11, color: COLORS.textMuted, fontWeight: '500' },
-  duePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: COLORS.danger + '10', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
-  },
-  dueText: { fontSize: 10, fontWeight: '700', color: COLORS.danger },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
-  },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  cardFooter: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9',
-  },
-  cardMetric: { alignItems: 'center' },
-  metricLabel: { fontSize: 9, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  metricValue: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginTop: 1 },
-  fab: {
-    position: 'absolute', bottom: 20, right: 20,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 8,
-  },
-  advToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginHorizontal: 12, marginTop: 8, paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 10, borderWidth: 1.5,
-  },
-  advToggleText: { fontSize: 12, fontWeight: '600' },
-  advModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  advModalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30, maxHeight: '80%' },
-  advModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  advModalTitle: { fontSize: 16, fontWeight: '800' },
-  advField: { paddingHorizontal: 20, paddingTop: 16 },
-  advLabel: { fontSize: 12, fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  advInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginBottom: 8 },
-  advChipRow: { flexDirection: 'row', gap: 8 },
-  advChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5 },
-  advChipText: { fontSize: 13, fontWeight: '700' },
-  advRow: { flexDirection: 'row', gap: 8 },
-  advActions: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 20 },
-  advBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5 },
-  advBtnText: { fontSize: 14, fontWeight: '700' },
-});
+

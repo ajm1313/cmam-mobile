@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS } from '../lib/config';
+
 import { useTheme } from '../lib/theme';
 import api from '../lib/api';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -150,43 +151,43 @@ export default function ChangePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   iconWrap: { alignItems: 'center', marginBottom: 24 },
   iconCircle: {
     width: 68, height: 68, borderRadius: 34,
-    backgroundColor: COLORS.primary + '12', justifyContent: 'center', alignItems: 'center',
-    marginBottom: 14, borderWidth: 2, borderColor: COLORS.primary + '25',
+    backgroundColor: colors.primary + '12', justifyContent: 'center', alignItems: 'center',
+    marginBottom: 14, borderWidth: 2, borderColor: colors.primary + '25',
   },
-  title: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.3 },
-  subtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 6, textAlign: 'center', maxWidth: 260 },
+  title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.3 },
+  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 6, textAlign: 'center', maxWidth: 260 },
   card: {
     backgroundColor: '#fff', borderRadius: 20, padding: 24,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 7, marginTop: 14 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 7, marginTop: 14 },
   inputWrapper: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 10,
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 10,
     backgroundColor: '#f8fafc', paddingHorizontal: 12,
   },
   inputIcon: { marginRight: 8 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 15, color: COLORS.textPrimary },
+  input: { flex: 1, paddingVertical: 13, fontSize: 15, color: colors.textPrimary },
   eyeBtn: { padding: 4 },
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 },
   strengthBar: { flex: 1, height: 4, borderRadius: 2 },
-  strengthText: { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', marginLeft: 8 },
+  strengthText: { fontSize: 11, color: colors.textMuted, fontWeight: '600', marginLeft: 8 },
   btn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: COLORS.primary, borderRadius: 12,
+    backgroundColor: colors.primary, borderRadius: 12,
     paddingVertical: 15, marginTop: 24,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 10, elevation: 6,
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   cancelBtn: { alignItems: 'center', paddingVertical: 12, marginTop: 8 },
-  cancelText: { fontSize: 14, color: COLORS.textMuted, fontWeight: '600' },
+  cancelText: { fontSize: 14, color: colors.textMuted, fontWeight: '600' },
 });

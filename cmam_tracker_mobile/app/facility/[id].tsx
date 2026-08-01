@@ -1,15 +1,89 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl,
   TouchableOpacity, Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../lib/config';
+
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import type { StockLevel } from '../../lib/types';
 
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: {
+    backgroundColor: colors.primary, alignItems: 'center',
+    padding: 28, paddingBottom: 32,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    marginBottom: 4,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+  },
+  headerIcon: {
+    width: 60, height: 60, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center',
+    marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  facilityName: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  facilityCode: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4, fontWeight: '600', letterSpacing: 0.5 },
+  headerChips: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  headerChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16,
+  },
+  headerChipText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  section: {
+    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12,
+    borderRadius: 16, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  sectionTitle: {
+    fontSize: 15, fontWeight: '700', color: colors.textPrimary,
+    marginBottom: 14, letterSpacing: -0.2,
+  },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  statMini: {
+    width: '47%', backgroundColor: '#f8fafc', borderRadius: 12,
+    padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  },
+  statMiniValue: { fontSize: 22, fontWeight: '800' },
+  statMiniLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.3 },
+  viewCasesBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
+    paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9',
+  },
+  viewCasesBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  infoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
+  },
+  infoIcon: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: colors.primary + '10', justifyContent: 'center', alignItems: 'center',
+  },
+  infoLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '500' },
+  infoValue: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginTop: 1 },
+  emptyText: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingVertical: 16 },
+  stockSummaryRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  stockSummaryCard: {
+    flex: 1, backgroundColor: '#f8fafc', borderRadius: 12,
+    padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  },
+  stockSummaryValue: { fontSize: 24, fontWeight: '800' },
+  stockSummaryLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600', marginTop: 4, textTransform: 'uppercase' },
+  stockRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
+  },
+  stockDot: { width: 10, height: 10, borderRadius: 5 },
+  stockName: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
+  stockCategory: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  stockQty: { fontSize: 15, fontWeight: '800' },
+  stockUnit: { fontSize: 11, fontWeight: '400', color: colors.textMuted },
+});
 interface FacilityData {
   id: number;
   name: string;
@@ -39,6 +113,7 @@ export default function FacilityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const [facility, setFacility] = useState<FacilityData | null>(null);
   const [stock, setStock] = useState<StockLevel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +265,9 @@ export default function FacilityDetailScreen() {
 }
 
 function StatMini({ label, value, color, bg, borderColor, mutedColor }: { label: string; value: number; color: string; bg: string; borderColor: string; mutedColor: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.statMini, { backgroundColor: bg, borderColor }]}>
       <Text style={[styles.statMiniValue, { color }]}>{value}</Text>
@@ -199,6 +277,8 @@ function StatMini({ label, value, color, bg, borderColor, mutedColor }: { label:
 }
 
 function InfoRow({ icon, label, value, colors }: { icon: any; label: string; value: string; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   return (
     <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
       <View style={[styles.infoIcon, { backgroundColor: colors.primary + '10' }]}>
@@ -212,77 +292,4 @@ function InfoRow({ icon, label, value, colors }: { icon: any; label: string; val
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    backgroundColor: COLORS.primary, alignItems: 'center',
-    padding: 28, paddingBottom: 32,
-    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
-    marginBottom: 4,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
-  },
-  headerIcon: {
-    width: 60, height: 60, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center',
-    marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
-  },
-  facilityName: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
-  facilityCode: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4, fontWeight: '600', letterSpacing: 0.5 },
-  headerChips: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  headerChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16,
-  },
-  headerChipText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  section: {
-    backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12,
-    borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  sectionTitle: {
-    fontSize: 15, fontWeight: '700', color: COLORS.textPrimary,
-    marginBottom: 14, letterSpacing: -0.2,
-  },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  statMini: {
-    width: '47%', backgroundColor: '#f8fafc', borderRadius: 12,
-    padding: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
-  },
-  statMiniValue: { fontSize: 22, fontWeight: '800' },
-  statMiniLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.3 },
-  viewCasesBtn: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
-    paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9',
-  },
-  viewCasesBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  infoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
-  },
-  infoIcon: {
-    width: 32, height: 32, borderRadius: 8,
-    backgroundColor: COLORS.primary + '10', justifyContent: 'center', alignItems: 'center',
-  },
-  infoLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: '500' },
-  infoValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginTop: 1 },
-  emptyText: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 16 },
-  stockSummaryRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  stockSummaryCard: {
-    flex: 1, backgroundColor: '#f8fafc', borderRadius: 12,
-    padding: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
-  },
-  stockSummaryValue: { fontSize: 24, fontWeight: '800' },
-  stockSummaryLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', marginTop: 4, textTransform: 'uppercase' },
-  stockRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8fafc',
-  },
-  stockDot: { width: 10, height: 10, borderRadius: 5 },
-  stockName: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
-  stockCategory: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-  stockQty: { fontSize: 15, fontWeight: '800' },
-  stockUnit: { fontSize: 11, fontWeight: '400', color: COLORS.textMuted },
-});
+
