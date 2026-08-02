@@ -299,7 +299,18 @@ export default function VisitFormScreen() {
         ]);
       }
     } catch (e: any) {
-      const msg = e.response?.data?.message || 'Failed to record visit.';
+      const apiMsg = e.response?.data?.message;
+      const status = e.response?.status;
+      let msg: string;
+      if (apiMsg) {
+        msg = apiMsg;
+      } else if (status === 500) {
+        msg = 'Server error. Please try again or contact support.';
+      } else if (e.message) {
+        msg = e.message;
+      } else {
+        msg = 'Failed to record visit.';
+      }
       Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
