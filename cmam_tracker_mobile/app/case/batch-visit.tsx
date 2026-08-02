@@ -94,6 +94,7 @@ export default function BatchVisitScreen() {
   const validEntries = selectedEntries.filter(e => e.weight || e.muac || e.height);
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (validEntries.length === 0) {
       Alert.alert('No Data', 'Please enter at least weight or MUAC for selected cases.');
       return;

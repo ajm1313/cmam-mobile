@@ -193,6 +193,7 @@ export default function VisitFormScreen() {
   const isAbsentOrDefaulted = form.visit_outcome === 'Absent' || form.visit_outcome === 'Defaulted';
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!isAbsentOrDefaulted) {
       if (!form.weight_kg) {
         Alert.alert('Required', 'Weight is required.');
