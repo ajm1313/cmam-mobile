@@ -202,11 +202,14 @@ export default function CaseEditScreen() {
           else payload[k] = v;
         }
       }
+      // Ensure skip-logic-cleared fields are explicitly sent so backend can null them
+      if (form.diarrhoea !== 'Yes') payload.stool_frequency = '';
+      if (!form.oedema || form.oedema === 'None') payload.oedema_duration_days = '';
       if (fetchedUpdatedAt) payload._updated_at = fetchedUpdatedAt;
       let res;
       if (childPhotoChanged && childPhotoUri) {
         const fd = new FormData();
-        Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); });
+        Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null) fd.append(k, String(v)); });
         fd.append('child_photo', { uri: childPhotoUri, name: 'child_photo.jpg', type: 'image/jpeg' } as any);
         res = await api.put(`/v1/cases/${id}/edit/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         res = res.data;
@@ -316,7 +319,7 @@ export default function CaseEditScreen() {
           <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => s('weight_kg', v)} keyboardType="decimal-pad" colors={colors} />
           <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" colors={colors} />
           <FormField label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" colors={colors} />
-          <PickerField label="Bilateral Pitting Oedema" value={form.oedema} options={OEDEMA_OPTS} onSelect={(v: string) => s('oedema', v)} colors={colors} />
+          <PickerField label="Bilateral Pitting Oedema" value={form.oedema} options={OEDEMA_OPTS} onSelect={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); }} colors={colors} />
           <PickerField label="Oedema Grade" value={form.oedema_grade} options={['1+', '2+', '3+']} onSelect={(v: string) => s('oedema_grade', v)} colors={colors} />
           <PickerField label="Z-Score WFH" value={form.z_score_wfh} options={WFH_Z} onSelect={(v: string) => s('z_score_wfh', v)} colors={colors} />
           <PickerField label="Z-Score WFA" value={form.z_score_wfa} options={WFA_Z} onSelect={(v: string) => s('z_score_wfa', v)} colors={colors} />
@@ -355,7 +358,7 @@ export default function CaseEditScreen() {
         {/* Medical History */}
         <SectionHeader title="Medical History" icon="medkit-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <PickerField label="Diarrhoea" value={form.diarrhoea} options={YES_NO} onSelect={(v: string) => s('diarrhoea', v)} colors={colors} />
+          <PickerField label="Diarrhoea" value={form.diarrhoea} options={YES_NO} onSelect={(v: string) => { s('diarrhoea', v); if (v !== 'Yes') s('stool_frequency', ''); }} colors={colors} />
           {form.diarrhoea === 'Yes' && (
             <PickerField label="Stool Frequency" value={form.stool_frequency} options={STOOL_FREQ} onSelect={(v: string) => s('stool_frequency', v)} colors={colors} />
           )}

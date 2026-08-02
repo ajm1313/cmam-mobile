@@ -604,7 +604,7 @@ export default function CaseRegisterScreen() {
               <Lbl text="MUAC (cm) *" c={colors} />
               <TextInput style={inp} value={f.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" placeholder="< 11.5 cm for SAM" placeholderTextColor={colors.textMuted} />
               <Lbl text="Bilateral Oedema" c={colors} />
-              <Chips opts={OEDEMA_OPTS} val={f.oedema} set={(v: string) => { s('oedema', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={OEDEMA_OPTS} val={f.oedema} set={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); checkAutomation(); }} accent={accent} c={colors} />
               <Lbl text="Weight-for-Height Z-score" c={colors} />
               <Chips opts={WFH_Z} val={f.z_score_wfh} set={(v: string) => s('z_score_wfh', v)} accent={accent} c={colors} />
               <Lbl text="Weight-for-Age Z-score" c={colors} />
@@ -619,7 +619,7 @@ export default function CaseRegisterScreen() {
           {caseType === 'SAM' && stepIdx === 3 && (
             <Card c={colors} title="3. Medical History" accent={accent}>
               <Lbl text="Diarrhoea" c={colors} />
-              <Chips opts={YES_NO} val={f.diarrhoea} set={(v: string) => s('diarrhoea', v)} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.diarrhoea} set={(v: string) => { s('diarrhoea', v); if (v !== 'Yes') s('stool_frequency', ''); }} accent={accent} c={colors} />
               {f.diarrhoea === 'Yes' && (
                 <>
                   <Lbl text="Stool Frequency/Day" c={colors} />
