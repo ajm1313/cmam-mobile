@@ -22,7 +22,7 @@ const STEPS: { key: Step; label: string; icon: string }[] = [
 ];
 
 const VISIT_TYPES = ['Routine', 'Follow-up', 'Unscheduled'];
-const APPETITE_OPTIONS = ['Good', 'Fair', 'Poor'];
+const APPETITE_OPTIONS = ['Pass', 'Fail'];
 const SAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Defaulted', 'Referral', 'Refused-Referral', 'Cured', 'Non-Response', 'Home-Visit', 'Death', 'Transfer-to-IPC'];
 const MAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Died', 'Defaulted', 'Non-recovered', 'Referral'];
 const TREATMENT_RESPONSE_OPTIONS = ['Good', 'Moderate', 'Poor', 'No-Response'];
@@ -165,7 +165,7 @@ export default function VisitFormScreen() {
       age_months: parseInt(caseAge || '12'),
       weight_kg: parseFloat(form.weight_kg),
       oedema: form.oedema,
-      appetite_test: form.appetite === 'Poor' ? 'Failed' : form.appetite ? 'Passed' : undefined,
+      appetite_test: form.appetite === 'Fail' ? 'Fail' : form.appetite ? 'Pass' : undefined,
       temperature_c: parseFloat(form.temperature),
       respiratory_rate: parseInt(form.respiratory_rate) || 0,
       visit_number: parseInt(visitNumber || '1'),

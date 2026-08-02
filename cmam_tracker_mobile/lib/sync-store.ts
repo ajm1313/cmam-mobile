@@ -17,6 +17,17 @@ export interface SyncQueueItem {
   serverData?: Record<string, any>;
 }
 
+function reconstructFormData(data: Record<string, any>): FormData {
+  const fd = new FormData();
+  for (const [key, value] of Object.entries(data)) {
+    if (key === '_formData') continue;
+    if (value !== null && value !== undefined) {
+      fd.append(key, value as any);
+    }
+  }
+  return fd;
+}
+
 interface SyncState {
   queue: SyncQueueItem[];
   isSyncing: boolean;
@@ -60,14 +71,16 @@ export const useSyncStore = create<SyncState>()(
             continue;
           }
           try {
+            const isFormData = item.data?._formData === true;
+            const payload = isFormData ? reconstructFormData(item.data!) : item.data;
             if (item.method === 'DELETE') {
               await api.delete(item.url);
             } else if (item.method === 'PATCH') {
-              await api.patch(item.url, item.data);
+              await api.patch(item.url, payload);
             } else if (item.method === 'PUT') {
-              await api.put(item.url, item.data);
+              await api.put(item.url, payload);
             } else {
-              await api.post(item.url, item.data);
+              await api.post(item.url, payload);
             }
             get().removeItem(item.id);
           } catch (err: any) {
@@ -109,15 +122,17 @@ export const useSyncStore = create<SyncState>()(
           // Keep mine — re-submit without _updated_at so server accepts it
           const dataWithoutTs = { ...item.data };
           delete dataWithoutTs._updated_at;
+          const isFormData = dataWithoutTs._formData === true;
+          const payload = isFormData ? reconstructFormData(dataWithoutTs) : dataWithoutTs;
           try {
             if (item.method === 'DELETE') {
               await api.delete(item.url);
             } else if (item.method === 'PATCH') {
-              await api.patch(item.url, dataWithoutTs);
+              await api.patch(item.url, payload);
             } else if (item.method === 'PUT') {
-              await api.put(item.url, dataWithoutTs);
+              await api.put(item.url, payload);
             } else {
-              await api.post(item.url, dataWithoutTs);
+              await api.post(item.url, payload);
             }
             get().removeItem(id);
           } catch (err: any) {

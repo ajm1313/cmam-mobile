@@ -82,9 +82,23 @@ export async function sendOrQueue(
   }
 
   if (data instanceof FormData) {
+    // Serialize FormData fields into a plain object for AsyncStorage persistence.
+    // File fields (objects with uri) are preserved as-is; React Native FormData
+    // can reconstruct them from { uri, name, type } objects.
+    const serialized: Record<string, any> = { _formData: true };
+    (data as any).getParts().forEach((part: any) => {
+      const key = part.fieldName;
+      if (part.uri) {
+        // File field — store the { uri, name, type } object
+        serialized[key] = { uri: part.uri, name: part.fileName || 'photo.jpg', type: part.type || 'image/jpeg' };
+      } else {
+        serialized[key] = part.string;
+      }
+    });
+    await enqueue({ url, method, data: serialized, label });
     Alert.alert(
-      'Cannot Save Offline',
-      `"${label}" includes a file upload that cannot be saved offline. Please connect to the internet and try again.`,
+      'Saved Offline',
+      `"${label}" has been saved (including photo) and will sync automatically when you're back online.`,
       [{ text: 'OK' }],
     );
     return null;

@@ -24,7 +24,7 @@ const WFH_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 to +2 SD', '> +2
 const WFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 SD'];
 const HFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +3 SD', '> +3 SD'];
 const STOOL_FREQ = ['1-3', '4-5', '>5'];
-const APPETITE_SAM = ['Good', 'Poor', 'None'];
+const APPETITE_SAM = ['Pass', 'Fail'];
 const APPETITE_SIMPLE = ['Pass', 'Fail'];
 const BF_PROSPECT = ['Good', 'Poor', 'None'];
 const IMMUN_STATUS = ['Complete for Age', 'Not Complete for Age'];
@@ -80,7 +80,7 @@ export default function CaseEditScreen() {
   const [form, setForm] = useState<Record<string, string>>({
     facility_id: '', admission_date: '', registration_number: '', malnutrition_type: '',
     child_name: '', child_gender: '', date_of_birth: '', age_months: '',
-    caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', address: '',
+    caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', total_household_members: '', address: '',
     weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     admission_criteria: '', admission_type: '', appetite_test: '',
     complications_notes: '',
@@ -140,7 +140,7 @@ export default function CaseEditScreen() {
         const fields: string[] = [
           'facility_id','admission_date','registration_number','malnutrition_type',
           'child_name','child_gender','date_of_birth','caregiver_name','caregiver_phone',
-          'caregiver_relationship','address','oedema','admission_criteria','admission_type',
+          'caregiver_relationship','total_household_members','address','oedema','admission_criteria','admission_type',
           'appetite_test','complications_notes','z_score_wfh','z_score_wfa','z_score_hfa',
           'diarrhoea','stool_frequency','vomiting','cough','passing_urine','oedema_duration_days',
           'breastfeeding_status','breastfeeding_prospect','effective_suckling','relactation_needed',
@@ -197,7 +197,7 @@ export default function CaseEditScreen() {
       const payload: Record<string, any> = {};
       for (const [k, v] of Object.entries(form)) {
         if (v !== '' && v != null) {
-          if (['age_months','rutf_sachets_given','oedema_duration_days','time_to_travel_minutes'].includes(k)) payload[k] = parseInt(v);
+          if (['age_months','rutf_sachets_given','oedema_duration_days','time_to_travel_minutes','total_household_members'].includes(k)) payload[k] = parseInt(v);
           else if (['weight_kg','height_cm','muac_cm','rutf_ration_per_day','food_product_quantity','temperature_celsius'].includes(k)) payload[k] = parseFloat(v);
           else payload[k] = v;
         }
@@ -306,6 +306,7 @@ export default function CaseEditScreen() {
           <FormField label="Caregiver Name" value={form.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} colors={colors} />
           <FormField label="Phone" value={form.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" colors={colors} />
           <PickerField label="Relationship" value={form.caregiver_relationship} options={CAREGIVER_REL} onSelect={(v: string) => s('caregiver_relationship', v)} colors={colors} />
+          <FormField label="Total Number in Household" value={form.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" colors={colors} />
           <FormField label="Address" value={form.address} onChangeText={(v: string) => s('address', v)} multiline colors={colors} />
         </View>
 
@@ -355,11 +356,15 @@ export default function CaseEditScreen() {
         <SectionHeader title="Medical History" icon="medkit-outline" colors={colors} />
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <PickerField label="Diarrhoea" value={form.diarrhoea} options={YES_NO} onSelect={(v: string) => s('diarrhoea', v)} colors={colors} />
-          <PickerField label="Stool Frequency" value={form.stool_frequency} options={STOOL_FREQ} onSelect={(v: string) => s('stool_frequency', v)} colors={colors} />
+          {form.diarrhoea === 'Yes' && (
+            <PickerField label="Stool Frequency" value={form.stool_frequency} options={STOOL_FREQ} onSelect={(v: string) => s('stool_frequency', v)} colors={colors} />
+          )}
           <PickerField label="Vomiting" value={form.vomiting} options={YES_NO} onSelect={(v: string) => s('vomiting', v)} colors={colors} />
           <PickerField label="Cough" value={form.cough} options={YES_NO} onSelect={(v: string) => s('cough', v)} colors={colors} />
           <PickerField label="Passing Urine" value={form.passing_urine} options={YES_NO} onSelect={(v: string) => s('passing_urine', v)} colors={colors} />
-          <FormField label="Oedema Duration (days)" value={form.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="numeric" colors={colors} />
+          {form.oedema && form.oedema !== 'None' && (
+            <FormField label="Oedema Duration (days)" value={form.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="numeric" colors={colors} />
+          )}
           <PickerField label="Breastfeeding Status" value={form.breastfeeding_status} options={YES_NO} onSelect={(v: string) => s('breastfeeding_status', v)} colors={colors} />
           <PickerField label="Breastfeeding Prospect" value={form.breastfeeding_prospect} options={BF_PROSPECT} onSelect={(v: string) => s('breastfeeding_prospect', v)} colors={colors} />
           <PickerField label="Effective Suckling" value={form.effective_suckling} options={YES_NO} onSelect={(v: string) => s('effective_suckling', v)} colors={colors} />

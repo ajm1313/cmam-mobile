@@ -56,7 +56,7 @@ export function checkIpcReferral(data: SamData): AutomationResult {
     if (data.oedema && data.oedema !== 'None') {
       reasons.push('Infant has oedema');
     }
-    if (data.appetite_test === 'Failed') {
+    if (data.appetite_test === 'Fail') {
       reasons.push('Infant unable to feed');
     }
   }
@@ -64,7 +64,7 @@ export function checkIpcReferral(data: SamData): AutomationResult {
   // Children 6-59 months checks
   if (data.age_months >= 6) {
     if (data.oedema === '+++') reasons.push('Grade +++ oedema');
-    if (data.appetite_test === 'Failed') reasons.push('Failed appetite test');
+    if (data.appetite_test === 'Fail') reasons.push('Failed appetite test');
     if (data.intractable_vomiting) reasons.push('Intractable vomiting');
     if (data.convulsions) reasons.push('Convulsions');
     if (data.lethargic) reasons.push('Lethargic or not alert');

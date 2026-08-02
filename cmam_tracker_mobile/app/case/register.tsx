@@ -56,7 +56,7 @@ const WFH_Z = ['< -3 SD','-3 to < -2 SD','-2 to +1 SD','> +1 to +2 SD','> +2 SD'
 const WFA_Z = ['< -3 SD','-3 to < -2 SD','-2 to +1 SD','> +1 SD'];
 const HFA_Z = ['< -3 SD','-3 to < -2 SD','-2 to +3 SD','> +3 SD'];
 const STOOL_FREQ = ['1-3','4-5','>5'];
-const APPETITE_SAM = ['Good','Poor','None'];
+const APPETITE_SAM = ['Pass','Fail'];
 const APPETITE_SIMPLE = ['Pass','Fail'];
 const BF_PROSPECT = ['Good','Poor','None'];
 const IMMUN_STATUS = ['Complete for Age','Not Complete for Age'];
@@ -106,7 +106,7 @@ export default function CaseRegisterScreen() {
     poor_maternal_health: '', mother_deceased: '', household_vulnerability: 'None',
     community: '', house_location: '', travel_time: '',
     father_alive: '', mother_alive: '',
-    caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', referral_source: '',
+    caregiver_name: '', caregiver_phone: '', caregiver_relationship: '', total_household_members: '', referral_source: '',
     registration_latitude: '', registration_longitude: '',
     weight_kg: '', height_cm: '', muac_cm: '', oedema: '',
     z_score_wfh: '', z_score_wfa: '', z_score_hfa: '', enrolment_criteria: '',
@@ -306,6 +306,7 @@ export default function CaseRegisterScreen() {
         caregiver_relationship: f.caregiver_relationship, address: f.community,
         admission_type: f.admission_type || 'New Admission',
       };
+      payload.total_household_members = toInt(f.total_household_members);
       payload.muac_cm = toFloat(f.muac_cm);
       if (f.oedema) payload.oedema = f.oedema;
       if (f.appetite_test) payload.appetite_test = f.appetite_test;
@@ -531,6 +532,8 @@ export default function CaseRegisterScreen() {
               <TextInput style={inp} value={f.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" placeholder="e.g. 0201234567" placeholderTextColor={colors.textMuted} />
               <Lbl text="Caregiver Relationship" c={colors} />
               <Chips opts={CAREGIVER_REL} val={f.caregiver_relationship} set={(v: string) => s('caregiver_relationship', v)} accent={accent} c={colors} />
+              <Lbl text="Total Number in Household" c={colors} />
+              <TextInput style={inp} value={f.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" placeholder="e.g. 6" placeholderTextColor={colors.textMuted} />
               <Lbl text="Registration Source *" c={colors} />
               <Chips opts={['Direct from community','Self referral','CWC or outreach','Health facility referral','Inpatient care referral','Other OPC transfer','Returned defaulter','Relapse after cure']} val={f.registration_source} set={(v: string) => {
                 s('registration_source', v);
@@ -617,16 +620,24 @@ export default function CaseRegisterScreen() {
             <Card c={colors} title="3. Medical History" accent={accent}>
               <Lbl text="Diarrhoea" c={colors} />
               <Chips opts={YES_NO} val={f.diarrhoea} set={(v: string) => s('diarrhoea', v)} accent={accent} c={colors} />
-              <Lbl text="Stool Frequency/Day" c={colors} />
-              <Chips opts={STOOL_FREQ} val={f.stool_frequency} set={(v: string) => s('stool_frequency', v)} accent={accent} c={colors} />
+              {f.diarrhoea === 'Yes' && (
+                <>
+                  <Lbl text="Stool Frequency/Day" c={colors} />
+                  <Chips opts={STOOL_FREQ} val={f.stool_frequency} set={(v: string) => s('stool_frequency', v)} accent={accent} c={colors} />
+                </>
+              )}
               <Lbl text="Vomiting" c={colors} />
               <Chips opts={YES_NO} val={f.vomiting} set={(v: string) => s('vomiting', v)} accent={accent} c={colors} />
               <Lbl text="Cough" c={colors} />
               <Chips opts={YES_NO} val={f.cough} set={(v: string) => s('cough', v)} accent={accent} c={colors} />
               <Lbl text="Passing Urine" c={colors} />
               <Chips opts={YES_NO} val={f.passing_urine} set={(v: string) => s('passing_urine', v)} accent={accent} c={colors} />
-              <Lbl text="Oedema Duration (days)" c={colors} />
-              <TextInput style={inp} value={f.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="number-pad" placeholder="If oedema present" placeholderTextColor={colors.textMuted} />
+              {f.oedema && f.oedema !== 'None' && (
+                <>
+                  <Lbl text="Oedema Duration (days)" c={colors} />
+                  <TextInput style={inp} value={f.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="number-pad" placeholder="If oedema present" placeholderTextColor={colors.textMuted} />
+                </>
+              )}
               <Lbl text="Appetite (RUTF Test)" c={colors} />
               <Chips opts={APPETITE_SAM} val={f.appetite_test} set={(v: string) => { s('appetite_test', v); checkAutomation(); }} accent={accent} c={colors} />
               <Lbl text="Breastfeeding Status" c={colors} />
@@ -787,6 +798,8 @@ export default function CaseRegisterScreen() {
               <Chips opts={GENDER_OPTS} val={f.child_gender} set={(v: string) => s('child_gender', v)} accent={accent} c={colors} />
               <Lbl text="Caregiver's Name *" c={colors} />
               <TextInput style={inp} value={f.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} placeholder="Caregiver's name" placeholderTextColor={colors.textMuted} />
+              <Lbl text="Total Number in Household" c={colors} />
+              <TextInput style={inp} value={f.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" placeholder="e.g. 6" placeholderTextColor={colors.textMuted} />
               <Lbl text="Community *" c={colors} />
               <TextInput style={inp} value={f.community} onChangeText={(v: string) => s('community', v)} placeholder="Community name" placeholderTextColor={colors.textMuted} />
             </Card>

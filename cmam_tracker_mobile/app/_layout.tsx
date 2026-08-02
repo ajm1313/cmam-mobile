@@ -136,6 +136,10 @@ function RootLayoutInner() {
           <Stack.Screen name="case/edit" options={{ title: 'Edit Case', headerShown: false }} />
           <Stack.Screen name="case/discharge" options={{ title: 'Discharge Management', headerShown: false }} />
           <Stack.Screen name="case/due-visits" options={{ title: 'Due Visits', headerShown: false }} />
+          <Stack.Screen name="case/ipc-list" options={{ title: 'IPC Cases', headerShown: false }} />
+          <Stack.Screen name="case/ipc-detail" options={{ title: 'IPC Case Detail', headerShown: false }} />
+          <Stack.Screen name="case/ipc-register" options={{ title: 'IPC Registration', headerShown: false }} />
+          <Stack.Screen name="case/case-tasks" options={{ title: 'Case Tasks', headerShown: false }} />
           <Stack.Screen name="visit/[caseId]" options={{ title: 'Record Visit', headerShown: false }} />
           <Stack.Screen name="visit/edit/[id]" options={{ title: 'Edit Visit', headerShown: false }} />
           <Stack.Screen name="facility/[id]" options={{ title: 'Facility Details' }} />

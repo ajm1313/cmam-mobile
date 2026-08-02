@@ -126,6 +126,7 @@ export interface OpcCaseDetail extends OpcCase {
   caregiver_name: string;
   caregiver_phone: string;
   caregiver_relationship: string;
+  total_household_members: number | null;
   address: string;
   admission_criteria: string;
   admission_type: string;
@@ -266,4 +267,46 @@ export interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data: T;
+}
+
+export type IpcCaseStatus = 'Admitted' | 'Discharged' | 'Death' | 'Defaulted' | 'Transfer';
+
+export interface IpcCase {
+  id: number;
+  facility: number;
+  facility_name: string;
+  patient_name: string;
+  patient_age: number;
+  gender: string;
+  admission_date: string;
+  weight: number;
+  height: number;
+  muac: number | null;
+  status: IpcCaseStatus;
+  created_at: string;
+}
+
+export type CaseTaskType =
+  | 'ipc_referral' | 'home_visit' | 'appetite_test'
+  | 'amoxicillin_treatment' | 'malaria_test' | 'deworming'
+  | 'measles_vaccine' | 'medical_investigation' | 'discharge_counseling'
+  | 'community_linkage' | 'nutrition_education' | 'immunization_check'
+  | 'rutf_ration' | 'weight_monitoring' | 'oedema_check';
+
+export type CaseTaskPriority = 'low' | 'medium' | 'high' | 'critical';
+export type CaseTaskStatus = 'pending' | 'in_progress' | 'completed' | 'overdue' | 'cancelled';
+
+export interface CaseTask {
+  id: number;
+  case: number;
+  task_type: CaseTaskType;
+  title: string;
+  description: string;
+  priority: CaseTaskPriority;
+  status: CaseTaskStatus;
+  due_date: string | null;
+  completed_at: string | null;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
 }

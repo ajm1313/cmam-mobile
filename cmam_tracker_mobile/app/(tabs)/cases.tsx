@@ -295,7 +295,7 @@ export default function CasesScreen() {
           { label: 'Dashboard', icon: 'bar-chart-outline' as const, color: colors.primary, route: '/admin/case-dashboard' },
           { label: 'Reminders', icon: 'notifications-outline' as const, color: colors.secondary, route: '/case/visit-schedule' },
           { label: 'Batch Visit', icon: 'add-circle-outline' as const, color: colors.success, route: '/case/batch-visit' },
-          { label: 'IPC', icon: 'medkit-outline' as const, color: '#7c3aed', route: '/case/ipc-register' },
+          { label: 'IPC', icon: 'medkit-outline' as const, color: '#7c3aed', route: '/case/ipc-list' },
         ].map((action) => (
           <TouchableOpacity
             key={action.label}

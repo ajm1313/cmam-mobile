@@ -351,6 +351,14 @@ export default function CaseDetailScreen() {
           <Ionicons name="swap-horizontal-outline" size={18} color="#7c3aed" />
           <Text style={[styles.mgmtBtnText, { color: '#7c3aed' }]}>Transfer</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.secondary + '30', borderWidth: 1 }]}
+          onPress={() => router.push({ pathname: '/case/case-tasks', params: { caseId: String(caseData.id), caseName: caseData.child_name } })}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="checkmark-done-outline" size={18} color={colors.secondary} />
+          <Text style={[styles.mgmtBtnText, { color: colors.secondary }]}>Tasks</Text>
+        </TouchableOpacity>
         {isSuper && (
         <TouchableOpacity
           style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.danger + '30', borderWidth: 1 }]}
@@ -403,6 +411,7 @@ export default function CaseDetailScreen() {
         <InfoRow label="Name" value={caseData.caregiver_name || '—'} colors={colors} />
         <InfoRow label="Phone" value={caseData.caregiver_phone || '—'} colors={colors} />
         <InfoRow label="Relationship" value={caseData.caregiver_relationship || '—'} colors={colors} />
+        <InfoRow label="Total in Household" value={caseData.total_household_members != null ? String(caseData.total_household_members) : '—'} colors={colors} />
         <InfoRow label="Address" value={caseData.address || '—'} colors={colors} />
       </SectionCard>
 
