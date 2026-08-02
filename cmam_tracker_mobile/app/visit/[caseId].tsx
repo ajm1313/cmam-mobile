@@ -64,6 +64,7 @@ export default function VisitFormScreen() {
   const [automationAlert, setAutomationAlert] = useState<AutomationResult | null>(null);
   const [rutfStock, setRutfStock] = useState<number | null>(null);
   const [weeksInProgram, setWeeksInProgram] = useState<number | null>(null);
+  const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const isSAM = caseType === 'SAM';
   const visitNum = parseInt(visitNumber || '1');
   const isAnthropometryVisit = ANTHROPOMETRY_VISITS.includes(visitNum);
@@ -83,6 +84,14 @@ export default function VisitFormScreen() {
           const diffMs = now.getTime() - regDate.getTime();
           const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
           setWeeksInProgram(weeks);
+        }
+        // Determine previous weight for weight_lost auto-calculation
+        const visits = caseData?.visits;
+        if (visits && Array.isArray(visits) && visits.length > 0) {
+          const lastVisit = visits[visits.length - 1];
+          if (lastVisit?.weight_kg) setPreviousWeight(parseFloat(lastVisit.weight_kg));
+        } else if (caseData?.weight_kg) {
+          setPreviousWeight(parseFloat(caseData.weight_kg));
         }
         const params: { facility_id?: number } = {};
         if (facilityId) params.facility_id = facilityId;
@@ -411,6 +420,10 @@ export default function VisitFormScreen() {
                 if (Number.isNaN(w)) { set('rutf_sachets_given', ''); checkAutomation(); return; }
                 const sachets = calcRutf(w);
                 if (sachets && isSAM) set('rutf_sachets_given', sachets.toString());
+                // Auto-calculate weight_lost: true if current weight < previous weight
+                if (isSAM && previousWeight !== null) {
+                  setForm(p => ({ ...p, weight_lost: w < previousWeight }));
+                }
                 checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 8.5" placeholderTextColor={colors.textMuted} />
 

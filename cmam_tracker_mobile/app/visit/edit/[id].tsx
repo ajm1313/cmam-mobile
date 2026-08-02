@@ -64,6 +64,7 @@ export default function VisitEditScreen() {
   const [automationAlert, setAutomationAlert] = useState<AutomationResult | null>(null);
   const [rutfStock, setRutfStock] = useState<number | null>(null);
   const [weeksInProgram, setWeeksInProgram] = useState<number | null>(null);
+  const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [caseName, setCaseName] = useState('');
@@ -94,6 +95,14 @@ export default function VisitEditScreen() {
         setCaseAge(String(caseData?.age_months ?? '0'));
         setAdmissionWeight(String(caseData?.weight_kg ?? '0'));
         setVisitNum(visit.visit_number ?? 1);
+        // Determine previous weight for weight_lost auto-calculation
+        const vNum = visit.visit_number ?? 1;
+        if (vNum > 1) {
+          const prevVisit = visits.filter((v: any) => v.visit_number < vNum).sort((a: any, b: any) => b.visit_number - a.visit_number)[0];
+          if (prevVisit?.weight_kg) setPreviousWeight(parseFloat(prevVisit.weight_kg));
+        } else if (caseData?.weight_kg) {
+          setPreviousWeight(parseFloat(caseData.weight_kg));
+        }
         setUpdatedAt(visit.updated_at || visit._updated_at || null);
         if (caseData?.registration_date) {
           const regDate = new Date(caseData.registration_date);
@@ -491,6 +500,10 @@ export default function VisitEditScreen() {
                 if (Number.isNaN(w)) { set('rutf_sachets_given', ''); checkAutomation(); return; }
                 const sachets = calcRutf(w);
                 if (sachets && isSAM) set('rutf_sachets_given', sachets.toString());
+                // Auto-calculate weight_lost: true if current weight < previous weight
+                if (isSAM && previousWeight !== null) {
+                  setForm(p => ({ ...p, weight_lost: w < previousWeight }));
+                }
                 checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 8.5" placeholderTextColor={colors.textMuted} />
 
