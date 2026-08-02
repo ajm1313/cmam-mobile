@@ -203,6 +203,51 @@ export default function CaseDetailScreen() {
     }
   };
 
+  const deleteVisit = async (visitId: number, visitNum: number) => {
+    Alert.alert(
+      'Delete Visit',
+      `Are you sure you want to permanently delete Visit ${visitNum}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/v1/cases/${id}/visits/${visitId}/delete/`);
+              Alert.alert('Success', 'Visit deleted successfully.');
+              fetchCase();
+            } catch (err: any) {
+              const msg = err?.response?.data?.message || err?.message || 'Failed to delete visit.';
+              Alert.alert('Error', msg);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const hardDeleteCase = async () => {
+    Alert.alert(
+      'Permanently Delete Case',
+      `Are you sure you want to PERMANENTLY DELETE ${caseData?.child_name} and ALL visits? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/v1/cases/${id}/hard-delete/`);
+              Alert.alert('Success', 'Case permanently deleted.', [{ text: 'OK', onPress: () => router.back() }]);
+            } catch (err: any) {
+              const msg = err?.response?.data?.message || err?.message || 'Failed to delete case.';
+              Alert.alert('Error', msg);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -386,6 +431,16 @@ export default function CaseDetailScreen() {
           <Text style={[styles.mgmtBtnText, { color: colors.danger }]}>Close</Text>
         </TouchableOpacity>
         )}
+        {isSuper && (
+        <TouchableOpacity
+          style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.danger + '60', borderWidth: 1 }]}
+          onPress={hardDeleteCase}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.danger} />
+          <Text style={[styles.mgmtBtnText, { color: colors.danger }]}>Delete</Text>
+        </TouchableOpacity>
+        )}
       </View>
 
       {/* Child Photo */}
@@ -539,6 +594,14 @@ export default function CaseDetailScreen() {
                 <View style={[styles.visitTapHint, { borderTopColor: colors.border }]}>
                   <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
                   <Text style={[styles.visitTapText, { color: colors.textMuted }]}>Tap to view/edit</Text>
+                  {isSuper && (
+                    <TouchableOpacity
+                      style={{ marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 2 }}
+                      onPress={(e) => { e.stopPropagation(); deleteVisit(v.id, v.visit_number); }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.danger }}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </TouchableOpacity>
             </View>

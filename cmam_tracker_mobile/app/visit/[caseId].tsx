@@ -597,7 +597,7 @@ export default function VisitFormScreen() {
               <ChipRow styles={styles} options={TREATMENT_RESPONSE_OPTIONS} selected={form.treatment_response} onSelect={v => set('treatment_response', v)} colors={colors} />
 
               <Label styles={styles} text="Next Visit Date" colors={colors} />
-              <DatePickerField label="Next Visit Date" value={form.next_visit_date} onChange={v => set('next_visit_date', v)} colors={colors} minDate={new Date().toISOString().slice(0, 10)} />
+              <DatePickerField label="Next Visit Date" value={form.next_visit_date} onChange={v => set('next_visit_date', v)} colors={colors} />
 
               <Label styles={styles} text="Staff Name" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.staff_name} onChangeText={v => set('staff_name', v)} placeholder="Name of staff conducting visit" placeholderTextColor={colors.textMuted} />
@@ -631,7 +631,7 @@ export default function VisitFormScreen() {
               {form.home_visit_needed && (
                 <>
                   <Label styles={styles} text="Home Visit Date" colors={colors} />
-                  <DatePickerField label="Home Visit Date" value={form.home_visit_date} onChange={v => set('home_visit_date', v)} colors={colors} minDate={new Date().toISOString().slice(0, 10)} />
+                  <DatePickerField label="Home Visit Date" value={form.home_visit_date} onChange={v => set('home_visit_date', v)} colors={colors} />
 
                   <Label styles={styles} text="Community Volunteer Name" colors={colors} />
                   <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.community_volunteer} onChangeText={v => set('community_volunteer', v)} placeholder="Name of community volunteer" placeholderTextColor={colors.textMuted} />
