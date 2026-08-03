@@ -29,7 +29,7 @@ const TREATMENT_RESPONSE_OPTIONS = ['Good', 'Moderate', 'Poor', 'No-Response'];
 const BREASTFEEDING_OPTIONS = ['BFW', 'BFC', 'NBF'];
 const Z_SCORE_OPTIONS = ['N', 'MAM', 'SAM'];
 const FOOD_PRODUCT_OPTIONS = ['RUSF', 'CSB++', 'CSB+', 'Fortified Oil', 'Other'];
-const ANTHROPOMETRY_VISITS = [4, 8, 12, 16];
+const ANTHROPOMETRY_VISITS = [3, 6, 9, 12, 15];
 
 // ponytail: RUTF calculator - same as register
 const calcRutf = (w: number): number | null => {
@@ -296,7 +296,7 @@ export default function VisitEditScreen() {
       }
       // Anthropometry visit validation (visits 4, 8, 12, 16)
       if (isAnthropometryVisit && (!form.height_cm || !form.z_score_wfh)) {
-        Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 4, 8, 12, 16).');
+        Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 3, 6, 9, 12, 15).');
         setStep('anthropometry');
         return;
       }
@@ -523,7 +523,7 @@ export default function VisitEditScreen() {
               <Label styles={styles} text={isAnthropometryVisit ? 'W/H Z-Score *' : 'W/H Z-Score'} colors={colors} />
               <ChipRow styles={styles} options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
               {!isAnthropometryVisit && (
-                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 4, 8, 12, and 16.</Text>
+                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 3, 6, 9, 12, and 15.</Text>
               )}
             </View>
           )}

@@ -12,6 +12,7 @@ interface ChartPoint {
   isAdmission: boolean;
   visitNum: number | null;
   date: string;
+  zScore: string;
 }
 
 interface WHOGrowthChartProps {
@@ -90,6 +91,7 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
       isAdmission: true,
       visitNum: null,
       date: regDate,
+      zScore: '',
     });
   }
   const sortedVisits = [...visits].sort((a, b) => a.visit_number - b.visit_number);
@@ -102,6 +104,7 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
         isAdmission: false,
         visitNum: v.visit_number,
         date: v.visit_date,
+        zScore: v.z_score_wfh || '',
       });
     }
   }
@@ -246,7 +249,7 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
           <Text style={[styles.title, { color: colors.textPrimary }]}>WHO Growth Chart</Text>
         </View>
         <Text style={[styles.emptyMsg, { color: colors.textMuted }]}>
-          Weight and height data needed to display the growth chart. Record visits with weight and height to track progress.
+          Weight and height data needed to display the growth chart. Height and weight are collected at registration and every 3rd visit (3, 6, 9, 12, 15).
         </Text>
       </View>
     );
@@ -271,18 +274,20 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 8 }}
-          onLayout={(e) => setImgLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
-        >
-          {imgLayout.width > 0 && chartContent(
-            { width: imgLayout.width, height: imgLayout.height },
-            () => {},
-            { width: 340, height: 480 }
-          )}
-        </ScrollView>
+        <View style={{ alignItems: 'center' }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 8 }}
+            onLayout={(e) => setImgLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+          >
+            {imgLayout.width > 0 && chartContent(
+              { width: imgLayout.width, height: imgLayout.height },
+              () => {},
+              { width: 280, height: 400 }
+            )}
+          </ScrollView>
+        </View>
 
         {/* Legend */}
         <View style={styles.legendRow}>
@@ -315,6 +320,9 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
               </Text>
               <Text style={[styles.tableCell, { color: colors.textPrimary }]}>
                 {pt.weight} kg
+              </Text>
+              <Text style={[styles.tableCell, { color: colors.textMuted, fontSize: 9 }]}>
+                {pt.zScore || '—'}
               </Text>
               <View style={[styles.badge, {
                 backgroundColor: pt.isAdmission ? 'rgba(37, 99, 235, 0.1)' : 'rgba(16, 185, 129, 0.1)',
