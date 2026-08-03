@@ -284,7 +284,7 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
             {imgLayout.width > 0 && chartContent(
               { width: imgLayout.width, height: imgLayout.height },
               () => {},
-              { width: 280, height: 400 }
+              { width: 200, height: 285 }
             )}
           </ScrollView>
         </View>
