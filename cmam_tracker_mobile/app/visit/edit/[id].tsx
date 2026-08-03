@@ -114,12 +114,16 @@ export default function VisitEditScreen() {
         const params: { facility_id?: number } = {};
         const facilityId = caseData?.facility_id;
         if (facilityId) params.facility_id = facilityId;
-        const res = await api.get('/stock-levels/', { params });
-        if (res.data?.success && Array.isArray(res.data.data)) {
-          const rutfItem = res.data.data.find((s: any) =>
-            s.item_name?.toLowerCase().includes('rutf') || s.item_code?.toLowerCase().includes('rutf')
-          );
-          if (rutfItem) setRutfStock(rutfItem.available_stock ?? rutfItem.current_stock ?? 0);
+        try {
+          const res = await api.get('/v1/inventory/stock-levels/', { params });
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            const rutfItem = res.data.data.find((s: any) =>
+              s.item_name?.toLowerCase().includes('rutf') || s.item_code?.toLowerCase().includes('rutf')
+            );
+            if (rutfItem) setRutfStock(rutfItem.available_stock ?? rutfItem.current_stock ?? 0);
+          }
+        } catch (stockErr: any) {
+          logger.warn('Stock levels fetch failed', stockErr?.message);
         }
         setForm({
           visit_date: visit.visit_date || today,
