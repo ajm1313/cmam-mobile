@@ -27,9 +27,9 @@ const SAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Defaulted', 'Referral', 'Ref
 const MAM_OUTCOME_OPTIONS = ['Continue', 'Absent', 'Cured', 'Death', 'Defaulted', 'Non-Response', 'Referral'];
 const TREATMENT_RESPONSE_OPTIONS = ['Good', 'Moderate', 'Poor', 'No-Response'];
 const BREASTFEEDING_OPTIONS = ['BFW', 'BFC', 'NBF'];
-const Z_SCORE_OPTIONS = ['N', 'MAM', 'SAM'];
+const Z_SCORE_OPTIONS = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 to +2 SD', '> +2 SD'];
 const FOOD_PRODUCT_OPTIONS = ['RUSF', 'CSB++', 'CSB+', 'Fortified Oil', 'Other'];
-const ANTHROPOMETRY_VISITS = [3, 6, 9, 12, 15];
+const ANTHROPOMETRY_VISITS = [4, 8, 12, 16];
 
 // ponytail: RUTF calculator - same as register
 const calcRutf = (w: number): number | null => {
@@ -221,7 +221,7 @@ export default function VisitFormScreen() {
       }
       // Anthropometry visit validation (visits 4, 8, 12, 16)
       if (isAnthropometryVisit && (!form.height_cm || !form.z_score_wfh)) {
-        Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 3, 6, 9, 12, 15).');
+        Alert.alert('Required', 'Height and W/H Z-Score are required for anthropometry visits (visits 4, 8, 12, 16).');
         setStep('anthropometry');
         return;
       }
@@ -280,7 +280,7 @@ export default function VisitFormScreen() {
       if (form.weight_kg) payload.weight_kg = toFloat(form.weight_kg);
       if (form.height_cm) payload.height_cm = toFloat(form.height_cm);
       if (form.muac_cm) payload.muac_cm = toFloat(form.muac_cm);
-      if (form.z_score_wfh) payload.z_score_wfh = toFloat(form.z_score_wfh);
+      if (form.z_score_wfh) payload.z_score_wfh = form.z_score_wfh;
       if (form.oedema) payload.oedema = form.oedema;
       if (form.diarrhoea_days) payload.diarrhoea_days = toInt(form.diarrhoea_days);
       if (form.vomiting_days) payload.vomiting_days = toInt(form.vomiting_days);
@@ -443,7 +443,7 @@ export default function VisitFormScreen() {
               <Label styles={styles} text={isAnthropometryVisit ? 'W/H Z-Score *' : 'W/H Z-Score'} colors={colors} />
               <ChipRow styles={styles} options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
               {!isAnthropometryVisit && (
-                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 3, 6, 9, 12, and 15.</Text>
+                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 4, 8, 12, and 16.</Text>
               )}
             </View>
           )}

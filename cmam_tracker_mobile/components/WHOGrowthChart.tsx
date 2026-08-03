@@ -249,7 +249,7 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
           <Text style={[styles.title, { color: colors.textPrimary }]}>WHO Growth Chart</Text>
         </View>
         <Text style={[styles.emptyMsg, { color: colors.textMuted }]}>
-          Weight and height data needed to display the growth chart. Height and weight are collected at registration and every 3rd visit (3, 6, 9, 12, 15).
+          Weight and height data needed to display the growth chart. Height and weight are collected at registration and every 4th visit (4, 8, 12, 16).
         </Text>
       </View>
     );
