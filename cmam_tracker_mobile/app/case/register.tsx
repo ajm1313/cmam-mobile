@@ -72,7 +72,7 @@ const SKIN_OPTS = ['None','Stained/Discolored','Peeling','Ulcers/Torn','Abscess'
 const MALARIA_RES = ['Positive','Negative','Not Done'];
 const MAM_TYPES = ['High-risk MAM','Other MAM'];
 const MAM_ENTRY = ['Direct New Enrolment','Referred from other MAM-OPC','Re-enrolment after defaulting'];
-const MAM_ZSCORE = ['< -3 SD','>= -3 SD and < -2 SD','>= -2 SD and <= +1 SD'];
+const MAM_ZSCORE = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 to +2 SD', '> +2 SD'];
 const FOOD_PROD = ['RUSF','CSB','Fortified Oil','Micronutrient Powder'];
 const IPC_REF = ['Direct from community','Referred from health facility','Referred from OPC','Transfer from other IPC'];
 const DANGER_SIGNS = ['Convulsions','Unconscious','Severe dehydration','Very high fever','Severe pneumonia','Severe anemia','Hypothermia','Hypoglycemia'];
@@ -844,7 +844,7 @@ export default function CaseRegisterScreen() {
               <Lbl text="Height (cm) *" c={colors} />
               <TextInput style={inp} value={f.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 72.0" placeholderTextColor={colors.textMuted} />
               <Lbl text="WFL/H Z-Score" c={colors} />
-              <Chips opts={MAM_ZSCORE} val={f.z_score_value} set={(v: string) => s('z_score_value', v)} accent={accent} c={colors} />
+              <Chips opts={MAM_ZSCORE} val={f.z_score_wfh} set={(v: string) => s('z_score_wfh', v)} accent={accent} c={colors} />
               <Lbl text="MUAC (cm) *" c={colors} />
               <TextInput style={inp} value={f.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" placeholder="11.5 - 12.4 cm for MAM" placeholderTextColor={colors.textMuted} />
               

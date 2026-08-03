@@ -40,7 +40,6 @@ const SKIN_OPTS = ['None', 'Stained/Discolored', 'Peeling', 'Ulcers/Torn', 'Absc
 const MALARIA_RES = ['Positive', 'Negative', 'Not Done'];
 const MAM_TYPES = ['High-risk MAM', 'Other MAM'];
 const MAM_ENTRY = ['Direct New Enrolment', 'Referred from other MAM-OPC', 'Re-enrolment after defaulting'];
-const MAM_ZSCORE = ['< -3 SD', '>= -3 SD and < -2 SD', '>= -2 SD and <= +1 SD'];
 const FOOD_PROD = ['RUSF', 'CSB', 'Fortified Oil', 'Micronutrient Powder'];
 const CAREGIVER_REL = ['Mother', 'Father', 'Grandmother', 'Grandfather', 'Aunt', 'Uncle', 'Sibling', 'Other'];
 const SAM_REFERRAL = ['Direct from community', 'Referred from health facility', 'Referred from IPC', 'Re-enrolment/relapse'];
