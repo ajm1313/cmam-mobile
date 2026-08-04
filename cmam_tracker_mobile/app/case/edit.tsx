@@ -12,6 +12,7 @@ import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
+import OfflineBanner from '../../components/OfflineBanner';
 import type { Facility } from '../../lib/types';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
@@ -218,8 +219,8 @@ export default function CaseEditScreen() {
         const fd = new FormData();
         Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null) fd.append(k, String(v)); });
         fd.append('child_photo', { uri: childPhotoUri, name: 'child_photo.jpg', type: 'image/jpeg' } as any);
-        res = await api.put(`/v1/cases/${id}/edit/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        res = res.data;
+        res = await sendOrQueue(`/v1/cases/${id}/edit/`, 'put', fd, 'Case Edit');
+        if (res) res = res.data;
       } else {
         res = await sendOrQueue(`/v1/cases/${id}/edit/`, 'put', payload, 'Case Edit');
       }
@@ -262,6 +263,8 @@ export default function CaseEditScreen() {
           <Text style={styles.headerTitle}>Edit Case</Text>
           <View style={{ width: 40 }} />
         </View>
+
+        <OfflineBanner />
 
         {/* Child Information */}
         <Card title="Child Information" accent={accent} colors={colors}>

@@ -12,6 +12,7 @@ import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { setCache, getCacheFallback } from '../../lib/cache';
 import OfflineBanner from '../../components/OfflineBanner';
+import { SyncStatusBanner } from '../../components/SyncStatus';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 
 interface Loc { id: number; name: string; }
@@ -203,6 +204,7 @@ export default function ReportsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner isStale={isStale} />
+      <SyncStatusBanner />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={colors.primary} />}

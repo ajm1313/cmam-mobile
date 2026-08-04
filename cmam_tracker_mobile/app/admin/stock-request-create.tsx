@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import OfflineBanner from '../../components/OfflineBanner';
 
 interface InventoryItem { id: number; name: string; code: string; unit: string; }
 interface Facility { id: number; name: string; }
@@ -189,6 +190,8 @@ export default function StockRequestCreateScreen() {
         <Text style={styles.headerTitle}>New Stock Request</Text>
         <View style={{ width: 40 }} />
       </View>
+
+      <OfflineBanner />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
 

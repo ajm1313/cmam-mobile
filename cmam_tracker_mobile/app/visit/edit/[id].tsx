@@ -12,6 +12,7 @@ import { sendOrQueue } from '../../../lib/offlineQueue';
 import { logger } from '../../../lib/logger';
 import DatePickerField from '../../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../../lib/samOpcAutomation';
+import OfflineBanner from '../../../components/OfflineBanner';
 
 type Step = 'anthropometry' | 'medical' | 'treatment' | 'outcome';
 const STEPS: { key: Step; label: string; icon: string }[] = [
@@ -424,6 +425,8 @@ export default function VisitEditScreen() {
             <Text style={[styles.caseTypePillText, { color: isSAM ? colors.sam : colors.mam }]}>{caseType}</Text>
           </View>
         </View>
+
+        <OfflineBanner />
 
         {/* Step Indicator */}
         <View style={[styles.stepsBar, { backgroundColor: colors.surface }]}>

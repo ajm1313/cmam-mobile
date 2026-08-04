@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import OfflineBanner from '../../components/OfflineBanner';
 import EmptyState from '../../components/EmptyState';
 
 interface StockLevel {
@@ -116,6 +117,8 @@ export default function StockLevelsScreen() {
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      <OfflineBanner />
 
       {/* Summary */}
       <View style={[styles.summaryRow, { backgroundColor: colors.surface }]}>

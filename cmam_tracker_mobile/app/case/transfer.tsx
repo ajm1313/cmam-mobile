@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import OfflineBanner from '../../components/OfflineBanner';
 
 interface Facility { id: number; name: string; }
 
@@ -73,6 +74,7 @@ export default function CaseTransferScreen() {
           <View style={{ width: 22 }} />
         </View>
       </View>
+      <OfflineBanner />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={[styles.caseBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>

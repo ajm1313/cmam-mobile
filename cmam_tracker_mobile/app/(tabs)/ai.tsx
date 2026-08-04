@@ -13,6 +13,7 @@ import api from '../../lib/api';
 import { useAuthStore } from '../../lib/store';
 import { logger } from '../../lib/logger';
 import OfflineBanner from '../../components/OfflineBanner';
+import { SyncStatusBanner } from '../../components/SyncStatus';
 import { Skeleton } from '../../components/LoadingSkeleton';
 import {
   getAIOverview, getBatchRiskPredictions, getBatchStockForecasts,
@@ -40,6 +41,7 @@ export default function AIScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <OfflineBanner />
+      <SyncStatusBanner />
 
       {/* Sub-tab selector */}
       <View style={[styles.subTabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>

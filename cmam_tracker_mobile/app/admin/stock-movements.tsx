@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import OfflineBanner from '../../components/OfflineBanner';
 import { useAuthStore } from '../../lib/store';
 
 interface Movement {
@@ -215,6 +216,8 @@ export default function StockMovementsScreen() {
           <View style={{ width: 40 }} />
         )}
       </View>
+
+      <OfflineBanner />
 
       {/* Summary Cards */}
       <View style={[styles.summaryRow, { backgroundColor: colors.surface }]}>

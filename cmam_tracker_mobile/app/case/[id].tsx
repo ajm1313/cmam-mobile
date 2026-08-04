@@ -345,7 +345,6 @@ export default function CaseDetailScreen() {
 
       {/* Management Actions */}
       <View style={[styles.mgmtRow, { marginHorizontal: 12, marginTop: 12, gap: 8 }]}>
-        {isSuper && (
         <TouchableOpacity
           style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.primary + '30', borderWidth: 1 }]}
           onPress={() => router.push({ pathname: '/case/edit', params: { id: String(caseData.id) } })}
@@ -354,7 +353,6 @@ export default function CaseDetailScreen() {
           <Ionicons name="create-outline" size={18} color={colors.primary} />
           <Text style={[styles.mgmtBtnText, { color: colors.primary }]}>Edit</Text>
         </TouchableOpacity>
-        )}
         {!isActive && isSuper && (
           <TouchableOpacity
             style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.success + '30', borderWidth: 1 }]}
@@ -557,11 +555,7 @@ export default function CaseDetailScreen() {
               <TouchableOpacity
                 style={[styles.timelineCard, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, idx === 0 && { backgroundColor: colors.primary + '08', borderColor: colors.primary + '30' }]}
                 onPress={() => {
-                  if (isSuper) {
-                    router.push({ pathname: `/visit/edit/${v.id}`, params: { caseId: String(caseData.id) } });
-                  } else {
-                    Alert.alert('Restricted', 'Only super administrators can edit visits.');
-                  }
+                  router.push({ pathname: `/visit/edit/${v.id}`, params: { caseId: String(caseData.id) } });
                 }}
                 activeOpacity={0.7}
               >

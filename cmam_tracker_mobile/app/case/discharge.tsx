@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import OfflineBanner from '../../components/OfflineBanner';
 
 interface DischargeStats {
   total_cases: number;
@@ -117,6 +118,8 @@ export default function DischargeManagementScreen() {
         <Text style={styles.headerTitle}>Discharge Management</Text>
         <View style={{ width: 40 }} />
       </View>
+
+      <OfflineBanner />
 
       {/* Stats Cards */}
       {stats && (

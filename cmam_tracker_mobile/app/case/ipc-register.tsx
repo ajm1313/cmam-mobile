@@ -11,6 +11,7 @@ import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
+import OfflineBanner from '../../components/OfflineBanner';
 
 interface Facility { id: number; name: string; }
 
@@ -106,6 +107,7 @@ export default function IpcRegisterScreen() {
           <View style={{ width: 22 }} />
         </View>
       </View>
+      <OfflineBanner />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={[styles.infoBanner, { backgroundColor: '#7c3aed' + '12', borderColor: '#7c3aed' + '30' }]}>

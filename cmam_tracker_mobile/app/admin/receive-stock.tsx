@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import OfflineBanner from '../../components/OfflineBanner';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
 interface InventoryItem { id: number; name: string; code: string; unit: string; }
@@ -187,6 +188,8 @@ export default function ReceiveStockScreen() {
         <Text style={styles.headerTitle}>Receive Stock</Text>
         <View style={styles.backBtn} />
       </View>
+
+      <OfflineBanner />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
 

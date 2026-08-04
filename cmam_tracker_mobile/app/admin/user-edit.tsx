@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
-import { sendOrReject } from '../../lib/offlineQueue';
+import { sendOrQueue, sendOrReject } from '../../lib/offlineQueue';
 
 interface RoleOption { id: number; name: string; display_name: string; level: number }
 interface LocationOption { id: number; name: string }
@@ -135,7 +135,7 @@ export default function UserEditScreen() {
         if (form.password) formData.append('password', form.password);
         if (form.password_confirm) formData.append('password_confirm', form.password_confirm);
         formData.append('avatar', { uri: avatarUri, type: 'image/jpeg', name: 'avatar.jpg' } as any);
-        await api.put(`/v1/users/${id}/edit/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await sendOrQueue(`/v1/users/${id}/edit/`, 'put', formData, 'User Edit');
         Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
       } else {
         const payload: Record<string, any> = {

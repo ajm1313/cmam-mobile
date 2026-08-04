@@ -480,6 +480,18 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Sync Queue Detail Link */}
+        <TouchableOpacity style={[styles.dataRow, { borderBottomWidth: 0 }]} onPress={() => router.push('/admin/offline-sync' as any)} activeOpacity={0.7}>
+          <View style={[styles.dataIconWrap, { backgroundColor: colors.primary + '10' }]}>
+            <Ionicons name="list-outline" size={16} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.dataLabel, { color: colors.textPrimary }]}>Sync Queue</Text>
+            <Text style={[styles.dataHint, { color: colors.textMuted }]}>View pending items & conflicts</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+
         {/* Cache Size */}
         <View style={[styles.dataRow, { borderBottomWidth: 0 }]}>
           <View style={[styles.dataIconWrap, { backgroundColor: colors.secondary + '10' }]}>

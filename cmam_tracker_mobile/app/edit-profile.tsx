@@ -11,7 +11,8 @@ import { useTheme } from '../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../lib/store';
 import api, { storage } from '../lib/api';
-import { sendOrReject } from '../lib/offlineQueue';
+import { sendOrQueue, sendOrReject } from '../lib/offlineQueue';
+import OfflineBanner from '../components/OfflineBanner';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -62,10 +63,8 @@ export default function EditProfileScreen() {
           type: 'image/jpeg',
           name: 'avatar.jpg',
         } as any);
-        const res = await api.patch('/v1/profile/update/', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        if (res.data?.success) {
+        const res = await sendOrQueue('/v1/profile/update/', 'patch', formData, 'Profile Update');
+        if (res && res.data?.success) {
           const updated = res.data.data;
           await storage.setItem('auth_user', JSON.stringify(updated));
           setUser(updated);
@@ -110,6 +109,8 @@ export default function EditProfileScreen() {
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Profile</Text>
           <View style={{ width: 22 }} />
         </View>
+
+        <OfflineBanner />
 
         {/* Avatar Preview */}
         <View style={styles.avatarSection}>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
-  Image,
+  Image, Modal, FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import { sendOrQueue } from '../../lib/offlineQueue';
 import type { Facility } from '../../lib/types';
 import { checkIpcReferral, getAlertColors, getAdmissionType, getReportingCategory, type AutomationResult } from '../../lib/samOpcAutomation';
 import DatePickerField from '../../components/DatePickerField';
+import OfflineBanner from '../../components/OfflineBanner';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 type CaseType = 'SAM' | 'MAM' | 'IPC';
@@ -469,6 +470,8 @@ export default function CaseRegisterScreen() {
             <Text style={styles.headerSub}>{facilityName}</Text>
           </View>
         </View>
+
+        <OfflineBanner />
 
         {/* Type Tabs */}
         <View style={[styles.typeTabs, { backgroundColor: colors.surface }]}>
@@ -1126,17 +1129,63 @@ function Chips({ opts, val, set, accent, c }: { opts: string[]; val: string; set
 }
 
 function FacilityPicker({ facilities, value, onChange, colors }: { facilities: Facility[]; value: string; onChange: (v: string) => void; colors: any }) {
+  const [visible, setVisible] = useState(false);
+  const [search, setSearch] = useState('');
   const sel = facilities.find((fc: Facility) => String(fc.id) === value);
+  const filtered = search.trim()
+    ? facilities.filter((fc: Facility) => fc.name.toLowerCase().includes(search.toLowerCase()) || (fc.code || '').toLowerCase().includes(search.toLowerCase()))
+    : facilities;
   return (
-    <TouchableOpacity
-      style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-      onPress={() => {
-        const btns = facilities.slice(0, 20).map((fc: Facility) => ({ text: `${fc.name} (${fc.code || ''})`, onPress: () => onChange(String(fc.id)) }));
-        Alert.alert('Select Facility', 'Choose a facility', [...btns, { text: 'Cancel', style: 'cancel' as const }]);
-      }} activeOpacity={0.7}>
-      <Text style={{ color: sel ? colors.textPrimary : colors.textMuted, fontSize: 14, flex: 1 }}>{sel ? sel.name : 'Select Facility'}</Text>
-      <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+        onPress={() => { setSearch(''); setVisible(true); }} activeOpacity={0.7}>
+        <Text style={{ color: sel ? colors.textPrimary : colors.textMuted, fontSize: 14, flex: 1 }}>{sel ? sel.name : 'Select Facility'}</Text>
+        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+      </TouchableOpacity>
+      <Modal visible={visible} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%', paddingBottom: 30 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary }}>Select Facility</Text>
+              <TouchableOpacity onPress={() => setVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border }}>
+              <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+              <TextInput
+                style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: colors.textPrimary }}
+                placeholder="Search facilities..." placeholderTextColor={colors.textMuted}
+                value={search} onChangeText={setSearch} autoCapitalize="none"
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={filtered}
+              keyExtractor={(item: Facility) => String(item.id)}
+              renderItem={({ item }: { item: Facility }) => (
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                  onPress={() => { onChange(String(item.id)); setVisible(false); }}
+                >
+                  <Ionicons name={String(item.id) === value ? 'radio-button-on' : 'radio-button-off'} size={18} color={String(item.id) === value ? colors.primary : colors.textMuted} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '500', color: String(item.id) === value ? colors.primary : colors.textPrimary }}>{item.name}</Text>
+                    {item.code ? <Text style={{ fontSize: 12, color: colors.textMuted }}>{item.code}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20, color: colors.textMuted }}>No facilities found</Text>}
+            />
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 

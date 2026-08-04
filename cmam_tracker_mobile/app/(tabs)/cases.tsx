@@ -23,7 +23,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   quickScroll: { flexGrow: 0 },
   quickCard: {
-    width: 100,
+    width: 110,
     alignItems: 'center',
     gap: 8,
     paddingVertical: 12,
@@ -42,7 +42,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickCardText: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  quickCardText: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fff', margin: 12, borderRadius: 12, paddingHorizontal: 14,
@@ -313,7 +313,7 @@ export default function CasesScreen() {
             <View style={[styles.quickIconWrap, { backgroundColor: action.color + '15' }]}>
               <Ionicons name={action.icon} size={20} color={action.color} />
             </View>
-            <Text style={[styles.quickCardText, { color: colors.textPrimary }]} numberOfLines={1}>
+            <Text style={[styles.quickCardText, { color: colors.textPrimary }]}>
               {action.label}
             </Text>
           </TouchableOpacity>
