@@ -348,10 +348,7 @@ export default function DashboardScreen() {
   const regionName = user?.location?.region_name;
   const locationLabel = facilityName ?? districtName ?? regionName ?? 'National';
 
-  // ponytail: derive permission to register/create cases based on role level
-  const isAdmin = user?.is_superuser || user?.is_staff;
-  const isFacilityLevel = !!(user?.location?.facility_id);
-  const canRegisterCase = isAdmin || isFacilityLevel;
+  // All roles can access all Quick Actions
 
   // Describe the scope of data being shown
   const dataScopeLabel = facilityName
@@ -462,9 +459,7 @@ export default function DashboardScreen() {
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Quick Actions</Text>
             <View style={styles.actionsGrid}>
-              {canRegisterCase && (
-                <ActionButton icon="person-add-outline" label="Register Case" color={colors.primary} bg={colors.surfaceSecondary} borderColor={colors.border} textColor={colors.textPrimary} onPress={() => router.push('/case/register')} />
-              )}
+              <ActionButton icon="person-add-outline" label="Register Case" color={colors.primary} bg={colors.surfaceSecondary} borderColor={colors.border} textColor={colors.textPrimary} onPress={() => router.push('/case/register')} />
               <ActionButton icon="people-outline" label="View Cases" color={colors.secondary} bg={colors.surfaceSecondary} borderColor={colors.border} textColor={colors.textPrimary} onPress={() => router.push('/(tabs)/cases')} />
               <ActionButton icon="cube-outline" label="Inventory" color={colors.warning} bg={colors.surfaceSecondary} borderColor={colors.border} textColor={colors.textPrimary} onPress={() => router.push('/(tabs)/inventory')} />
               <ActionButton icon="bar-chart-outline" label="Reports" color={colors.success} bg={colors.surfaceSecondary} borderColor={colors.border} textColor={colors.textPrimary} onPress={() => router.push('/(tabs)/reports')} />
