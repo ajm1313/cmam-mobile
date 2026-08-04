@@ -117,7 +117,7 @@ export default function CaseEditScreen() {
     counselling: '', hiv_tb_status: '', household_vulnerability: '',
     previous_sam_episode: '', failed_counselling_only: '',
     poor_maternal_health: '', mother_deceased: '',
-    community: '', house_location: '', travel_time: '',
+    house_location: '', travel_time: '',
     father_alive: '', mother_alive: '', referral_source: '',
     registration_latitude: '', registration_longitude: '',
     // Other fields from web form
@@ -160,7 +160,7 @@ export default function CaseEditScreen() {
           'counselling','hiv_tb_status','household_vulnerability',
           'previous_sam_episode','failed_counselling_only',
           'poor_maternal_health','mother_deceased',
-          'community','house_location','travel_time',
+          'house_location','travel_time',
           'father_alive','mother_alive','referral_source',
           'registration_latitude','registration_longitude',
           'medical_complications','complications_details','time_to_travel_minutes',
@@ -169,8 +169,16 @@ export default function CaseEditScreen() {
           'admission_time','referring_facility',
         ];
         const next: Record<string, string> = {};
+        const boolFields = ['medical_complications','intractable_vomiting','convulsions','lethargic_or_not_alert',
+          'unconscious','severe_dehydration','very_pale_or_severe_palmar_pallor',
+          'relactation_needed','visible_severe_wasting',
+          'previous_sam_episode','failed_counselling_only','poor_maternal_health','mother_deceased'];
         for (const k of fields) {
-          next[k] = c[k] != null ? String(c[k]) : '';
+          if (boolFields.includes(k) && typeof c[k] === 'boolean') {
+            next[k] = c[k] ? 'Yes' : 'No';
+          } else {
+            next[k] = c[k] != null ? String(c[k]) : '';
+          }
         }
         next.age_months = c.age_months?.toString() || '';
         if (c.child_photo) setChildPhotoUri(c.child_photo);
@@ -294,7 +302,7 @@ export default function CaseEditScreen() {
           <PickerField label="Gender" value={form.child_gender} options={GENDER_OPTIONS} onSelect={(v: string) => s('child_gender', v)} colors={colors} />
           <DatePickerField label="Date of Birth" value={form.date_of_birth} onChange={(v: string) => s('date_of_birth', v)} colors={colors} />
           <FormField label="Age (months)" value={form.age_months} onChangeText={(v: string) => s('age_months', v)} keyboardType="numeric" colors={colors} />
-          <FormField label="Community" value={form.community} onChangeText={(v: string) => s('community', v)} colors={colors} />
+          <FormField label="Community" value={form.address} onChangeText={(v: string) => s('address', v)} colors={colors} />
           <FormField label="House Location" value={form.house_location} onChangeText={(v: string) => s('house_location', v)} colors={colors} />
           <FormField label="Travel Time to Facility" value={form.travel_time} onChangeText={(v: string) => s('travel_time', v)} colors={colors} />
           <FormField label="Time to Travel (minutes)" value={form.time_to_travel_minutes} onChangeText={(v: string) => s('time_to_travel_minutes', v)} keyboardType="numeric" colors={colors} />
@@ -311,7 +319,6 @@ export default function CaseEditScreen() {
           <FormField label="Phone" value={form.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" colors={colors} />
           <PickerField label="Relationship" value={form.caregiver_relationship} options={CAREGIVER_REL} onSelect={(v: string) => s('caregiver_relationship', v)} colors={colors} />
           <FormField label="Total Number in Household" value={form.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" colors={colors} />
-          <FormField label="Address" value={form.address} onChangeText={(v: string) => s('address', v)} multiline colors={colors} />
         </Card>
 
         {/* Anthropometry */}
