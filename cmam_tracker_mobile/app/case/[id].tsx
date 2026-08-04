@@ -73,9 +73,10 @@ const getStyles = (colors: any) => StyleSheet.create({
 
   // Management actions
   mgmtRow: { flexDirection: 'row' },
+  mgmtScroll: { flexDirection: 'row', paddingHorizontal: 12, marginTop: 12, gap: 8 },
   mgmtBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, paddingHorizontal: 16, borderRadius: 12,
   },
   mgmtBtnText: { fontSize: 13, fontWeight: '700' },
 
@@ -344,7 +345,7 @@ export default function CaseDetailScreen() {
       )}
 
       {/* Management Actions */}
-      <View style={[styles.mgmtRow, { marginHorizontal: 12, marginTop: 12, gap: 8 }]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mgmtScroll}>
         <TouchableOpacity
           style={[styles.mgmtBtn, { backgroundColor: colors.surface, borderColor: colors.primary + '30', borderWidth: 1 }]}
           onPress={() => router.push({ pathname: '/case/edit', params: { id: String(caseData.id) } })}
@@ -439,7 +440,7 @@ export default function CaseDetailScreen() {
           <Text style={[styles.mgmtBtnText, { color: colors.danger }]}>Delete</Text>
         </TouchableOpacity>
         )}
-      </View>
+      </ScrollView>
 
       {/* Child Photo */}
       {caseData.child_photo ? (
