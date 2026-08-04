@@ -23,12 +23,12 @@ const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   quickScroll: { flexGrow: 0 },
   quickCard: {
-    width: 110,
+    width: 130,
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 16,
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 18,
     borderWidth: 1.5,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -36,13 +36,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     elevation: 3,
   },
   quickIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickCardText: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  quickCardText: { fontSize: 12, fontWeight: '700', textAlign: 'center', lineHeight: 16 },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fff', margin: 12, borderRadius: 12, paddingHorizontal: 14,
@@ -313,7 +313,7 @@ export default function CasesScreen() {
             <View style={[styles.quickIconWrap, { backgroundColor: action.color + '15' }]}>
               <Ionicons name={action.icon} size={20} color={action.color} />
             </View>
-            <Text style={[styles.quickCardText, { color: colors.textPrimary }]}>
+            <Text style={[styles.quickCardText, { color: colors.textPrimary }]} numberOfLines={2}>
               {action.label}
             </Text>
           </TouchableOpacity>
