@@ -318,7 +318,7 @@ export default function CaseRegisterScreen() {
       if (f.registration_latitude) payload.registration_latitude = f.registration_latitude;
       if (f.registration_longitude) payload.registration_longitude = f.registration_longitude;
       if (f.medical_complications === 'Yes') payload.medical_complications = true;
-      if (f.complications_details) payload.complications_notes = f.complications_details;
+      if (f.complications_details) { payload.complications_details = f.complications_details; payload.complications_notes = f.complications_details; }
 
       // Demographic/social fields
       if (f.father_alive) payload.father_alive = f.father_alive;
@@ -326,6 +326,13 @@ export default function CaseRegisterScreen() {
       if (f.house_location) payload.house_location = f.house_location;
       if (f.travel_time) payload.travel_time = f.travel_time;
       if (f.referral_source) payload.referral_source = f.referral_source;
+
+      // Additional admission/clinical detail fields
+      if (f.admission_time) payload.admission_time = f.admission_time;
+      if (f.referring_facility) payload.referring_facility = f.referring_facility;
+      if (f.bilateral_pitting_oedema) payload.bilateral_pitting_oedema = f.bilateral_pitting_oedema;
+      if (f.oedema_grade) payload.oedema_grade = f.oedema_grade;
+      if (f.time_to_travel_minutes) payload.time_to_travel_minutes = parseInt(f.time_to_travel_minutes, 10);
 
       // Medical History
       if (f.diarrhoea) payload.diarrhoea = f.diarrhoea;

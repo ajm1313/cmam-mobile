@@ -90,7 +90,7 @@ export default function CaseEditScreen() {
     effective_suckling: '', relactation_needed: '', visible_severe_wasting: '', age_weeks: '',
     immunization_status: '', immunization_action: '', g6pd_status: '', additional_medical_history: '',
     // Clinical signs (IPC referral criteria)
-    intractable_vomiting_sign: '', convulsions: '', lethargic_or_not_alert: '',
+    intractable_vomiting: '', convulsions: '', lethargic_or_not_alert: '',
     unconscious: '', severe_dehydration: '', very_pale_or_severe_palmar_pallor: '',
     // Physical Examination
     respiratory_rate: '', temperature_celsius: '', chest_indrawing: '',
@@ -144,7 +144,7 @@ export default function CaseEditScreen() {
           'diarrhoea','stool_frequency','vomiting','cough','passing_urine','oedema_duration_days',
           'breastfeeding_status','breastfeeding_prospect','effective_suckling','relactation_needed',
           'visible_severe_wasting','age_weeks','immunization_status','immunization_action','g6pd_status','additional_medical_history',
-          'intractable_vomiting_sign','convulsions','lethargic_or_not_alert','unconscious',
+          'intractable_vomiting','convulsions','lethargic_or_not_alert','unconscious',
           'severe_dehydration','very_pale_or_severe_palmar_pallor',
           'respiratory_rate','temperature_celsius','chest_indrawing',
           'eyes_condition','conjunctiva','ears_condition','mouth_condition','lymph_nodes',
@@ -426,7 +426,7 @@ export default function CaseEditScreen() {
         {/* Clinical Signs (SAM only) */}
         {isSAM && (
           <Card title="Clinical Signs (IPC Referral)" accent={accent} colors={colors}>
-            <PickerField label="Intractable Vomiting" value={form.intractable_vomiting_sign} options={YES_NO} onSelect={(v: string) => s('intractable_vomiting_sign', v)} colors={colors} />
+            <PickerField label="Intractable Vomiting" value={form.intractable_vomiting} options={YES_NO} onSelect={(v: string) => s('intractable_vomiting', v)} colors={colors} />
             <PickerField label="Convulsions" value={form.convulsions} options={YES_NO} onSelect={(v: string) => s('convulsions', v)} colors={colors} />
             <PickerField label="Lethargic / Not Alert" value={form.lethargic_or_not_alert} options={YES_NO} onSelect={(v: string) => s('lethargic_or_not_alert', v)} colors={colors} />
             <PickerField label="Unconscious" value={form.unconscious} options={YES_NO} onSelect={(v: string) => s('unconscious', v)} colors={colors} />
