@@ -156,7 +156,8 @@ export default function CaseRegisterScreen() {
   const accent = TC[caseType];
   const inp: any = [styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }];
 
-  useEffect(() => { api.get('/v1/facilities/').then((r: any) => setFacilities(r.data.data ?? [])).catch(() => {}); }, []);
+  const facilityType = caseType === 'IPC' ? 'IPC' : 'OPC';
+  useEffect(() => { api.get(`/v1/facilities/?type=${facilityType}`).then((r: any) => setFacilities(r.data.data ?? [])).catch(() => {}); }, [facilityType]);
 
   useEffect(() => {
     if (f.date_of_birth && /^\d{4}-\d{2}-\d{2}$/.test(f.date_of_birth)) {

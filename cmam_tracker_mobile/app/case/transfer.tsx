@@ -11,7 +11,7 @@ import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import OfflineBanner from '../../components/OfflineBanner';
 
-interface Facility { id: number; name: string; }
+interface Facility { id: number; name: string; type: string; }
 
 export default function CaseTransferScreen() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function CaseTransferScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ caseId: string; caseName: string }>();
 
-  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [allFacilities, setAllFacilities] = useState<Facility[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [transferType, setTransferType] = useState<'facility' | 'ipc'>('facility');
   const [targetFacility, setTargetFacility] = useState('');
@@ -28,9 +28,14 @@ export default function CaseTransferScreen() {
 
   useEffect(() => {
     api.get('/v1/facilities/').then(r => {
-      setFacilities((r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name })));
+      const list = (r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name, type: f.type }));
+      setAllFacilities(list);
     }).catch((e: any) => { Alert.alert('Error', 'Could not load facilities.'); });
   }, []);
+
+  const facilities = transferType === 'ipc'
+    ? allFacilities.filter(f => f.type === 'IPC')
+    : allFacilities.filter(f => f.type === 'OPC');
 
   const handleSubmit = async () => {
     if (!targetFacility) { Alert.alert('Missing', 'Please select a target facility.'); return; }
@@ -86,7 +91,7 @@ export default function CaseTransferScreen() {
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
           <TouchableOpacity
             style={[styles.typeCard, { borderColor: transferType === 'facility' ? colors.primary : colors.border, backgroundColor: transferType === 'facility' ? colors.primary + '12' : colors.surface }]}
-            onPress={() => setTransferType('facility')}
+            onPress={() => { setTransferType('facility'); setTargetFacility(''); }}
           >
             <Ionicons name="business-outline" size={22} color={transferType === 'facility' ? colors.primary : colors.textMuted} />
             <Text style={[styles.typeTitle, { color: transferType === 'facility' ? colors.primary : colors.textMuted }]}>To Facility</Text>
@@ -94,7 +99,7 @@ export default function CaseTransferScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.typeCard, { borderColor: transferType === 'ipc' ? '#7c3aed' : colors.border, backgroundColor: transferType === 'ipc' ? '#7c3aed' + '12' : colors.surface }]}
-            onPress={() => setTransferType('ipc')}
+            onPress={() => { setTransferType('ipc'); setTargetFacility(''); }}
           >
             <Ionicons name="medkit-outline" size={22} color={transferType === 'ipc' ? '#7c3aed' : colors.textMuted} />
             <Text style={[styles.typeTitle, { color: transferType === 'ipc' ? '#7c3aed' : colors.textMuted }]}>To IPC</Text>

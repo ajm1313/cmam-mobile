@@ -39,7 +39,7 @@ export default function IpcRegisterScreen() {
   });
 
   useEffect(() => {
-    api.get('/v1/facilities/').then(r => {
+    api.get('/v1/facilities/?type=IPC').then(r => {
       const list = (r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name }));
       setFacilities(list);
     }).catch((e: any) => { Alert.alert('Error', 'Could not load facilities.'); });

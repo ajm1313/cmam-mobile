@@ -131,6 +131,10 @@ export default function CaseEditScreen() {
 
   useEffect(() => { api.get('/v1/facilities/').then((r: any) => setFacilities(r.data.data ?? [])).catch(() => {}); }, []);
 
+  const filteredFacilities = form.malnutrition_type === 'IPC'
+    ? facilities.filter((f: Facility) => f.type === 'IPC')
+    : facilities.filter((f: Facility) => f.type === 'OPC');
+
   useEffect(() => {
     (async () => {
       try {
@@ -270,14 +274,14 @@ export default function CaseEditScreen() {
         <Card title="Child Information" accent={accent} colors={colors}>
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Facility</Text>
           <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg }]} onPress={() => {
-            const opts = facilities.map(fac => `${fac.id}:${fac.name}`);
+            const opts = filteredFacilities.map(fac => `${fac.id}:${fac.name}`);
             Alert.alert('Select Facility', undefined, [
-              ...facilities.map(fac => ({ text: fac.name, onPress: () => s('facility_id', String(fac.id)) })),
+              ...filteredFacilities.map(fac => ({ text: fac.name, onPress: () => s('facility_id', String(fac.id)) })),
               { text: 'Cancel', style: 'cancel' },
             ]);
           }}>
             <Text style={[styles.pickerBtnText, { color: form.facility_id ? colors.textPrimary : colors.textMuted }]}>
-              {form.facility_id ? facilities.find(fac => String(fac.id) === form.facility_id)?.name || form.facility_id : 'Select...'}
+              {form.facility_id ? filteredFacilities.find(fac => String(fac.id) === form.facility_id)?.name || form.facility_id : 'Select...'}
             </Text>
             <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
           </TouchableOpacity>
