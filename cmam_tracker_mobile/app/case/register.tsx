@@ -336,6 +336,11 @@ export default function CaseRegisterScreen() {
       if (f.oedema_duration_days) payload.oedema_duration_days = f.oedema_duration_days;
       if (f.breastfeeding_status) payload.breastfeeding_status = f.breastfeeding_status;
       if (f.breastfeeding_prospect) payload.breastfeeding_prospect = f.breastfeeding_prospect;
+      // Infant Under 6 Months Assessment
+      if (f.age_weeks) payload.age_weeks = parseInt(f.age_weeks, 10);
+      if (f.effective_suckling) payload.effective_suckling = f.effective_suckling;
+      if (f.relactation_needed) payload.relactation_needed = f.relactation_needed === 'Yes';
+      if (f.visible_severe_wasting) payload.visible_severe_wasting = f.visible_severe_wasting === 'Yes';
       if (f.immunization_status) payload.immunization_status = f.immunization_status;
       if (f.g6pd_status) payload.g6pd_status = f.g6pd_status;
       if (f.additional_medical_history) payload.additional_medical_history = f.additional_medical_history;
@@ -398,6 +403,20 @@ export default function CaseRegisterScreen() {
       
       // MAM-specific fields
       if (caseType === 'MAM') {
+        if (f.entry_criteria) payload.admission_criteria = f.entry_criteria;
+        if (f.previous_sam_episode) payload.previous_sam_episode = f.previous_sam_episode === 'Yes';
+        if (f.failed_counselling_only) payload.failed_counselling_only = f.failed_counselling_only === 'Yes';
+        if (f.hiv_tb_status) payload.hiv_tb_status = f.hiv_tb_status;
+        if (f.poor_maternal_health) payload.poor_maternal_health = f.poor_maternal_health === 'Yes';
+        if (f.mother_deceased) payload.mother_deceased = f.mother_deceased === 'Yes';
+        if (f.household_vulnerability) payload.household_vulnerability = f.household_vulnerability;
+        if (f.immunization_action) payload.immunization_action = f.immunization_action;
+        if (f.food_product_type) payload.food_product_type = f.food_product_type;
+        if (f.food_product_quantity) payload.food_product_quantity = f.food_product_quantity;
+        if (f.counselling) payload.counselling = f.counselling;
+        if (f.mebendazole_date) payload.mebendazole_date = f.mebendazole_date;
+        if (f.measles_vaccination_date) payload.measles_vaccine_date = f.measles_vaccination_date;
+        if (f.other_medicines) payload.other_medicines = f.other_medicines;
         if (f.disability === 'Yes') {
           payload.disability = 'Yes';
           if (f.disability_details) payload.disability_details = f.disability_details;
@@ -534,19 +553,14 @@ export default function CaseRegisterScreen() {
               <Chips opts={CAREGIVER_REL} val={f.caregiver_relationship} set={(v: string) => s('caregiver_relationship', v)} accent={accent} c={colors} />
               <Lbl text="Total Number in Household" c={colors} />
               <TextInput style={inp} value={f.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" placeholder="e.g. 6" placeholderTextColor={colors.textMuted} />
-              <Lbl text="Registration Source *" c={colors} />
-              <Chips opts={['Direct from community','Self referral','CWC or outreach','Health facility referral','Inpatient care referral','Other OPC transfer','Returned defaulter','Relapse after cure']} val={f.registration_source} set={(v: string) => {
-                s('registration_source', v);
-                // Map display label to backend value
+              <Lbl text="Referral Source *" c={colors} />
+              <Chips opts={SAM_REFERRAL} val={f.referral_source} set={(v: string) => {
+                s('referral_source', v);
                 const sourceMap: Record<string, string> = {
                   'Direct from community': 'community',
-                  'Self referral': 'self_referral',
-                  'CWC or outreach': 'cwc_or_outreach',
-                  'Health facility referral': 'health_facility_referral',
-                  'Inpatient care referral': 'inpatient_care_referral',
-                  'Other OPC transfer': 'other_opc_transfer',
-                  'Returned defaulter': 'returned_defaulter',
-                  'Relapse after cure': 'relapse_after_cure'
+                  'Referred from health facility': 'health_facility_referral',
+                  'Referred from IPC': 'inpatient_care_referral',
+                  'Re-enrolment/relapse': 'relapse_after_cure',
                 };
                 const sourceValue = sourceMap[v] || 'community';
                 const result = getAdmissionType(sourceValue);
@@ -656,7 +670,7 @@ export default function CaseRegisterScreen() {
                   <Lbl text="Age in Weeks" c={colors} />
                   <TextInput style={inp} value={f.age_weeks} onChangeText={(v: string) => s('age_weeks', v)} keyboardType="number-pad" placeholder="Required for infants <6 months" placeholderTextColor={colors.textMuted} />
                   <Lbl text="Effective Suckling" c={colors} />
-                  <Chips opts={['Yes', 'No', 'Poor']} val={f.effective_suckling} set={(v: string) => { s('effective_suckling', v); checkAutomation(); }} accent={accent} c={colors} />
+                  <Chips opts={['Yes', 'Poor', 'No']} val={f.effective_suckling} set={(v: string) => { s('effective_suckling', v); checkAutomation(); }} accent={accent} c={colors} />
                   <Lbl text="Relactation Needed" c={colors} />
                   <Chips opts={YES_NO} val={f.relactation_needed} set={(v: string) => { s('relactation_needed', v); checkAutomation(); }} accent={accent} c={colors} />
                   <Lbl text="Visible Severe Wasting" c={colors} />
@@ -760,7 +774,7 @@ export default function CaseRegisterScreen() {
                     <TextInput style={[inp, { flex: 2 }]} value={f[`other_drug_${i}`]} onChangeText={(v: string) => s(`other_drug_${i}`, v)} placeholder={`Drug ${i} name`} placeholderTextColor={colors.textMuted} />
                     <TextInput style={[inp, { flex: 1 }]} value={f[`other_drug_${i}_dosage`]} onChangeText={(v: string) => s(`other_drug_${i}_dosage`, v)} placeholder="Dosage" placeholderTextColor={colors.textMuted} />
                   </View>
-                  <TextInput style={[inp, { marginTop: 4 }]} value={f[`other_drug_${i}_date`]} onChangeText={(v: string) => s(`other_drug_${i}_date`, v)} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted} />
+                  <DatePickerField label={`Drug ${i} Date`} value={f[`other_drug_${i}_date`]} onChange={(v: string) => s(`other_drug_${i}_date`, v)} colors={colors} />
                 </View>
               ))}
             </Card>
@@ -798,6 +812,10 @@ export default function CaseRegisterScreen() {
               <Chips opts={GENDER_OPTS} val={f.child_gender} set={(v: string) => s('child_gender', v)} accent={accent} c={colors} />
               <Lbl text="Caregiver's Name *" c={colors} />
               <TextInput style={inp} value={f.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} placeholder="Caregiver's name" placeholderTextColor={colors.textMuted} />
+              <Lbl text="Caregiver's Phone" c={colors} />
+              <TextInput style={inp} value={f.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" placeholder="e.g. 0201234567" placeholderTextColor={colors.textMuted} />
+              <Lbl text="Caregiver's Relationship" c={colors} />
+              <Chips opts={CAREGIVER_REL} val={f.caregiver_relationship} set={(v: string) => s('caregiver_relationship', v)} accent={accent} c={colors} />
               <Lbl text="Total Number in Household" c={colors} />
               <TextInput style={inp} value={f.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" placeholder="e.g. 6" placeholderTextColor={colors.textMuted} />
               <Lbl text="Community *" c={colors} />
@@ -907,11 +925,11 @@ export default function CaseRegisterScreen() {
               <Text style={[styles.subHead, { color: colors.textPrimary }]}>Routine Medicines</Text>
               <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8 }}>Record date when each medicine is given</Text>
               <Lbl text="Vitamin A (date)" c={colors} />
-              <TextInput style={inp} value={f.vitamin_a_date} onChangeText={(v: string) => s('vitamin_a_date', v)} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted} />
+              <DatePickerField label="Vitamin A Date" value={f.vitamin_a_date} onChange={(v: string) => s('vitamin_a_date', v)} colors={colors} maxDate={today} />
               <Lbl text="Mebendazole (date)" c={colors} />
-              <TextInput style={inp} value={f.mebendazole_date} onChangeText={(v: string) => s('mebendazole_date', v)} placeholder="YYYY-MM-DD (children >2 years)" placeholderTextColor={colors.textMuted} />
+              <DatePickerField label="Mebendazole Date" value={f.mebendazole_date} onChange={(v: string) => s('mebendazole_date', v)} colors={colors} maxDate={today} />
               <Lbl text="Measles Vaccination (date)" c={colors} />
-              <TextInput style={inp} value={f.measles_vaccination_date} onChangeText={(v: string) => s('measles_vaccination_date', v)} placeholder="YYYY-MM-DD (from 6mo, after 4wk)" placeholderTextColor={colors.textMuted} />
+              <DatePickerField label="Measles Vaccination Date" value={f.measles_vaccination_date} onChange={(v: string) => s('measles_vaccination_date', v)} colors={colors} maxDate={today} />
               <Lbl text="Other Medicines" c={colors} />
               <TextInput style={[inp, styles.textArea]} value={f.other_medicines} onChangeText={(v: string) => s('other_medicines', v)} multiline placeholder="Record any other medicines given" placeholderTextColor={colors.textMuted} textAlignVertical="top" />
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
