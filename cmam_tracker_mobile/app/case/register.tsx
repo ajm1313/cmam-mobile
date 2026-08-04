@@ -33,6 +33,13 @@ const calcRutf = (w: number): number | null => {
   return 32;
 };
 
+// ponytail: RUTF daily ration — sachets/day derived from weekly, rounded to nearest 0.5
+const calcRutfPerDay = (w: number): number | null => {
+  const weekly = calcRutf(w);
+  if (!weekly) return null;
+  return Math.round((weekly / 7) * 2) / 2;
+};
+
 const RUTF_GUIDE = [
   { weight: '4.0 – 4.9', week: 11, day: '1½' },
   { weight: '5.0 – 6.9', week: 14, day: '2' },
@@ -622,6 +629,8 @@ export default function CaseRegisterScreen() {
                 const w = parseFloat(v);
                 const sachets = calcRutf(w);
                 if (sachets) s('rutf_sachets_given', sachets.toString());
+                const perDay = calcRutfPerDay(w);
+                if (perDay) s('rutf_ration_per_day', perDay.toString());
                 checkAutomation(); // ponytail: check on weight change
               }} keyboardType="decimal-pad" placeholder="e.g. 7.5" placeholderTextColor={colors.textMuted} />
               <Lbl text="Length/Height (cm) *" c={colors} />
@@ -770,11 +779,11 @@ export default function CaseRegisterScreen() {
                 </TouchableOpacity>
               </View>
               {f.weight_kg && calcRutf(parseFloat(f.weight_kg)) && (
-                <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 6 }}>Suggested: {calcRutf(parseFloat(f.weight_kg))} sachets/week</Text>
+                <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 6 }}>Suggested: {calcRutf(parseFloat(f.weight_kg))} sachets/week ({calcRutfPerDay(parseFloat(f.weight_kg))}/day)</Text>
               )}
               <TextInput style={inp} value={f.rutf_sachets_given} onChangeText={(v: string) => s('rutf_sachets_given', v)} keyboardType="number-pad" placeholder="Number of sachets" placeholderTextColor={colors.textMuted} />
               <Lbl text="RUTF Ration (sachets/day)" c={colors} />
-              <TextInput style={inp} value={f.rutf_ration_per_day} onChangeText={(v: string) => s('rutf_ration_per_day', v)} keyboardType="decimal-pad" placeholder="e.g. 2" placeholderTextColor={colors.textMuted} />
+              <TextInput style={[inp, { backgroundColor: colors.background, color: colors.textMuted }]} value={f.rutf_ration_per_day} editable={false} placeholder="Auto-calculated from weight" placeholderTextColor={colors.textMuted} />
               <Lbl text="Next Visit Date" c={colors} />
               <DatePickerField label="Next Visit Date" value={f.next_visit_date} onChange={(v: string) => s('next_visit_date', v)} colors={colors} />
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
