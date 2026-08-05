@@ -14,7 +14,7 @@ import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
 import AnthroGrowthCharts from '../../components/AnthroGrowthCharts';
-import { computeWFH, computeWFA, computeHFA, wfhCategory, wfaCategory, hfaCategory } from '../../lib/whoReference';
+import { autoZScoresFromPlot } from '../../lib/whoReference';
 import type { Facility } from '../../lib/types';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
@@ -60,14 +60,7 @@ const calcRutf = (w: number): number | null => {
 };
 
 const autoZScores = (weight: string, height: string, ageMonths: string, gender: string) => {
-  const w = parseFloat(weight);
-  const h = parseFloat(height);
-  const age = parseInt(ageMonths, 10);
-  const result: { wfh: string; wfa: string; hfa: string } = { wfh: '', wfa: '', hfa: '' };
-  if (gender && w > 0 && h > 0) result.wfh = wfhCategory(computeWFH(w, h, gender));
-  if (gender && w > 0 && age >= 0) result.wfa = wfaCategory(computeWFA(w, age, gender));
-  if (gender && h > 0 && age >= 0) result.hfa = hfaCategory(computeHFA(h, age, gender));
-  return result;
+  return autoZScoresFromPlot(weight, height, ageMonths, gender);
 };
 const RUTF_GUIDE = [
   { weight: '4.0 – 4.9', week: 11, day: '1½' },

@@ -18,7 +18,7 @@ import { checkIpcReferral, getAlertColors, getAdmissionType, getReportingCategor
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
 import AnthroGrowthCharts from '../../components/AnthroGrowthCharts';
-import { computeWFH, computeWFA, computeHFA, wfhCategory, wfaCategory, hfaCategory } from '../../lib/whoReference';
+import { autoZScoresFromPlot } from '../../lib/whoReference';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 type CaseType = 'SAM' | 'MAM' | 'IPC';
@@ -42,22 +42,9 @@ const calcRutfPerDay = (w: number): number | null => {
   return Math.round((weekly / 7) * 2) / 2;
 };
 
-// Auto-compute Z-score categories from measurements
+// Auto-compute Z-score categories from plot position on chart
 const autoZScores = (weight: string, height: string, ageMonths: string, gender: string) => {
-  const w = parseFloat(weight);
-  const h = parseFloat(height);
-  const age = parseInt(ageMonths, 10);
-  const result: { wfh: string; wfa: string; hfa: string } = { wfh: '', wfa: '', hfa: '' };
-  if (gender && w > 0 && h > 0) {
-    result.wfh = wfhCategory(computeWFH(w, h, gender));
-  }
-  if (gender && w > 0 && age >= 0) {
-    result.wfa = wfaCategory(computeWFA(w, age, gender));
-  }
-  if (gender && h > 0 && age >= 0) {
-    result.hfa = hfaCategory(computeHFA(h, age, gender));
-  }
-  return result;
+  return autoZScoresFromPlot(weight, height, ageMonths, gender);
 };
 
 const RUTF_GUIDE = [

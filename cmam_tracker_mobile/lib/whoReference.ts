@@ -252,3 +252,103 @@ export function hfaCategory(z: number | null): string {
   if (z <= 3) return '-2 to +3 SD';
   return '> +3 SD';
 }
+
+// ── Plot-position-based Z-score category detection ──
+// Uses the same chart calibration constants as AnthroGrowthCharts to determine
+// which Z-score band the measurement's plot position falls into on the chart image.
+
+interface CalSet {
+  xMin: number; xMax: number;
+  yMin: number; yMax: number;
+  pxLeft: number; pxRight: number;
+  pyTop: number; pyBottom: number;
+}
+
+const CAL: Record<string, CalSet> = {
+  wfh: { xMin: 45, xMax: 120, yMin: 2, yMax: 34, pxLeft: 8.05, pxRight: 91.50, pyTop: 9.80, pyBottom: 82.80 },
+  wfa: { xMin: 0, xMax: 60, yMin: 0, yMax: 30, pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0 },
+  hfa: { xMin: 0, xMax: 60, yMin: 45, yMax: 120, pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0 },
+};
+
+// Inverse LMS: given z, compute the measurement value at that Z-score line
+function lmsInv(z: number, l: number, m: number, s: number): number {
+  if (l === 0) return m * Math.exp(s * z);
+  return m * Math.pow(1 + l * s * z, 1 / l);
+}
+
+// Convert a y-value to percentage Y position on the chart image
+function yPct(type: string, yVal: number): number {
+  const c = CAL[type];
+  return c.pyBottom - (yVal - c.yMin) / (c.yMax - c.yMin) * (c.pyBottom - c.pyTop);
+}
+
+function getLMSForChart(type: string, xVal: number, gender: string): LMS | null {
+  if (type === 'wfh') {
+    const table = gender === 'Female' ? WFH_GIRLS : WFH_BOYS;
+    return interpolateWFH(table, xVal);
+  } else if (type === 'wfa') {
+    const table = gender === 'Female' ? WFA_GIRLS : WFA_BOYS;
+    return interpolateLMS(table, xVal);
+  } else if (type === 'hfa') {
+    const table = gender === 'Female' ? HFA_GIRLS : HFA_BOYS;
+    return interpolateLMS(table, xVal);
+  }
+  return null;
+}
+
+export function bandFromPlot(type: string, xVal: number, yVal: number, gender: string): string {
+  const lms = getLMSForChart(type, xVal, gender);
+  if (!lms) return '';
+
+  const zLines = [-3, -2, -1, 0, 1, 2, 3];
+  const lineY: Record<number, number> = {};
+  for (const z of zLines) {
+    const valAtZ = lmsInv(z, lms.l, lms.m, lms.s);
+    lineY[z] = yPct(type, valAtZ);
+  }
+
+  const actualY = yPct(type, yVal);
+
+  // On the chart, higher Y% = lower on image = higher value.
+  // Z-score lines: +3 at smallest lineY (top), -3 at largest lineY (bottom).
+  if (type === 'wfh') {
+    if (actualY > lineY[-3]) return '< -3 SD';
+    if (actualY > lineY[-2]) return '-3 to < -2 SD';
+    if (actualY <= lineY[1]) return '-2 to +1 SD';
+    if (actualY <= lineY[2]) return '> +1 to +2 SD';
+    return '> +2 SD';
+  }
+  if (type === 'wfa') {
+    if (actualY > lineY[-3]) return '< -3 SD';
+    if (actualY > lineY[-2]) return '-3 to < -2 SD';
+    if (actualY <= lineY[1]) return '-2 to +1 SD';
+    return '> +1 SD';
+  }
+  if (type === 'hfa') {
+    if (actualY > lineY[-3]) return '< -3 SD';
+    if (actualY > lineY[-2]) return '-3 to < -2 SD';
+    if (actualY <= lineY[3]) return '-2 to +3 SD';
+    return '> +3 SD';
+  }
+  return '';
+}
+
+// Plot-position-based auto Z-score — drop-in replacement for the old autoZScores
+export function autoZScoresFromPlot(
+  weight: string, height: string, ageMonths: string, gender: string
+): { wfh: string; wfa: string; hfa: string } {
+  const w = parseFloat(weight);
+  const h = parseFloat(height);
+  const age = parseInt(ageMonths, 10);
+  const result = { wfh: '', wfa: '', hfa: '' };
+  if (gender && w > 0 && h > 0) {
+    result.wfh = bandFromPlot('wfh', h, w, gender);
+  }
+  if (gender && w > 0 && age >= 0) {
+    result.wfa = bandFromPlot('wfa', age, w, gender);
+  }
+  if (gender && h > 0 && age >= 0) {
+    result.hfa = bandFromPlot('hfa', age, h, gender);
+  }
+  return result;
+}
