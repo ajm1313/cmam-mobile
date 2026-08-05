@@ -58,6 +58,7 @@ function computeContainSize(imgW: number, imgH: number, containerW: number, cont
 export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, visits, colors, typeColor }: WHOGrowthChartProps) {
   const [imgLayout, setImgLayout] = useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = useState(false);
+  const [fsLayout, setFsLayout] = useState({ width: 0, height: 0 });
 
   const isBoy = gender === 'Male';
   const chartImage = isBoy
@@ -139,8 +140,8 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
         {pixelPoints.map((pt, idx) => {
           const dotColor = pt.isAdmission ? '#000000' : '#000000';
           const ringColor = pt.isAdmission ? '#2563eb' : '#10b981';
-          const dotSize = 5;
-          const ringSize = 14;
+          const dotSize = 4;
+          const ringSize = 11;
           return (
             <View key={`dot-${idx}`}>
               {/* Thin colored circle */}
@@ -333,24 +334,34 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
             </TouchableOpacity>
           </View>
 
+          <View
+            style={{ flex: 1 }}
+            onLayout={(e) => setFsLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+          >
+          {fsLayout.width > 0 && source && (() => {
+            const fsSize = computeContainSize(source.width, source.height, fsLayout.width, fsLayout.height);
+            return (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 }}
+            contentContainerStyle={{ width: fsSize.width, height: fsSize.height }}
             maximumZoomScale={6}
             minimumZoomScale={1}
             showsHorizontalScrollIndicator={false}
             showsVerticalScrollIndicator={false}
             centerContent
           >
-            <View style={{ position: 'relative', width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 }}>
+            <View style={{ position: 'relative', width: fsSize.width, height: fsSize.height }}>
               <Image
                 source={chartImage}
-                style={{ width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 }}
+                style={{ width: fsSize.width, height: fsSize.height }}
                 resizeMode="stretch"
               />
-              {renderOverlay({ width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 })}
+              {renderOverlay({ width: fsSize.width, height: fsSize.height })}
             </View>
           </ScrollView>
+            );
+          })()}
+          </View>
         </View>
       </Modal>
     </>

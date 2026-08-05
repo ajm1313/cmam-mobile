@@ -210,11 +210,11 @@ function FullscreenChart({
   const meta = CHART_META[type];
   const pt = getPointCoords(type, weight, height, ageMonths);
 
-  // Use a large base size so zooming in shows detail
-  const BASE_W = 1400;
-  const BASE_H = source ? Math.round(1400 * source.height / source.width) : 2000;
+  const [fsLayout, setFsLayout] = useState({ width: 0, height: 0 });
 
-  const size = { width: BASE_W, height: BASE_H };
+  const size = source && fsLayout.width > 0
+    ? computeContainSize(source.width, source.height, fsLayout.width, fsLayout.height)
+    : { width: 0, height: 0 };
 
   return (
     <Modal visible animationType="fade" onRequestClose={onClose}>
@@ -232,6 +232,11 @@ function FullscreenChart({
           </TouchableOpacity>
         </View>
 
+        <View
+          style={{ flex: 1 }}
+          onLayout={(e) => setFsLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+        >
+        {size.width > 0 && (
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ width: size.width, height: size.height }}
@@ -250,8 +255,8 @@ function FullscreenChart({
             {pt && (() => {
               const px = pt.x / 100 * size.width;
               const py = pt.y / 100 * size.height;
-              const dotSize = 8;
-              const ringSize = 22;
+              const dotSize = 5;
+              const ringSize = 16;
               return (
                 <View style={StyleSheet.absoluteFill} pointerEvents="none">
                   {/* Thin red circle */}
@@ -293,6 +298,8 @@ function FullscreenChart({
             })()}
           </View>
         </ScrollView>
+        )}
+        </View>
       </View>
     </Modal>
   );
