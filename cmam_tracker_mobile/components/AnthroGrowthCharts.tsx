@@ -99,13 +99,15 @@ function computeContainSize(imgW: number, imgH: number, containerW: number, cont
 }
 
 // ─── Single Mini Chart ───────────────────────────────────────────
+const MINI_CHART_W = 236;
+const MINI_CHART_H = 180;
+
 function MiniChart({
   type, isBoy, weight, height, ageMonths, colors, onPress,
 }: {
   type: ChartType; isBoy: boolean; weight: number; height: number;
   ageMonths: number; colors: any; onPress: () => void;
 }) {
-  const [layout, setLayout] = useState({ width: 0, height: 0 });
   const chartImage = getChartImage(type, isBoy);
   const source = Image.resolveAssetSource(chartImage);
   const meta = CHART_META[type];
@@ -114,8 +116,8 @@ function MiniChart({
   const hasData = pt !== null;
 
   const contentSize = source?.width
-    ? computeContainSize(source.width, source.height, layout.width, layout.height)
-    : { width: 0, height: 0 };
+    ? computeContainSize(source.width, source.height, MINI_CHART_W, MINI_CHART_H)
+    : { width: MINI_CHART_W, height: MINI_CHART_H };
 
   return (
     <View style={[miniStyles.container, { backgroundColor: colors.surface }]}>
@@ -128,10 +130,7 @@ function MiniChart({
       </View>
 
       {hasData ? (
-        <View
-          style={{ alignItems: 'center', height: 180 }}
-          onLayout={(e) => setLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
-        >
+        <View style={{ alignItems: 'center', height: MINI_CHART_H }}>
           {contentSize.width > 0 && (
             <View style={{ position: 'relative', width: contentSize.width, height: contentSize.height }}>
               <Image

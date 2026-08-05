@@ -278,11 +278,11 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ marginTop: 8 }}
-            onLayout={(e) => setImgLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+            style={{ marginTop: 8, height: 400 }}
+            onLayout={(e) => setImgLayout({ width: e.nativeEvent.layout.width, height: 400 })}
           >
             {imgLayout.width > 0 && chartContent(
-              { width: imgLayout.width, height: imgLayout.height },
+              { width: imgLayout.width, height: 400 },
               () => {},
               { width: 100, height: 143 }
             )}
