@@ -21,7 +21,7 @@ import type { OpcCase } from '../../lib/types';
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  quickScroll: { flexGrow: 0 },
+  quickScroll: { flexGrow: 0, flexShrink: 0 },
   quickCard: {
     width: 130,
     alignItems: 'center',
@@ -415,6 +415,7 @@ export default function CasesScreen() {
       </View>
 
       <FlatList
+        style={{ flex: 1 }}
         data={filtered}
         keyExtractor={(item) => String(item.id)}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
