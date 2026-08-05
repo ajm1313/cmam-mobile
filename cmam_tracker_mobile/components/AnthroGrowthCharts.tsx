@@ -29,14 +29,14 @@ const CAL: Record<ChartType, CalSet> = {
     xMin: 45, xMax: 120, yMin: 2, yMax: 34,
     pxLeft: 8.05, pxRight: 91.50, pyTop: 9.80, pyBottom: 82.80,
   },
-  // Weight-for-Age (0-2): X=age 0-24mo, Y=weight 0-15kg
+  // Weight-for-Age (0-5): X=age 0-60mo, Y=weight 0-30kg
   wfa: {
-    xMin: 0, xMax: 24, yMin: 0, yMax: 15,
+    xMin: 0, xMax: 60, yMin: 0, yMax: 30,
     pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0,
   },
-  // Height-for-Age (0-2): X=age 0-24mo, Y=height 45-90cm
+  // Height-for-Age (0-5): X=age 0-60mo, Y=height 45-120cm
   hfa: {
-    xMin: 0, xMax: 24, yMin: 45, yMax: 90,
+    xMin: 0, xMax: 60, yMin: 45, yMax: 120,
     pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0,
   },
 };
@@ -55,12 +55,12 @@ function getChartImage(type: ChartType, isBoy: boolean) {
         : require('../assets/cht-wflh-girls-z-0-5.jpg');
     case 'wfa':
       return isBoy
-        ? require('../assets/cht-wfa-boys-z-0-2.jpg')
-        : require('../assets/cht-wfa-girls-z-0-2.jpg');
+        ? require('../assets/cht-wfa-boys-z-0-5.jpg')
+        : require('../assets/cht-wfa-girls-z-0-5.jpg');
     case 'hfa':
       return isBoy
-        ? require('../assets/cht-lfa-boys-z-0-2.jpg')
-        : require('../assets/cht-lfa-girls-z-0-2.jpg');
+        ? require('../assets/cht-lhfa-boys-z-0-5.jpg')
+        : require('../assets/cht-lhfa-girls-z-0-5.jpg');
   }
 }
 
