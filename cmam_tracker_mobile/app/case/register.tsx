@@ -17,6 +17,8 @@ import type { Facility } from '../../lib/types';
 import { checkIpcReferral, getAlertColors, getAdmissionType, getReportingCategory, type AutomationResult } from '../../lib/samOpcAutomation';
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
+import AnthroGrowthCharts from '../../components/AnthroGrowthCharts';
+import { computeWFH, computeWFA, computeHFA, wfhCategory, wfaCategory, hfaCategory } from '../../lib/whoReference';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 type CaseType = 'SAM' | 'MAM' | 'IPC';
@@ -38,6 +40,24 @@ const calcRutfPerDay = (w: number): number | null => {
   const weekly = calcRutf(w);
   if (!weekly) return null;
   return Math.round((weekly / 7) * 2) / 2;
+};
+
+// Auto-compute Z-score categories from measurements
+const autoZScores = (weight: string, height: string, ageMonths: string, gender: string) => {
+  const w = parseFloat(weight);
+  const h = parseFloat(height);
+  const age = parseInt(ageMonths, 10);
+  const result: { wfh: string; wfa: string; hfa: string } = { wfh: '', wfa: '', hfa: '' };
+  if (gender && w > 0 && h > 0) {
+    result.wfh = wfhCategory(computeWFH(w, h, gender));
+  }
+  if (gender && w > 0 && age >= 0) {
+    result.wfa = wfaCategory(computeWFA(w, age, gender));
+  }
+  if (gender && h > 0 && age >= 0) {
+    result.hfa = hfaCategory(computeHFA(h, age, gender));
+  }
+  return result;
 };
 
 const RUTF_GUIDE = [
@@ -550,9 +570,9 @@ export default function CaseRegisterScreen() {
               <Lbl text="Date of Birth *" c={colors} />
               <DatePickerField label="Date of Birth" value={f.date_of_birth} onChange={(v: string) => s('date_of_birth', v)} colors={colors} maxDate={today} />
               <Lbl text="Age (months) *" c={colors} />
-              <TextInput style={inp} value={f.age_months} onChangeText={(v: string) => { s('age_months', v); ageToDoB(v); }} keyboardType="number-pad" placeholder="Auto-calculated or enter" placeholderTextColor={colors.textMuted} />
+              <TextInput style={inp} value={f.age_months} onChangeText={(v: string) => { s('age_months', v); ageToDoB(v); const zs = autoZScores(f.weight_kg, f.height_cm, v, f.child_gender); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="number-pad" placeholder="Auto-calculated or enter" placeholderTextColor={colors.textMuted} />
               <Lbl text="Sex *" c={colors} />
-              <Chips opts={GENDER_OPTS} val={f.child_gender} set={(v: string) => s('child_gender', v)} accent={accent} c={colors} />
+              <Chips opts={GENDER_OPTS} val={f.child_gender} set={(v: string) => { s('child_gender', v); const zs = autoZScores(f.weight_kg, f.height_cm, f.age_months, v); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} accent={accent} c={colors} />
               <Lbl text="Community/Locality *" c={colors} />
               <TextInput style={inp} value={f.community} onChangeText={(v: string) => s('community', v)} placeholder="Community or locality" placeholderTextColor={colors.textMuted} />
               <Lbl text="House Location" c={colors} />
@@ -631,14 +651,36 @@ export default function CaseRegisterScreen() {
                 if (sachets) s('rutf_sachets_given', sachets.toString());
                 const perDay = calcRutfPerDay(w);
                 if (perDay) s('rutf_ration_per_day', perDay.toString());
-                checkAutomation(); // ponytail: check on weight change
+                const zs = autoZScores(v, f.height_cm, f.age_months, f.child_gender);
+                if (zs.wfh) s('z_score_wfh', zs.wfh);
+                if (zs.wfa) s('z_score_wfa', zs.wfa);
+                checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 7.5" placeholderTextColor={colors.textMuted} />
               <Lbl text="Length/Height (cm) *" c={colors} />
-              <TextInput style={inp} value={f.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" placeholder="Length if <24mo, Height if ≥24mo" placeholderTextColor={colors.textMuted} />
+              <TextInput style={inp} value={f.height_cm} onChangeText={(v: string) => {
+                s('height_cm', v);
+                const zs = autoZScores(f.weight_kg, v, f.age_months, f.child_gender);
+                if (zs.wfh) s('z_score_wfh', zs.wfh);
+                if (zs.hfa) s('z_score_hfa', zs.hfa);
+              }} keyboardType="decimal-pad" placeholder="Length if <24mo, Height if ≥24mo" placeholderTextColor={colors.textMuted} />
               <Lbl text="MUAC (cm) *" c={colors} />
               <TextInput style={inp} value={f.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" placeholder="< 11.5 cm for SAM" placeholderTextColor={colors.textMuted} />
               <Lbl text="Bilateral Oedema" c={colors} />
               <Chips opts={OEDEMA_OPTS} val={f.oedema} set={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); checkAutomation(); }} accent={accent} c={colors} />
+
+              {/* WHO Growth Charts — gender-specific, clickable for zoom */}
+              {f.child_gender && (parseFloat(f.weight_kg) > 0 || parseFloat(f.height_cm) > 0) && (
+                <View style={{ marginTop: 12, marginBottom: 4 }}>
+                  <AnthroGrowthCharts
+                    gender={f.child_gender}
+                    weight={parseFloat(f.weight_kg) || 0}
+                    height={parseFloat(f.height_cm) || 0}
+                    ageMonths={parseInt(f.age_months, 10) || 0}
+                    colors={colors}
+                  />
+                </View>
+              )}
+
               <Lbl text="Weight-for-Height Z-score" c={colors} />
               <Chips opts={WFH_Z} val={f.z_score_wfh} set={(v: string) => s('z_score_wfh', v)} accent={accent} c={colors} />
               <Lbl text="Weight-for-Age Z-score" c={colors} />
@@ -827,9 +869,9 @@ export default function CaseRegisterScreen() {
               <Lbl text="Date of Birth *" c={colors} />
               <DatePickerField label="Date of Birth" value={f.date_of_birth} onChange={(v: string) => s('date_of_birth', v)} colors={colors} maxDate={today} />
               <Lbl text="Age (months) *" c={colors} />
-              <TextInput style={inp} value={f.age_months} onChangeText={(v: string) => { s('age_months', v); ageToDoB(v); }} keyboardType="number-pad" placeholder="6-59" placeholderTextColor={colors.textMuted} />
+              <TextInput style={inp} value={f.age_months} onChangeText={(v: string) => { s('age_months', v); ageToDoB(v); const zs = autoZScores(f.weight_kg, f.height_cm, v, f.child_gender); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="number-pad" placeholder="6-59" placeholderTextColor={colors.textMuted} />
               <Lbl text="Sex *" c={colors} />
-              <Chips opts={GENDER_OPTS} val={f.child_gender} set={(v: string) => s('child_gender', v)} accent={accent} c={colors} />
+              <Chips opts={GENDER_OPTS} val={f.child_gender} set={(v: string) => { s('child_gender', v); const zs = autoZScores(f.weight_kg, f.height_cm, f.age_months, v); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} accent={accent} c={colors} />
               <Lbl text="Caregiver's Name *" c={colors} />
               <TextInput style={inp} value={f.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} placeholder="Caregiver's name" placeholderTextColor={colors.textMuted} />
               <Lbl text="Caregiver's Phone" c={colors} />
@@ -878,9 +920,23 @@ export default function CaseRegisterScreen() {
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
               <Text style={[styles.subHead, { color: colors.textPrimary }]}>Anthropometric Measurements</Text>
               <Lbl text="Weight (kg) *" c={colors} />
-              <TextInput style={inp} value={f.weight_kg} onChangeText={(v: string) => s('weight_kg', v)} keyboardType="decimal-pad" placeholder="e.g. 8.0" placeholderTextColor={colors.textMuted} />
+              <TextInput style={inp} value={f.weight_kg} onChangeText={(v: string) => { s('weight_kg', v); const zs = autoZScores(v, f.height_cm, f.age_months, f.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); }} keyboardType="decimal-pad" placeholder="e.g. 8.0" placeholderTextColor={colors.textMuted} />
               <Lbl text="Height (cm) *" c={colors} />
-              <TextInput style={inp} value={f.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 72.0" placeholderTextColor={colors.textMuted} />
+              <TextInput style={inp} value={f.height_cm} onChangeText={(v: string) => { s('height_cm', v); const zs = autoZScores(f.weight_kg, v, f.age_months, f.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="decimal-pad" placeholder="e.g. 72.0" placeholderTextColor={colors.textMuted} />
+
+              {/* WHO Growth Charts — gender-specific, clickable for zoom */}
+              {f.child_gender && (parseFloat(f.weight_kg) > 0 || parseFloat(f.height_cm) > 0) && (
+                <View style={{ marginTop: 12, marginBottom: 4 }}>
+                  <AnthroGrowthCharts
+                    gender={f.child_gender}
+                    weight={parseFloat(f.weight_kg) || 0}
+                    height={parseFloat(f.height_cm) || 0}
+                    ageMonths={parseInt(f.age_months, 10) || 0}
+                    colors={colors}
+                  />
+                </View>
+              )}
+
               <Lbl text="WFL/H Z-Score" c={colors} />
               <Chips opts={MAM_ZSCORE} val={f.z_score_wfh} set={(v: string) => s('z_score_wfh', v)} accent={accent} c={colors} />
               <Lbl text="MUAC (cm) *" c={colors} />

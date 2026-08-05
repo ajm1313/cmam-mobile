@@ -13,6 +13,8 @@ import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
+import AnthroGrowthCharts from '../../components/AnthroGrowthCharts';
+import { computeWFH, computeWFA, computeHFA, wfhCategory, wfaCategory, hfaCategory } from '../../lib/whoReference';
 import type { Facility } from '../../lib/types';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
@@ -55,6 +57,17 @@ const calcRutf = (w: number): number | null => {
   if (w < 10.5) return 25;
   if (w < 12) return 28;
   return 32;
+};
+
+const autoZScores = (weight: string, height: string, ageMonths: string, gender: string) => {
+  const w = parseFloat(weight);
+  const h = parseFloat(height);
+  const age = parseInt(ageMonths, 10);
+  const result: { wfh: string; wfa: string; hfa: string } = { wfh: '', wfa: '', hfa: '' };
+  if (gender && w > 0 && h > 0) result.wfh = wfhCategory(computeWFH(w, h, gender));
+  if (gender && w > 0 && age >= 0) result.wfa = wfaCategory(computeWFA(w, age, gender));
+  if (gender && h > 0 && age >= 0) result.hfa = hfaCategory(computeHFA(h, age, gender));
+  return result;
 };
 const RUTF_GUIDE = [
   { weight: '4.0 – 4.9', week: 11, day: '1½' },
@@ -306,9 +319,9 @@ export default function CaseEditScreen() {
             )}
           </TouchableOpacity>
           <FormField label="Child Name *" value={form.child_name} onChangeText={(v: string) => s('child_name', v)} colors={colors} />
-          <PickerField label="Gender" value={form.child_gender} options={GENDER_OPTIONS} onSelect={(v: string) => s('child_gender', v)} colors={colors} />
+          <PickerField label="Gender" value={form.child_gender} options={GENDER_OPTIONS} onSelect={(v: string) => { s('child_gender', v); const zs = autoZScores(form.weight_kg, form.height_cm, form.age_months, v); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} colors={colors} />
           <DatePickerField label="Date of Birth" value={form.date_of_birth} onChange={(v: string) => s('date_of_birth', v)} colors={colors} />
-          <FormField label="Age (months)" value={form.age_months} onChangeText={(v: string) => s('age_months', v)} keyboardType="numeric" colors={colors} />
+          <FormField label="Age (months)" value={form.age_months} onChangeText={(v: string) => { s('age_months', v); const zs = autoZScores(form.weight_kg, form.height_cm, v, form.child_gender); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="numeric" colors={colors} />
           <FormField label="Community" value={form.address} onChangeText={(v: string) => s('address', v)} colors={colors} />
           <FormField label="House Location" value={form.house_location} onChangeText={(v: string) => s('house_location', v)} colors={colors} />
           <FormField label="Travel Time to Facility" value={form.travel_time} onChangeText={(v: string) => s('travel_time', v)} colors={colors} />
@@ -330,11 +343,25 @@ export default function CaseEditScreen() {
 
         {/* Anthropometry */}
         <Card title="Anthropometry" accent={accent} colors={colors}>
-          <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => s('weight_kg', v)} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => s('height_cm', v)} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => { s('weight_kg', v); const zs = autoZScores(v, form.height_cm, form.age_months, form.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); }} keyboardType="decimal-pad" colors={colors} />
+          <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => { s('height_cm', v); const zs = autoZScores(form.weight_kg, v, form.age_months, form.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="decimal-pad" colors={colors} />
           <FormField label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" colors={colors} />
           <PickerField label="Bilateral Pitting Oedema" value={form.oedema} options={OEDEMA_OPTS} onSelect={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); }} colors={colors} />
           <PickerField label="Oedema Grade" value={form.oedema_grade} options={['+', '++', '+++']} onSelect={(v: string) => s('oedema_grade', v)} colors={colors} />
+
+          {/* WHO Growth Charts — gender-specific, clickable for zoom */}
+          {form.child_gender && (parseFloat(form.weight_kg) > 0 || parseFloat(form.height_cm) > 0) && (
+            <View style={{ marginTop: 12, marginBottom: 4 }}>
+              <AnthroGrowthCharts
+                gender={form.child_gender}
+                weight={parseFloat(form.weight_kg) || 0}
+                height={parseFloat(form.height_cm) || 0}
+                ageMonths={parseInt(form.age_months, 10) || 0}
+                colors={colors}
+              />
+            </View>
+          )}
+
           <PickerField label="Z-Score WFH" value={form.z_score_wfh} options={WFH_Z} onSelect={(v: string) => s('z_score_wfh', v)} colors={colors} />
           <PickerField label="Z-Score WFA" value={form.z_score_wfa} options={WFA_Z} onSelect={(v: string) => s('z_score_wfa', v)} colors={colors} />
           <PickerField label="Z-Score HFA" value={form.z_score_hfa} options={HFA_Z} onSelect={(v: string) => s('z_score_hfa', v)} colors={colors} />
