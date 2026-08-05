@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View, Text, Image, ScrollView, StyleSheet,
-  TouchableOpacity, Modal, Animated, Easing,
+  TouchableOpacity, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -138,42 +138,35 @@ function MiniChart({
                 style={{ width: contentSize.width, height: contentSize.height }}
                 resizeMode="stretch"
               />
-              {/* Plot point */}
+              {/* Plot point — small black dot with thin red circle */}
               {(() => {
                 const px = pt!.x / 100 * contentSize.width;
                 const py = pt!.y / 100 * contentSize.height;
-                const dotSize = 12;
+                const dotSize = 5;
+                const ringSize = 14;
                 return (
                   <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                    {/* Glow */}
+                    {/* Thin red circle */}
                     <View style={{
                       position: 'absolute',
-                      left: px - dotSize / 2 - 6, top: py - dotSize / 2 - 6,
-                      width: dotSize + 12, height: dotSize + 12,
-                      borderRadius: (dotSize + 12) / 2,
-                      backgroundColor: 'rgba(239, 68, 68, 0.18)',
+                      left: px - ringSize / 2, top: py - ringSize / 2,
+                      width: ringSize, height: ringSize,
+                      borderRadius: ringSize / 2,
+                      borderWidth: 1.5, borderColor: '#ef4444',
+                      backgroundColor: 'transparent',
                     }} />
-                    {/* White border */}
-                    <View style={{
-                      position: 'absolute',
-                      left: px - dotSize / 2 - 3, top: py - dotSize / 2 - 3,
-                      width: dotSize + 6, height: dotSize + 6,
-                      borderRadius: (dotSize + 6) / 2,
-                      backgroundColor: '#ffffff',
-                    }} />
-                    {/* Red dot */}
+                    {/* Small black dot */}
                     <View style={{
                       position: 'absolute',
                       left: px - dotSize / 2, top: py - dotSize / 2,
                       width: dotSize, height: dotSize,
                       borderRadius: dotSize / 2,
-                      backgroundColor: '#ef4444',
-                      borderWidth: 2, borderColor: '#ffffff',
+                      backgroundColor: '#000000',
                     }} />
                     {/* Label */}
                     <View style={{
                       position: 'absolute',
-                      left: px - 55, top: py - dotSize / 2 - 22,
+                      left: px - 55, top: py - ringSize / 2 - 20,
                       width: 110, alignItems: 'center',
                     }}>
                       <View style={{
@@ -212,122 +205,93 @@ function FullscreenChart({
   type: ChartType; isBoy: boolean; weight: number; height: number;
   ageMonths: number; onClose: () => void;
 }) {
-  const [container, setContainer] = useState({ width: 0, height: 0 });
-  const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
-  const [scaleIndex, setScaleIndex] = useState(0);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const scales = [1, 1.5, 2, 2.5, 3, 4];
-
   const chartImage = getChartImage(type, isBoy);
   const source = Image.resolveAssetSource(chartImage);
   const meta = CHART_META[type];
   const pt = getPointCoords(type, weight, height, ageMonths);
 
-  useEffect(() => {
-    Animated.timing(scaleAnim, {
-      toValue: scales[scaleIndex],
-      duration: 150,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  }, [scaleIndex, scaleAnim, scales]);
+  // Use a large base size so zooming in shows detail
+  const BASE_W = 1400;
+  const BASE_H = source ? Math.round(1400 * source.height / source.width) : 2000;
 
-  const size = source?.width && container.width > 0
-    ? computeContainSize(source.width, source.height, container.width - 20, container.height - 100)
-    : { width: 0, height: 0 };
+  const size = { width: BASE_W, height: BASE_H };
 
   return (
     <Modal visible animationType="fade" onRequestClose={onClose}>
-      <View
-        style={{ flex: 1, backgroundColor: '#000' }}
-        onLayout={(e) => {
-          const { width, height } = e.nativeEvent.layout;
-          setContainer({ width, height });
-          const s = source?.width
-            ? computeContainSize(source.width, source.height, width - 20, height - 100)
-            : { width: Math.max(width - 20, 340), height: Math.max(height - 100, 480) };
-          setContentSize(s);
-        }}
-      >
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
         <View style={fsStyles.header}>
           <Text style={fsStyles.title}>
             {meta.title} — {isBoy ? 'Boys' : 'Girls'}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TouchableOpacity onPress={() => setScaleIndex(Math.max(0, scaleIndex - 1))} style={fsStyles.zoomBtn}>
-              <Ionicons name="remove-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={fsStyles.zoomText}>{scales[scaleIndex]}x</Text>
-            <TouchableOpacity onPress={() => setScaleIndex(Math.min(scales.length - 1, scaleIndex + 1))} style={fsStyles.zoomBtn}>
-              <Ionicons name="add-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClose} style={fsStyles.closeBtn}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginLeft: 8 }}>
+            Pinch to zoom · Drag to pan
+          </Text>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity onPress={onClose} style={fsStyles.closeBtn}>
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, padding: 10 }}>
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              {contentSize.width > 0 && (
-                <View style={{ position: 'relative', width: size.width, height: size.height }}>
-                  <Image
-                    source={chartImage}
-                    style={{ width: size.width, height: size.height }}
-                    resizeMode="stretch"
-                  />
-                  {pt && (() => {
-                    const px = pt.x / 100 * size.width;
-                    const py = pt.y / 100 * size.height;
-                    const dotSize = 16;
-                    return (
-                      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                        <View style={{
-                          position: 'absolute',
-                          left: px - dotSize / 2 - 8, top: py - dotSize / 2 - 8,
-                          width: dotSize + 16, height: dotSize + 16,
-                          borderRadius: (dotSize + 16) / 2,
-                          backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                        }} />
-                        <View style={{
-                          position: 'absolute',
-                          left: px - dotSize / 2 - 3, top: py - dotSize / 2 - 3,
-                          width: dotSize + 6, height: dotSize + 6,
-                          borderRadius: (dotSize + 6) / 2,
-                          backgroundColor: '#ffffff',
-                        }} />
-                        <View style={{
-                          position: 'absolute',
-                          left: px - dotSize / 2, top: py - dotSize / 2,
-                          width: dotSize, height: dotSize,
-                          borderRadius: dotSize / 2,
-                          backgroundColor: '#ef4444',
-                          borderWidth: 2.5, borderColor: '#ffffff',
-                        }} />
-                        <View style={{
-                          position: 'absolute',
-                          left: px - 70, top: py - dotSize / 2 - 26,
-                          width: 140, alignItems: 'center',
-                        }}>
-                          <View style={{
-                            backgroundColor: 'rgba(255,255,255,0.95)',
-                            paddingHorizontal: 8, paddingVertical: 2,
-                            borderRadius: 6, borderWidth: 0.5,
-                            borderColor: 'rgba(239,68,68,0.4)',
-                          }}>
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#b91c1c', textAlign: 'center' }}>
-                              {type === 'wfh' ? `${height} cm / ${weight} kg` : type === 'wfa' ? `${ageMonths} mo / ${weight} kg` : `${ageMonths} mo / ${height} cm`}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })()}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ width: size.width, height: size.height }}
+          maximumZoomScale={6}
+          minimumZoomScale={1}
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          centerContent
+        >
+          <View style={{ position: 'relative', width: size.width, height: size.height }}>
+            <Image
+              source={chartImage}
+              style={{ width: size.width, height: size.height }}
+              resizeMode="stretch"
+            />
+            {pt && (() => {
+              const px = pt.x / 100 * size.width;
+              const py = pt.y / 100 * size.height;
+              const dotSize = 8;
+              const ringSize = 22;
+              return (
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                  {/* Thin red circle */}
+                  <View style={{
+                    position: 'absolute',
+                    left: px - ringSize / 2, top: py - ringSize / 2,
+                    width: ringSize, height: ringSize,
+                    borderRadius: ringSize / 2,
+                    borderWidth: 2, borderColor: '#ef4444',
+                    backgroundColor: 'transparent',
+                  }} />
+                  {/* Small black dot */}
+                  <View style={{
+                    position: 'absolute',
+                    left: px - dotSize / 2, top: py - dotSize / 2,
+                    width: dotSize, height: dotSize,
+                    borderRadius: dotSize / 2,
+                    backgroundColor: '#000000',
+                  }} />
+                  {/* Label */}
+                  <View style={{
+                    position: 'absolute',
+                    left: px - 80, top: py - ringSize / 2 - 32,
+                    width: 160, alignItems: 'center',
+                  }}>
+                    <View style={{
+                      backgroundColor: 'rgba(255,255,255,0.95)',
+                      paddingHorizontal: 10, paddingVertical: 3,
+                      borderRadius: 6, borderWidth: 1,
+                      borderColor: 'rgba(239,68,68,0.4)',
+                    }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#b91c1c', textAlign: 'center' }}>
+                        {type === 'wfh' ? `${height} cm / ${weight} kg` : type === 'wfa' ? `${ageMonths} mo / ${weight} kg` : `${ageMonths} mo / ${height} cm`}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              )}
-            </Animated.View>
-          </ScrollView>
+              );
+            })()}
+          </View>
         </ScrollView>
       </View>
     </Modal>

@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View, Text, Image, ScrollView, StyleSheet,
-  TouchableOpacity, Modal, Animated, Easing,
+  TouchableOpacity, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -58,9 +58,6 @@ function computeContainSize(imgW: number, imgH: number, containerW: number, cont
 export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, visits, colors, typeColor }: WHOGrowthChartProps) {
   const [imgLayout, setImgLayout] = useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = useState(false);
-  const [fsContainer, setFsContainer] = useState({ width: 0, height: 0 });
-  const [fsContentSize, setFsContentSize] = useState({ width: 0, height: 0 });
-  const [scaleIndex, setScaleIndex] = useState(0);
 
   const isBoy = gender === 'Male';
   const chartImage = isBoy
@@ -68,18 +65,6 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
     : require('../assets/cht-wflh-girls-z-0-5.jpg');
 
   const source = Image.resolveAssetSource(chartImage);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const scales = [1, 1.5, 2, 2.5, 3, 4];
-
-  useEffect(() => {
-    Animated.timing(scaleAnim, {
-      toValue: scales[scaleIndex],
-      duration: 150,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  }, [scaleIndex, scaleAnim, scales]);
 
   // Build chart points from registration + visits
   const points: ChartPoint[] = [];
@@ -152,31 +137,25 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
 
         {/* Data points */}
         {pixelPoints.map((pt, idx) => {
-          const dotColor = pt.isAdmission ? '#2563eb' : '#10b981';
-          const dotSize = pt.isAdmission ? 14 : 11;
+          const dotColor = pt.isAdmission ? '#000000' : '#000000';
+          const ringColor = pt.isAdmission ? '#2563eb' : '#10b981';
+          const dotSize = 5;
+          const ringSize = 14;
           return (
             <View key={`dot-${idx}`}>
-              {/* Outer glow */}
+              {/* Thin colored circle */}
               <View style={{
                 position: 'absolute',
-                left: pt.x - dotSize / 2 - 5,
-                top: pt.y - dotSize / 2 - 5,
-                width: dotSize + 10,
-                height: dotSize + 10,
-                borderRadius: (dotSize + 10) / 2,
-                backgroundColor: pt.isAdmission ? 'rgba(37, 99, 235, 0.20)' : 'rgba(16, 185, 129, 0.20)',
+                left: pt.x - ringSize / 2,
+                top: pt.y - ringSize / 2,
+                width: ringSize,
+                height: ringSize,
+                borderRadius: ringSize / 2,
+                borderWidth: 1.5,
+                borderColor: ringColor,
+                backgroundColor: 'transparent',
               }} />
-              {/* White border */}
-              <View style={{
-                position: 'absolute',
-                left: pt.x - dotSize / 2 - 2,
-                top: pt.y - dotSize / 2 - 2,
-                width: dotSize + 4,
-                height: dotSize + 4,
-                borderRadius: (dotSize + 4) / 2,
-                backgroundColor: '#ffffff',
-              }} />
-              {/* Dot */}
+              {/* Small black dot */}
               <View style={{
                 position: 'absolute',
                 left: pt.x - dotSize / 2,
@@ -185,14 +164,12 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
                 height: dotSize,
                 borderRadius: dotSize / 2,
                 backgroundColor: dotColor,
-                borderWidth: 2,
-                borderColor: '#ffffff',
               }} />
               {/* Label */}
               <View style={{
                 position: 'absolute',
                 left: pt.x - 52,
-                top: pt.y - dotSize / 2 - 24,
+                top: pt.y - ringSize / 2 - 22,
                 width: 104,
                 alignItems: 'center',
               }}>
@@ -340,51 +317,39 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
         </View>
       </View>
 
-      {/* Fullscreen zoomable modal */}
+      {/* Fullscreen pinch-to-zoom modal */}
       <Modal visible={fullscreen} animationType="fade" onRequestClose={() => setFullscreen(false)}>
-        <View style={{ flex: 1, backgroundColor: '#000' }} onLayout={(e) => {
-          const { width, height } = e.nativeEvent.layout;
-          setFsContainer({ width, height });
-          const size = source?.width
-            ? computeContainSize(source.width, source.height, width - 20, height - 120)
-            : { width: Math.max(width - 20, 340), height: Math.max(height - 120, 480) };
-          setFsContentSize(size);
-        }}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
           <View style={styles.fullscreenHeader}>
             <Text style={styles.fullscreenTitle}>
               WHO Growth Chart — {isBoy ? 'Boys' : 'Girls'} WFL/H
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <TouchableOpacity onPress={() => setScaleIndex(Math.max(0, scaleIndex - 1))} style={styles.zoomBtn}>
-                <Ionicons name="remove-outline" size={20} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.zoomText}>{scales[scaleIndex]}x</Text>
-              <TouchableOpacity onPress={() => setScaleIndex(Math.min(scales.length - 1, scaleIndex + 1))} style={styles.zoomBtn}>
-                <Ionicons name="add-outline" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setScaleIndex(0); setFullscreen(false); }} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginLeft: 8 }}>
+              Pinch to zoom · Drag to pan
+            </Text>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={() => setFullscreen(false)} style={styles.closeBtn}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
-            horizontal
+            style={{ flex: 1 }}
+            contentContainerStyle={{ width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 }}
+            maximumZoomScale={6}
+            minimumZoomScale={1}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            centerContent
           >
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ flexGrow: 1, padding: 10 }}
-            >
-              <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                {fsContentSize.width > 0 && chartContent(
-                  { width: fsContainer.width, height: fsContainer.height },
-                  () => {},
-                  { width: fsContentSize.width, height: fsContentSize.height }
-                )}
-              </Animated.View>
-            </ScrollView>
+            <View style={{ position: 'relative', width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 }}>
+              <Image
+                source={chartImage}
+                style={{ width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 }}
+                resizeMode="stretch"
+              />
+              {renderOverlay({ width: 1400, height: source ? Math.round(1400 * source.height / source.width) : 2000 })}
+            </View>
           </ScrollView>
         </View>
       </Modal>
