@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
-  Image,
+  Image, Modal, FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -260,7 +260,8 @@ export default function CaseEditScreen() {
 
   const isSAM = form.malnutrition_type === 'SAM';
   const isMAM = form.malnutrition_type === 'MAM';
-  const accent = isMAM ? '#ca8a04' : isSAM ? '#dc2626' : '#7c3aed';
+  const accent = isMAM ? '#d97706' : isSAM ? '#dc2626' : '#7c3aed';
+  const inp: any = [styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }];
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -277,70 +278,60 @@ export default function CaseEditScreen() {
         <OfflineBanner />
 
         {/* Child Information */}
-        <Card title="Child Information" accent={accent} colors={colors}>
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Facility</Text>
-          <TouchableOpacity style={[styles.fieldInput, { borderColor: colors.border, backgroundColor: colors.inputBg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]} onPress={() => {
-            const opts = filteredFacilities.map(fac => `${fac.id}:${fac.name}`);
-            Alert.alert('Select Facility', undefined, [
-              ...filteredFacilities.map(fac => ({ text: fac.name, onPress: () => s('facility_id', String(fac.id)) })),
-              { text: 'Cancel', style: 'cancel' },
-            ]);
-          }}>
-            <Text style={[styles.pickerBtnText, { color: form.facility_id ? colors.textPrimary : colors.textMuted }]}>
-              {form.facility_id ? filteredFacilities.find(fac => String(fac.id) === form.facility_id)?.name || form.facility_id : 'Select...'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
-          </TouchableOpacity>
-          <FormField label="Registration Number" value={form.registration_number} onChangeText={(_v: string) => {}} colors={colors} placeholder="Auto-generated" />
-          <DatePickerField label="Admission Date" value={form.admission_date} onChange={(v: string) => s('admission_date', v)} colors={colors} />
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Child Photo</Text>
-          <TouchableOpacity style={[styles.photoBox, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
-            onPress={() => Alert.alert('Child Photo', 'Choose', [
-              { text: 'Camera', onPress: async () => { const r = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 }); if (!r.canceled && r.assets[0]) { setChildPhotoUri(r.assets[0].uri); setChildPhotoChanged(true); } } },
-              { text: 'Photo Library', onPress: async () => { const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 }); if (!r.canceled && r.assets[0]) { setChildPhotoUri(r.assets[0].uri); setChildPhotoChanged(true); } } },
-              ...(childPhotoUri ? [{ text: 'Remove', style: 'destructive' as const, onPress: () => { setChildPhotoUri(null); setChildPhotoChanged(true); } }] : []),
-              { text: 'Cancel', style: 'cancel' as const },
-            ])}
-          >
-            {childPhotoUri ? (
-              <Image source={{ uri: childPhotoUri }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
-                <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '600' }}>Tap to add photo</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <FormField label="Child Name *" value={form.child_name} onChangeText={(v: string) => s('child_name', v)} colors={colors} />
-          <PickerField label="Gender" value={form.child_gender} options={GENDER_OPTIONS} onSelect={(v: string) => { s('child_gender', v); const zs = autoZScores(form.weight_kg, form.height_cm, form.age_months, v); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} colors={colors} />
+        <Card title="1. Child's Information" accent={accent} colors={colors}>
+          <Lbl text="Facility" c={colors} />
+          <FacilityPicker facilities={filteredFacilities} value={form.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} />
+          <Lbl text="Registration Number" c={colors} />
+          <TextInput style={[inp, { backgroundColor: colors.background, color: colors.textMuted }]} value={form.registration_number} editable={false} placeholder="Auto-generated" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Date of Enrolment" c={colors} />
+          <DatePickerField label="Date of Enrolment" value={form.admission_date} onChange={(v: string) => s('admission_date', v)} colors={colors} />
+          <Lbl text="Child Photo" c={colors} />
+          <PhotoPicker photoUri={childPhotoUri} onPick={(uri: string | null) => { setChildPhotoUri(uri); setChildPhotoChanged(true); }} colors={colors} />
+          <Lbl text="Child Name *" c={colors} />
+          <TextInput style={inp} value={form.child_name} onChangeText={(v: string) => s('child_name', v)} placeholder="Enter child's name" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Sex *" c={colors} />
+          <Chips opts={GENDER_OPTIONS} val={form.child_gender} set={(v: string) => { s('child_gender', v); const zs = autoZScores(form.weight_kg, form.height_cm, form.age_months, v); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} accent={accent} c={colors} />
+          <Lbl text="Date of Birth" c={colors} />
           <DatePickerField label="Date of Birth" value={form.date_of_birth} onChange={(v: string) => s('date_of_birth', v)} colors={colors} />
-          <FormField label="Age (months)" value={form.age_months} onChangeText={(v: string) => { s('age_months', v); const zs = autoZScores(form.weight_kg, form.height_cm, v, form.child_gender); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="numeric" colors={colors} />
-          <FormField label="Community" value={form.address} onChangeText={(v: string) => s('address', v)} colors={colors} />
-          <FormField label="House Location" value={form.house_location} onChangeText={(v: string) => s('house_location', v)} colors={colors} />
-          <FormField label="Travel Time to Facility" value={form.travel_time} onChangeText={(v: string) => s('travel_time', v)} colors={colors} />
-          <FormField label="Time to Travel (minutes)" value={form.time_to_travel_minutes} onChangeText={(v: string) => s('time_to_travel_minutes', v)} keyboardType="numeric" colors={colors} />
-          <PickerField label="Father Alive" value={form.father_alive} options={YES_NO_UNK} onSelect={(v: string) => s('father_alive', v)} colors={colors} />
-          <PickerField label="Mother Alive" value={form.mother_alive} options={YES_NO_UNK} onSelect={(v: string) => s('mother_alive', v)} colors={colors} />
-          <PickerField label="Referral Source" value={form.referral_source} options={SAM_REFERRAL} onSelect={(v: string) => s('referral_source', v)} colors={colors} />
-          <FormField label="Registration Latitude" value={form.registration_latitude} onChangeText={(v: string) => s('registration_latitude', v)} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Registration Longitude" value={form.registration_longitude} onChangeText={(v: string) => s('registration_longitude', v)} keyboardType="decimal-pad" colors={colors} />
-        </Card>
-
-        {/* Caregiver */}
-        <Card title="Caregiver" accent={accent} colors={colors}>
-          <FormField label="Caregiver Name" value={form.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} colors={colors} />
-          <FormField label="Phone" value={form.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" colors={colors} />
-          <PickerField label="Relationship" value={form.caregiver_relationship} options={CAREGIVER_REL} onSelect={(v: string) => s('caregiver_relationship', v)} colors={colors} />
-          <FormField label="Total Number in Household" value={form.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" colors={colors} />
+          <Lbl text="Age (months)" c={colors} />
+          <TextInput style={inp} value={form.age_months} onChangeText={(v: string) => { s('age_months', v); const zs = autoZScores(form.weight_kg, form.height_cm, v, form.child_gender); if (zs.wfa) s('z_score_wfa', zs.wfa); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="number-pad" placeholder="Auto-calculated or enter" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Community/Locality" c={colors} />
+          <TextInput style={inp} value={form.address} onChangeText={(v: string) => s('address', v)} placeholder="Community or locality" placeholderTextColor={colors.textMuted} />
+          <Lbl text="House Location" c={colors} />
+          <TextInput style={inp} value={form.house_location} onChangeText={(v: string) => s('house_location', v)} placeholder="House location" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Time to Travel to Site" c={colors} />
+          <TextInput style={inp} value={form.travel_time} onChangeText={(v: string) => s('travel_time', v)} placeholder="e.g. 30 mins" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Father Alive" c={colors} />
+          <Chips opts={YES_NO_UNK} val={form.father_alive} set={(v: string) => s('father_alive', v)} accent={accent} c={colors} />
+          <Lbl text="Mother Alive" c={colors} />
+          <Chips opts={YES_NO_UNK} val={form.mother_alive} set={(v: string) => s('mother_alive', v)} accent={accent} c={colors} />
+          <Lbl text="Caregiver Name" c={colors} />
+          <TextInput style={inp} value={form.caregiver_name} onChangeText={(v: string) => s('caregiver_name', v)} placeholder="Caregiver's name" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Caregiver Phone" c={colors} />
+          <TextInput style={inp} value={form.caregiver_phone} onChangeText={(v: string) => s('caregiver_phone', v)} keyboardType="phone-pad" placeholder="e.g. 0201234567" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Caregiver Relationship" c={colors} />
+          <Chips opts={CAREGIVER_REL} val={form.caregiver_relationship} set={(v: string) => s('caregiver_relationship', v)} accent={accent} c={colors} />
+          <Lbl text="Total Number in Household" c={colors} />
+          <TextInput style={inp} value={form.total_household_members} onChangeText={(v: string) => s('total_household_members', v)} keyboardType="number-pad" placeholder="e.g. 6" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Referral Source" c={colors} />
+          <Chips opts={SAM_REFERRAL} val={form.referral_source} set={(v: string) => s('referral_source', v)} accent={accent} c={colors} />
+          <Lbl text="Registration Location" c={colors} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput style={[inp, { flex: 1 }]} value={form.registration_latitude} onChangeText={(v: string) => s('registration_latitude', v)} placeholder="Latitude" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" />
+            <TextInput style={[inp, { flex: 1 }]} value={form.registration_longitude} onChangeText={(v: string) => s('registration_longitude', v)} placeholder="Longitude" placeholderTextColor={colors.textMuted} keyboardType="decimal-pad" />
+          </View>
         </Card>
 
         {/* Anthropometry */}
-        <Card title="Anthropometry" accent={accent} colors={colors}>
-          <FormField label="Weight (kg)" value={form.weight_kg} onChangeText={(v: string) => { s('weight_kg', v); const zs = autoZScores(v, form.height_cm, form.age_months, form.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); }} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="Height (cm)" value={form.height_cm} onChangeText={(v: string) => { s('height_cm', v); const zs = autoZScores(form.weight_kg, v, form.age_months, form.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="decimal-pad" colors={colors} />
-          <FormField label="MUAC (cm)" value={form.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" colors={colors} />
-          <PickerField label="Bilateral Pitting Oedema" value={form.oedema} options={OEDEMA_OPTS} onSelect={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); }} colors={colors} />
-          <PickerField label="Oedema Grade" value={form.oedema_grade} options={['+', '++', '+++']} onSelect={(v: string) => s('oedema_grade', v)} colors={colors} />
+        <Card title="2. Anthropometry" accent={accent} colors={colors}>
+          <Lbl text="Weight (kg) *" c={colors} />
+          <TextInput style={inp} value={form.weight_kg} onChangeText={(v: string) => { s('weight_kg', v); const zs = autoZScores(v, form.height_cm, form.age_months, form.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.wfa) s('z_score_wfa', zs.wfa); }} keyboardType="decimal-pad" placeholder="e.g. 7.5" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Length/Height (cm) *" c={colors} />
+          <TextInput style={inp} value={form.height_cm} onChangeText={(v: string) => { s('height_cm', v); const zs = autoZScores(form.weight_kg, v, form.age_months, form.child_gender); if (zs.wfh) s('z_score_wfh', zs.wfh); if (zs.hfa) s('z_score_hfa', zs.hfa); }} keyboardType="decimal-pad" placeholder="Length if <24mo, Height if ≥24mo" placeholderTextColor={colors.textMuted} />
+          <Lbl text="MUAC (cm) *" c={colors} />
+          <TextInput style={inp} value={form.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" placeholder="< 11.5 cm for SAM" placeholderTextColor={colors.textMuted} />
+          <Lbl text="Bilateral Oedema" c={colors} />
+          <Chips opts={OEDEMA_OPTS} val={form.oedema} set={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); }} accent={accent} c={colors} />
 
           {/* WHO Growth Charts — gender-specific, clickable for zoom */}
           {form.child_gender && (parseFloat(form.weight_kg) > 0 || parseFloat(form.height_cm) > 0) && (
@@ -355,9 +346,12 @@ export default function CaseEditScreen() {
             </View>
           )}
 
-          <PickerField label="Z-Score WFH" value={form.z_score_wfh} options={WFH_Z} onSelect={(v: string) => s('z_score_wfh', v)} colors={colors} />
-          <PickerField label="Z-Score WFA" value={form.z_score_wfa} options={WFA_Z} onSelect={(v: string) => s('z_score_wfa', v)} colors={colors} />
-          <PickerField label="Z-Score HFA" value={form.z_score_hfa} options={HFA_Z} onSelect={(v: string) => s('z_score_hfa', v)} colors={colors} />
+          <Lbl text="Weight-for-Height Z-score" c={colors} />
+          <Chips opts={WFH_Z} val={form.z_score_wfh} set={(v: string) => s('z_score_wfh', v)} accent={accent} c={colors} />
+          <Lbl text="Weight-for-Age Z-score" c={colors} />
+          <Chips opts={WFA_Z} val={form.z_score_wfa} set={(v: string) => s('z_score_wfa', v)} accent={accent} c={colors} />
+          <Lbl text="Height-for-Age Z-score" c={colors} />
+          <Chips opts={HFA_Z} val={form.z_score_hfa} set={(v: string) => s('z_score_hfa', v)} accent={accent} c={colors} />
         </Card>
 
         {/* ════ SAM-SPECIFIC SECTIONS ════ */}
@@ -365,14 +359,20 @@ export default function CaseEditScreen() {
           <>
             {/* Admission Details */}
             <Card title="Admission Details" accent={accent} colors={colors}>
-              <PickerField label="Admission Criteria" value={form.admission_criteria} options={ADMISSION_CRITERIA} onSelect={(v: string) => s('admission_criteria', v)} colors={colors} />
-              <PickerField label="Admission Type" value={form.admission_type} options={ADMISSION_TYPES} onSelect={(v: string) => s('admission_type', v)} colors={colors} />
-              <PickerField label="Appetite Test" value={form.appetite_test} options={APPETITE_SAM} onSelect={(v: string) => s('appetite_test', v)} colors={colors} />
-              <PickerField label="Medical Complications" value={form.medical_complications} options={YES_NO} onSelect={(v: string) => s('medical_complications', v)} colors={colors} />
-              <FormField label="Complications Details" value={form.complications_details} onChangeText={(v: string) => s('complications_details', v)} multiline colors={colors} />
-              <FormField label="Complications Notes" value={form.complications_notes} onChangeText={(v: string) => s('complications_notes', v)} multiline colors={colors} />
-              <FormField label="Admission Time" value={form.admission_time} onChangeText={(v: string) => s('admission_time', v)} colors={colors} />
-              <FormField label="Referring Facility" value={form.referring_facility} onChangeText={(v: string) => s('referring_facility', v)} colors={colors} />
+              <Lbl text="Enrolment Criteria" c={colors} />
+              <Chips opts={ADMISSION_CRITERIA} val={form.admission_criteria} set={(v: string) => s('admission_criteria', v)} accent={accent} c={colors} />
+              <Lbl text="Admission Type" c={colors} />
+              <Chips opts={ADMISSION_TYPES} val={form.admission_type} set={(v: string) => s('admission_type', v)} accent={accent} c={colors} />
+              <Lbl text="Appetite (RUTF Test)" c={colors} />
+              <Chips opts={APPETITE_SAM} val={form.appetite_test} set={(v: string) => s('appetite_test', v)} accent={accent} c={colors} />
+              <Lbl text="Medical Complications" c={colors} />
+              <Chips opts={YES_NO} val={form.medical_complications} set={(v: string) => s('medical_complications', v)} accent={accent} c={colors} />
+              <Lbl text="Complications Details" c={colors} />
+              <TextInput style={[inp, styles.textArea]} value={form.complications_details} onChangeText={(v: string) => s('complications_details', v)} multiline placeholder="Describe any medical complications..." placeholderTextColor={colors.textMuted} textAlignVertical="top" />
+              <Lbl text="Admission Time" c={colors} />
+              <TextInput style={inp} value={form.admission_time} onChangeText={(v: string) => s('admission_time', v)} placeholder="HH:MM (24hr)" placeholderTextColor={colors.textMuted} />
+              <Lbl text="Referring Facility" c={colors} />
+              <TextInput style={inp} value={form.referring_facility} onChangeText={(v: string) => s('referring_facility', v)} placeholder="Type facility name..." placeholderTextColor={colors.textMuted} />
             </Card>
           </>
         )}
@@ -382,166 +382,232 @@ export default function CaseEditScreen() {
           <>
             {/* MAM Details */}
             <Card title="MAM Details" accent={accent} colors={colors}>
-              <PickerField label="MAM Type" value={form.mam_type} options={MAM_TYPES} onSelect={(v: string) => s('mam_type', v)} colors={colors} />
-              <PickerField label="Enrolment Criteria" value={form.admission_criteria} options={MAM_ENTRY} onSelect={(v: string) => s('admission_criteria', v)} colors={colors} />
-              <PickerField label="Food Product Type" value={form.food_product_type} options={FOOD_PROD} onSelect={(v: string) => s('food_product_type', v)} colors={colors} />
-              <FormField label="Food Product Quantity" value={form.food_product_quantity} onChangeText={(v: string) => s('food_product_quantity', v)} colors={colors} />
-              <FormField label="Counselling" value={form.counselling} onChangeText={(v: string) => s('counselling', v)} multiline colors={colors} />
+              <Lbl text="Type of MAM Treatment" c={colors} />
+              <Chips opts={MAM_TYPES} val={form.mam_type} set={(v: string) => s('mam_type', v)} accent={accent} c={colors} />
+              <Lbl text="Entry Criteria" c={colors} />
+              <Chips opts={MAM_ENTRY} val={form.admission_criteria} set={(v: string) => s('admission_criteria', v)} accent={accent} c={colors} />
+              <Lbl text="Food Product Type" c={colors} />
+              <Chips opts={FOOD_PROD} val={form.food_product_type} set={(v: string) => s('food_product_type', v)} accent={accent} c={colors} />
+              <Lbl text="Quantity" c={colors} />
+              <TextInput style={inp} value={form.food_product_quantity} onChangeText={(v: string) => s('food_product_quantity', v)} placeholder="e.g. 500g, 2 sachets" placeholderTextColor={colors.textMuted} />
+              <Lbl text="Counselling" c={colors} />
+              <TextInput style={inp} value={form.counselling} onChangeText={(v: string) => s('counselling', v)} placeholder="e.g. Feeding practices" placeholderTextColor={colors.textMuted} />
             </Card>
 
             {/* Aggravating Factors Assessment */}
             <Card title="Aggravating Factors Assessment" accent={accent} colors={colors}>
-              <PickerField label="HIV/TB Status" value={form.hiv_tb_status} options={HIV_TB_OPTS} onSelect={(v: string) => s('hiv_tb_status', v)} colors={colors} />
-              <PickerField label="Household Vulnerability" value={form.household_vulnerability} options={VULN_OPTS} onSelect={(v: string) => s('household_vulnerability', v)} colors={colors} />
-              <PickerField label="Previous SAM Episode" value={form.previous_sam_episode} options={YES_NO} onSelect={(v: string) => s('previous_sam_episode', v)} colors={colors} />
-              <PickerField label="Failed Counselling Only" value={form.failed_counselling_only} options={YES_NO} onSelect={(v: string) => s('failed_counselling_only', v)} colors={colors} />
-              <PickerField label="Poor Maternal Health" value={form.poor_maternal_health} options={YES_NO} onSelect={(v: string) => s('poor_maternal_health', v)} colors={colors} />
-              <PickerField label="Mother Deceased" value={form.mother_deceased} options={YES_NO} onSelect={(v: string) => s('mother_deceased', v)} colors={colors} />
-              <PickerField label="Disability" value={form.disability} options={YES_NO} onSelect={(v: string) => s('disability', v)} colors={colors} />
+              <Lbl text="HIV/TB Status" c={colors} />
+              <Chips opts={HIV_TB_OPTS} val={form.hiv_tb_status} set={(v: string) => s('hiv_tb_status', v)} accent={accent} c={colors} />
+              <Lbl text="Household Vulnerability Level" c={colors} />
+              <Chips opts={VULN_OPTS} val={form.household_vulnerability} set={(v: string) => s('household_vulnerability', v)} accent={accent} c={colors} />
+              <Lbl text="Previous SAM Episode" c={colors} />
+              <Chips opts={YES_NO} val={form.previous_sam_episode} set={(v: string) => s('previous_sam_episode', v)} accent={accent} c={colors} />
+              <Lbl text="Failed to Recover with Counselling Only" c={colors} />
+              <Chips opts={YES_NO} val={form.failed_counselling_only} set={(v: string) => s('failed_counselling_only', v)} accent={accent} c={colors} />
+              <Lbl text="Poor Maternal Health" c={colors} />
+              <Chips opts={YES_NO} val={form.poor_maternal_health} set={(v: string) => s('poor_maternal_health', v)} accent={accent} c={colors} />
+              <Lbl text="Mother Deceased" c={colors} />
+              <Chips opts={YES_NO} val={form.mother_deceased} set={(v: string) => s('mother_deceased', v)} accent={accent} c={colors} />
+              <Lbl text="Disability" c={colors} />
+              <Chips opts={YES_NO} val={form.disability} set={(v: string) => s('disability', v)} accent={accent} c={colors} />
               {form.disability === 'Yes' && (
-                <FormField label="Disability Details" value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} colors={colors} />
+                <><Lbl text="Specify Disability" c={colors} />
+                <TextInput style={inp} value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} placeholder="Type of disability" placeholderTextColor={colors.textMuted} /></>
               )}
             </Card>
 
             {/* Medical Assessment */}
             <Card title="Medical Assessment" accent={accent} colors={colors}>
-              <PickerField label="Immunization Status" value={form.immunization_status} options={IMMUN_STATUS} onSelect={(v: string) => s('immunization_status', v)} colors={colors} />
+              <Lbl text="Immunization Status" c={colors} />
+              <Chips opts={IMMUN_STATUS} val={form.immunization_status} set={(v: string) => s('immunization_status', v)} accent={accent} c={colors} />
               {form.immunization_status === 'Not Complete for Age' && (
-                <FormField label="Action Taken if Not Complete" value={form.immunization_action} onChangeText={(v: string) => s('immunization_action', v)} colors={colors} />
+                <><Lbl text="Action Taken if Not Complete" c={colors} />
+                <TextInput style={inp} value={form.immunization_action} onChangeText={(v: string) => s('immunization_action', v)} placeholder="Describe action taken" placeholderTextColor={colors.textMuted} /></>
               )}
-              <PickerField label="Appetite Test" value={form.appetite_test} options={APPETITE_SIMPLE} onSelect={(v: string) => s('appetite_test', v)} colors={colors} />
+              <Lbl text="Appetite Test" c={colors} />
+              <Chips opts={APPETITE_SIMPLE} val={form.appetite_test} set={(v: string) => s('appetite_test', v)} accent={accent} c={colors} />
             </Card>
 
             {/* Routine Medicines & Feeding */}
             <Card title="Routine Medicines & Feeding" accent={accent} colors={colors}>
+              <Text style={[styles.subHead, { color: colors.textPrimary }]}>Routine Medicines</Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 8 }}>Record date when each medicine is given</Text>
+              <Lbl text="Vitamin A (date)" c={colors} />
               <DatePickerField label="Vitamin A Date" value={form.vitamin_a_date} onChange={(v: string) => s('vitamin_a_date', v)} colors={colors} />
+              <Lbl text="Mebendazole (date)" c={colors} />
               <DatePickerField label="Mebendazole Date" value={form.mebendazole_date} onChange={(v: string) => s('mebendazole_date', v)} colors={colors} />
-              <DatePickerField label="Measles Vaccine Date" value={form.measles_vaccine_date} onChange={(v: string) => s('measles_vaccine_date', v)} colors={colors} />
-              <FormField label="Other Medicines" value={form.other_medicines} onChangeText={(v: string) => s('other_medicines', v)} multiline colors={colors} />
-              <FormField label="Additional Notes" value={form.additional_notes} onChangeText={(v: string) => s('additional_notes', v)} multiline colors={colors} />
+              <Lbl text="Measles Vaccination (date)" c={colors} />
+              <DatePickerField label="Measles Vaccination Date" value={form.measles_vaccine_date} onChange={(v: string) => s('measles_vaccine_date', v)} colors={colors} />
+              <Lbl text="Other Medicines" c={colors} />
+              <TextInput style={[inp, styles.textArea]} value={form.other_medicines} onChangeText={(v: string) => s('other_medicines', v)} multiline placeholder="Record any other medicines given" placeholderTextColor={colors.textMuted} textAlignVertical="top" />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <Text style={[styles.subHead, { color: colors.textPrimary }]}>Therapeutic Feeding / Counselling</Text>
+              <Lbl text="Food Product Type" c={colors} />
+              <Chips opts={FOOD_PROD} val={form.food_product_type} set={(v: string) => s('food_product_type', v)} accent={accent} c={colors} />
+              <Lbl text="Quantity" c={colors} />
+              <TextInput style={inp} value={form.food_product_quantity} onChangeText={(v: string) => s('food_product_quantity', v)} placeholder="e.g. 500g, 2 sachets" placeholderTextColor={colors.textMuted} />
+              <Lbl text="Counselling" c={colors} />
+              <TextInput style={inp} value={form.counselling} onChangeText={(v: string) => s('counselling', v)} placeholder="e.g. Feeding practices" placeholderTextColor={colors.textMuted} />
             </Card>
           </>
         )}
 
         {/* Medical History (SAM only) */}
         {isSAM && (
-          <Card title="Medical History" accent={accent} colors={colors}>
-            <PickerField label="Diarrhoea" value={form.diarrhoea} options={YES_NO} onSelect={(v: string) => { s('diarrhoea', v); if (v !== 'Yes') s('stool_frequency', ''); }} colors={colors} />
+          <Card title="3. Medical History" accent={accent} colors={colors}>
+            <Lbl text="Diarrhoea" c={colors} />
+            <Chips opts={YES_NO} val={form.diarrhoea} set={(v: string) => { s('diarrhoea', v); if (v !== 'Yes') s('stool_frequency', ''); }} accent={accent} c={colors} />
             {form.diarrhoea === 'Yes' && (
-              <PickerField label="Stool Frequency" value={form.stool_frequency} options={STOOL_FREQ} onSelect={(v: string) => s('stool_frequency', v)} colors={colors} />
+              <><Lbl text="Stool Frequency/Day" c={colors} />
+              <Chips opts={STOOL_FREQ} val={form.stool_frequency} set={(v: string) => s('stool_frequency', v)} accent={accent} c={colors} /></>
             )}
-            <PickerField label="Vomiting" value={form.vomiting} options={YES_NO} onSelect={(v: string) => s('vomiting', v)} colors={colors} />
-            <PickerField label="Cough" value={form.cough} options={YES_NO} onSelect={(v: string) => s('cough', v)} colors={colors} />
-            <PickerField label="Passing Urine" value={form.passing_urine} options={YES_NO} onSelect={(v: string) => s('passing_urine', v)} colors={colors} />
+            <Lbl text="Vomiting" c={colors} />
+            <Chips opts={YES_NO} val={form.vomiting} set={(v: string) => s('vomiting', v)} accent={accent} c={colors} />
+            <Lbl text="Cough" c={colors} />
+            <Chips opts={YES_NO} val={form.cough} set={(v: string) => s('cough', v)} accent={accent} c={colors} />
+            <Lbl text="Passing Urine" c={colors} />
+            <Chips opts={YES_NO} val={form.passing_urine} set={(v: string) => s('passing_urine', v)} accent={accent} c={colors} />
             {form.oedema && form.oedema !== 'None' && (
-              <FormField label="Oedema Duration (days)" value={form.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="numeric" colors={colors} />
+              <><Lbl text="Oedema Duration (days)" c={colors} />
+              <TextInput style={inp} value={form.oedema_duration_days} onChangeText={(v: string) => s('oedema_duration_days', v)} keyboardType="number-pad" placeholder="If oedema present" placeholderTextColor={colors.textMuted} /></>
             )}
-            <PickerField label="Breastfeeding Status" value={form.breastfeeding_status} options={YES_NO} onSelect={(v: string) => { s('breastfeeding_status', v); if (v !== 'Yes') s('breastfeeding_prospect', ''); }} colors={colors} />
+            <Lbl text="Appetite (RUTF Test)" c={colors} />
+            <Chips opts={APPETITE_SAM} val={form.appetite_test} set={(v: string) => s('appetite_test', v)} accent={accent} c={colors} />
+            <Lbl text="Breastfeeding Status" c={colors} />
+            <Chips opts={YES_NO} val={form.breastfeeding_status} set={(v: string) => { s('breastfeeding_status', v); if (v !== 'Yes') s('breastfeeding_prospect', ''); }} accent={accent} c={colors} />
             {form.breastfeeding_status === 'Yes' && (
-              <PickerField label="Breastfeeding Prospect" value={form.breastfeeding_prospect} options={BF_PROSPECT} onSelect={(v: string) => s('breastfeeding_prospect', v)} colors={colors} />
+              <><Lbl text="Prospect of Breastfeeding" c={colors} />
+              <Chips opts={BF_PROSPECT} val={form.breastfeeding_prospect} set={(v: string) => s('breastfeeding_prospect', v)} accent={accent} c={colors} /></>
             )}
             {parseInt(form.age_months || '0', 10) < 6 && (
               <>
-                <FormField label="Age in Weeks" value={form.age_weeks} onChangeText={(v: string) => s('age_weeks', v)} keyboardType="numeric" colors={colors} />
-                <PickerField label="Effective Suckling" value={form.effective_suckling} options={['Yes', 'Poor', 'No']} onSelect={(v: string) => s('effective_suckling', v)} colors={colors} />
-                <PickerField label="Relactation Needed" value={form.relactation_needed} options={YES_NO} onSelect={(v: string) => s('relactation_needed', v)} colors={colors} />
-                <PickerField label="Visible Severe Wasting" value={form.visible_severe_wasting} options={YES_NO} onSelect={(v: string) => s('visible_severe_wasting', v)} colors={colors} />
+                <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary, marginBottom: 8 }}>⚠️ Infant Under 6 Months Assessment</Text>
+                </View>
+                <Lbl text="Age in Weeks" c={colors} />
+                <TextInput style={inp} value={form.age_weeks} onChangeText={(v: string) => s('age_weeks', v)} keyboardType="number-pad" placeholder="Required for infants <6 months" placeholderTextColor={colors.textMuted} />
+                <Lbl text="Effective Suckling" c={colors} />
+                <Chips opts={['Yes', 'Poor', 'No']} val={form.effective_suckling} set={(v: string) => s('effective_suckling', v)} accent={accent} c={colors} />
+                <Lbl text="Relactation Needed" c={colors} />
+                <Chips opts={YES_NO} val={form.relactation_needed} set={(v: string) => s('relactation_needed', v)} accent={accent} c={colors} />
+                <Lbl text="Visible Severe Wasting" c={colors} />
+                <Chips opts={YES_NO} val={form.visible_severe_wasting} set={(v: string) => s('visible_severe_wasting', v)} accent={accent} c={colors} />
               </>
             )}
-            <PickerField label="Immunization Status" value={form.immunization_status} options={IMMUN_STATUS} onSelect={(v: string) => s('immunization_status', v)} colors={colors} />
+            <Lbl text="Immunization Status" c={colors} />
+            <Chips opts={IMMUN_STATUS} val={form.immunization_status} set={(v: string) => s('immunization_status', v)} accent={accent} c={colors} />
             {form.immunization_status === 'Not Complete for Age' && (
-              <FormField label="Action Taken if Not Complete" value={form.immunization_action} onChangeText={(v: string) => s('immunization_action', v)} colors={colors} />
+              <><Lbl text="Action Taken if Not Complete" c={colors} />
+              <TextInput style={inp} value={form.immunization_action} onChangeText={(v: string) => s('immunization_action', v)} placeholder="Describe action taken" placeholderTextColor={colors.textMuted} /></>
             )}
-            <PickerField label="G6PD Status" value={form.g6pd_status} options={G6PD_OPTS} onSelect={(v: string) => s('g6pd_status', v)} colors={colors} />
-            <FormField label="Additional Medical History" value={form.additional_medical_history} onChangeText={(v: string) => s('additional_medical_history', v)} multiline colors={colors} />
-          </Card>
-        )}
-
-        {/* Clinical Signs (SAM only) */}
-        {isSAM && (
-          <Card title="Clinical Signs (IPC Referral)" accent={accent} colors={colors}>
-            <PickerField label="Intractable Vomiting" value={form.intractable_vomiting} options={YES_NO} onSelect={(v: string) => s('intractable_vomiting', v)} colors={colors} />
-            <PickerField label="Convulsions" value={form.convulsions} options={YES_NO} onSelect={(v: string) => s('convulsions', v)} colors={colors} />
-            <PickerField label="Lethargic / Not Alert" value={form.lethargic_or_not_alert} options={YES_NO} onSelect={(v: string) => s('lethargic_or_not_alert', v)} colors={colors} />
-            <PickerField label="Unconscious" value={form.unconscious} options={YES_NO} onSelect={(v: string) => s('unconscious', v)} colors={colors} />
-            <PickerField label="Chest Indrawing" value={form.chest_indrawing} options={YES_NO} onSelect={(v: string) => s('chest_indrawing', v)} colors={colors} />
-            <PickerField label="Severe Dehydration" value={form.severe_dehydration} options={YES_NO} onSelect={(v: string) => s('severe_dehydration', v)} colors={colors} />
-            <PickerField label="Very Pale / Severe Palmar Pallor" value={form.very_pale_or_severe_palmar_pallor} options={YES_NO} onSelect={(v: string) => s('very_pale_or_severe_palmar_pallor', v)} colors={colors} />
+            <Lbl text="G6PD Status" c={colors} />
+            <Chips opts={G6PD_OPTS} val={form.g6pd_status} set={(v: string) => s('g6pd_status', v)} accent={accent} c={colors} />
+            <Lbl text="Additional Medical History" c={colors} />
+            <TextInput style={[inp, styles.textArea]} value={form.additional_medical_history} onChangeText={(v: string) => s('additional_medical_history', v)} multiline placeholder="Any relevant medical info..." placeholderTextColor={colors.textMuted} textAlignVertical="top" />
           </Card>
         )}
 
         {/* Physical Examination (SAM only) */}
         {isSAM && (
-          <Card title="Physical Examination" accent={accent} colors={colors}>
-            <PickerField label="Respiratory Rate" value={form.respiratory_rate} options={RESP_RATE} onSelect={(v: string) => s('respiratory_rate', v)} colors={colors} />
-            <FormField label="Temperature (°C)" value={form.temperature_celsius} onChangeText={(v: string) => s('temperature_celsius', v)} keyboardType="decimal-pad" colors={colors} />
-            <PickerField label="Eyes" value={form.eyes_condition} options={EYE_COND} onSelect={(v: string) => s('eyes_condition', v)} colors={colors} />
-            <PickerField label="Conjunctiva (Pallor)" value={form.conjunctiva} options={CONJ_OPTS} onSelect={(v: string) => s('conjunctiva', v)} colors={colors} />
-            <PickerField label="Ears" value={form.ears_condition} options={EAR_COND} onSelect={(v: string) => s('ears_condition', v)} colors={colors} />
-            <PickerField label="Mouth" value={form.mouth_condition} options={MOUTH_COND} onSelect={(v: string) => s('mouth_condition', v)} colors={colors} />
-            <PickerField label="Enlarged Lymph Nodes" value={form.lymph_nodes} options={LYMPH_OPTS} onSelect={(v: string) => s('lymph_nodes', v)} colors={colors} />
-            <PickerField label="Hands & Feet" value={form.hands_feet} options={HANDS_FEET} onSelect={(v: string) => s('hands_feet', v)} colors={colors} />
-            <PickerField label="Skin Changes" value={form.skin_changes} options={SKIN_OPTS} onSelect={(v: string) => s('skin_changes', v)} colors={colors} />
-            <PickerField label="Disability" value={form.disability} options={YES_NO} onSelect={(v: string) => s('disability', v)} colors={colors} />
+          <Card title="4. Physical Examination" accent={accent} colors={colors}>
+            <Lbl text="Respiratory Rate (/min)" c={colors} />
+            <Chips opts={RESP_RATE} val={form.respiratory_rate} set={(v: string) => s('respiratory_rate', v)} accent={accent} c={colors} />
+            <Lbl text="Temperature (°C)" c={colors} />
+            <TextInput style={inp} value={form.temperature_celsius} onChangeText={(v: string) => s('temperature_celsius', v)} keyboardType="decimal-pad" placeholder="e.g. 37.5" placeholderTextColor={colors.textMuted} />
+            <Lbl text="Chest Indrawing" c={colors} />
+            <Chips opts={YES_NO} val={form.chest_indrawing} set={(v: string) => s('chest_indrawing', v)} accent={accent} c={colors} />
+            <Lbl text="Intractable Vomiting" c={colors} />
+            <Chips opts={YES_NO} val={form.intractable_vomiting} set={(v: string) => s('intractable_vomiting', v)} accent={accent} c={colors} />
+            <Lbl text="Convulsions" c={colors} />
+            <Chips opts={YES_NO} val={form.convulsions} set={(v: string) => s('convulsions', v)} accent={accent} c={colors} />
+            <Lbl text="Lethargic / Not Alert" c={colors} />
+            <Chips opts={YES_NO} val={form.lethargic_or_not_alert} set={(v: string) => s('lethargic_or_not_alert', v)} accent={accent} c={colors} />
+            <Lbl text="Unconscious" c={colors} />
+            <Chips opts={YES_NO} val={form.unconscious} set={(v: string) => s('unconscious', v)} accent={accent} c={colors} />
+            <Lbl text="Severe Dehydration" c={colors} />
+            <Chips opts={YES_NO} val={form.severe_dehydration} set={(v: string) => s('severe_dehydration', v)} accent={accent} c={colors} />
+            <Lbl text="Very Pale / Severe Palmar Pallor" c={colors} />
+            <Chips opts={YES_NO} val={form.very_pale_or_severe_palmar_pallor} set={(v: string) => s('very_pale_or_severe_palmar_pallor', v)} accent={accent} c={colors} />
+            <Lbl text="Eyes" c={colors} />
+            <Chips opts={EYE_COND} val={form.eyes_condition} set={(v: string) => s('eyes_condition', v)} accent={accent} c={colors} />
+            <Lbl text="Conjunctiva (Pallor)" c={colors} />
+            <Chips opts={CONJ_OPTS} val={form.conjunctiva} set={(v: string) => s('conjunctiva', v)} accent={accent} c={colors} />
+            <Lbl text="Ears" c={colors} />
+            <Chips opts={EAR_COND} val={form.ears_condition} set={(v: string) => s('ears_condition', v)} accent={accent} c={colors} />
+            <Lbl text="Mouth" c={colors} />
+            <Chips opts={MOUTH_COND} val={form.mouth_condition} set={(v: string) => s('mouth_condition', v)} accent={accent} c={colors} />
+            <Lbl text="Enlarged Lymph Nodes" c={colors} />
+            <Chips opts={LYMPH_OPTS} val={form.lymph_nodes} set={(v: string) => s('lymph_nodes', v)} accent={accent} c={colors} />
+            <Lbl text="Hands & Feet" c={colors} />
+            <Chips opts={HANDS_FEET} val={form.hands_feet} set={(v: string) => s('hands_feet', v)} accent={accent} c={colors} />
+            <Lbl text="Skin Changes" c={colors} />
+            <Chips opts={SKIN_OPTS} val={form.skin_changes} set={(v: string) => s('skin_changes', v)} accent={accent} c={colors} />
+            <Lbl text="Disability" c={colors} />
+            <Chips opts={YES_NO} val={form.disability} set={(v: string) => s('disability', v)} accent={accent} c={colors} />
             {form.disability === 'Yes' && (
-              <FormField label="Disability Details" value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} colors={colors} />
+              <><Lbl text="Specify Disability" c={colors} />
+              <TextInput style={inp} value={form.disability_details} onChangeText={(v: string) => s('disability_details', v)} placeholder="Type of disability" placeholderTextColor={colors.textMuted} /></>
             )}
-            <FormField label="Physical Exam Notes" value={form.physical_exam_notes} onChangeText={(v: string) => s('physical_exam_notes', v)} multiline colors={colors} />
+            <Lbl text="Additional Notes" c={colors} />
+            <TextInput style={[inp, styles.textArea]} value={form.physical_exam_notes} onChangeText={(v: string) => s('physical_exam_notes', v)} multiline placeholder="Findings..." placeholderTextColor={colors.textMuted} textAlignVertical="top" />
           </Card>
         )}
 
         {/* Medicines at Enrollment (SAM only) */}
         {isSAM && (
-          <Card title="Medicines at Enrollment" accent={accent} colors={colors}>
-            <DatePickerField label="Amoxicillin Date" value={form.amoxicillin_date} onChange={(v: string) => s('amoxicillin_date', v)} colors={colors} />
-            <FormField label="Amoxicillin Dosage" value={form.amoxicillin_dosage} onChangeText={(v: string) => s('amoxicillin_dosage', v)} colors={colors} />
-            <DatePickerField label="Vitamin A Date" value={form.vitamin_a_date} onChange={(v: string) => s('vitamin_a_date', v)} colors={colors} />
-            <FormField label="Vitamin A Dosage" value={form.vitamin_a_dosage} onChangeText={(v: string) => s('vitamin_a_dosage', v)} colors={colors} />
-            <DatePickerField label="Folic Acid Date" value={form.folic_acid_date} onChange={(v: string) => s('folic_acid_date', v)} colors={colors} />
-            <FormField label="Folic Acid Dosage" value={form.folic_acid_dosage} onChangeText={(v: string) => s('folic_acid_dosage', v)} colors={colors} />
-            <DatePickerField label="Deworming Date" value={form.deworming_date} onChange={(v: string) => s('deworming_date', v)} colors={colors} />
-            <FormField label="Deworming Dosage" value={form.deworming_dosage} onChangeText={(v: string) => s('deworming_dosage', v)} colors={colors} />
-            <DatePickerField label="Measles Vaccine Date" value={form.measles_vaccine_date} onChange={(v: string) => s('measles_vaccine_date', v)} colors={colors} />
-            <FormField label="Measles Vaccine Dosage" value={form.measles_vaccine_dosage} onChangeText={(v: string) => s('measles_vaccine_dosage', v)} colors={colors} />
-            <DatePickerField label="Mebendazole Date" value={form.mebendazole_date} onChange={(v: string) => s('mebendazole_date', v)} colors={colors} />
+          <Card title="5. Routine Medicines at Enrolment" accent={accent} colors={colors}>
+            <MedRow label="Amoxicillin" dk="amoxicillin_date" dosK="amoxicillin_dosage" f={form} s={s} inp={inp} c={colors} />
+            <MedRow label="Vitamin A" dk="vitamin_a_date" dosK="vitamin_a_dosage" f={form} s={s} inp={inp} c={colors} />
+            <MedRow label="Folic Acid" dk="folic_acid_date" dosK="folic_acid_dosage" f={form} s={s} inp={inp} c={colors} />
+            <MedRow label="Albendazole/Mebendazole" dk="deworming_date" dosK="deworming_dosage" f={form} s={s} inp={inp} c={colors} />
+            <MedRow label="Measles Vaccine" dk="measles_vaccine_date" dosK="measles_vaccine_dosage" f={form} s={s} inp={inp} c={colors} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Lbl text="Malaria Test Date" c={colors} />
             <DatePickerField label="Malaria Test Date" value={form.malaria_test_date} onChange={(v: string) => s('malaria_test_date', v)} colors={colors} />
-            <PickerField label="Malaria Test Result" value={form.malaria_test_result} options={MALARIA_RES} onSelect={(v: string) => s('malaria_test_result', v)} colors={colors} />
-            <DatePickerField label="Antimalarial Date" value={form.antimalarial_date} onChange={(v: string) => s('antimalarial_date', v)} colors={colors} />
-            <FormField label="Antimalarial Dosage" value={form.antimalarial_dosage} onChangeText={(v: string) => s('antimalarial_dosage', v)} colors={colors} />
+            <Lbl text="Malaria Test Result" c={colors} />
+            <Chips opts={MALARIA_RES} val={form.malaria_test_result} set={(v: string) => s('malaria_test_result', v)} accent={accent} c={colors} />
+            {form.malaria_test_result === 'Positive' && (
+              <MedRow label="Antimalarial" dk="antimalarial_date" dosK="antimalarial_dosage" f={form} s={s} inp={inp} c={colors} />
+            )}
           </Card>
         )}
 
         {/* RUTF & Other Supplies (SAM only) */}
         {isSAM && (
-          <Card title="RUTF & Other Supplies" accent={accent} colors={colors}>
+          <Card title="6. RUTF Ration & 7. Other Medicines" accent={accent} colors={colors}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>RUTF Dosage Guide</Text>
+              <Lbl text="RUTF Sachets Given" c={colors} />
               <TouchableOpacity onPress={() => Alert.alert('RUTF Dosage Guide', RUTF_GUIDE.map(r => `${r.weight} kg → ${r.week}/week (${r.day}/day)`).join('\n'), [{ text: 'OK' }])} activeOpacity={0.7}>
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>📊 Show Guide</Text>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>📊 Guide</Text>
               </TouchableOpacity>
             </View>
-            <FormField label="Weight (kg) for RUTF Calc" value={form.weight_kg} onChangeText={(v: string) => { s('weight_kg', v); const w = parseFloat(v); const sachets = calcRutf(w); if (sachets) s('rutf_sachets_given', sachets.toString()); }} keyboardType="decimal-pad" colors={colors} />
             {form.weight_kg && calcRutf(parseFloat(form.weight_kg)) && (
-              <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 8 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
+              <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600', marginBottom: 6 }}>Suggested: {calcRutf(parseFloat(form.weight_kg))} sachets/week</Text>
             )}
-            <FormField label="RUTF Sachets Given" value={form.rutf_sachets_given} onChangeText={(v: string) => s('rutf_sachets_given', v)} keyboardType="numeric" colors={colors} />
-            <FormField label="RUTF Ration/day" value={form.rutf_ration_per_day} onChangeText={(v: string) => s('rutf_ration_per_day', v)} keyboardType="decimal-pad" colors={colors} />
+            <TextInput style={inp} value={form.rutf_sachets_given} onChangeText={(v: string) => s('rutf_sachets_given', v)} keyboardType="number-pad" placeholder="Number of sachets" placeholderTextColor={colors.textMuted} />
+            <Lbl text="RUTF Ration (sachets/day)" c={colors} />
+            <TextInput style={[inp, { backgroundColor: colors.background, color: colors.textMuted }]} value={form.rutf_ration_per_day} editable={false} placeholder="Auto-calculated from weight" placeholderTextColor={colors.textMuted} />
+            <Lbl text="Next Visit Date" c={colors} />
             <DatePickerField label="Next Visit Date" value={form.next_visit_date} onChange={(v: string) => s('next_visit_date', v)} colors={colors} />
-            <FormField label="Other Medicines" value={form.other_medicines} onChangeText={(v: string) => s('other_medicines', v)} multiline colors={colors} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.subHead, { color: colors.textPrimary }]}>Other Medicines</Text>
+            {[1,2,3].map((i: number) => (
+              <View key={i} style={{ marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <TextInput style={[inp, { flex: 2 }]} value={form[`other_drug_${i}`]} onChangeText={(v: string) => s(`other_drug_${i}`, v)} placeholder={`Drug ${i} name`} placeholderTextColor={colors.textMuted} />
+                  <TextInput style={[inp, { flex: 1 }]} value={form[`other_drug_${i}_dosage`]} onChangeText={(v: string) => s(`other_drug_${i}_dosage`, v)} placeholder="Dosage" placeholderTextColor={colors.textMuted} />
+                </View>
+                <DatePickerField label={`Drug ${i} Date`} value={form[`other_drug_${i}_date`]} onChange={(v: string) => s(`other_drug_${i}_date`, v)} colors={colors} />
+              </View>
+            ))}
           </Card>
         )}
 
-        {/* Other Medicines (SAM only) */}
+        {/* Additional Notes (SAM only) */}
         {isSAM && (
-          <Card title="Other Medicines" accent={accent} colors={colors}>
-            {[1,2,3].map((i) => (
-              <View key={i}>
-                <FormField label={`Drug ${i} Name`} value={form[`other_drug_${i}`]} onChangeText={(v: string) => s(`other_drug_${i}`, v)} colors={colors} />
-                <DatePickerField label={`Drug ${i} Date`} value={form[`other_drug_${i}_date`]} onChange={(v: string) => s(`other_drug_${i}_date`, v)} colors={colors} />
-                <FormField label={`Drug ${i} Dosage`} value={form[`other_drug_${i}_dosage`]} onChangeText={(v: string) => s(`other_drug_${i}_dosage`, v)} colors={colors} />
-              </View>
-            ))}
-            <FormField label="Additional Notes" value={form.additional_notes} onChangeText={(v: string) => s('additional_notes', v)} multiline colors={colors} />
+          <Card title="8. Additional Notes" accent={accent} colors={colors}>
+            <Lbl text="Comments / Additional Information" c={colors} />
+            <TextInput style={[inp, { minHeight: 120 }]} value={form.additional_notes} onChangeText={(v: string) => s('additional_notes', v)} multiline placeholder="Any additional information about the case..." placeholderTextColor={colors.textMuted} textAlignVertical="top" />
           </Card>
         )}
 
@@ -571,40 +637,120 @@ function Card({ title, accent, colors, children }: { title: string; accent: stri
   );
 }
 
-function FormField({ label, value, onChangeText, placeholder, keyboardType, multiline, colors }: any) {
+function Lbl({ text, c }: { text: string; c: any }) {
+  return <Text style={[styles.label, { color: c.textSecondary }]}>{text}</Text>;
+}
+
+function Chips({ opts, val, set, accent, c }: { opts: string[]; val: string; set: (v: string) => void; accent: string; c: any }) {
   return (
-    <View>
-      <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <TextInput
-        style={[styles.fieldInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }, multiline && styles.textArea]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder || ''}
-        placeholderTextColor={colors.textMuted}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        textAlignVertical={multiline ? 'top' : 'auto'}
-      />
+    <View style={styles.chipRow}>
+      {opts.map((o: string) => {
+        const on = val === o;
+        return (
+          <TouchableOpacity key={o} style={[styles.chip, { borderColor: c.border, backgroundColor: c.inputBg }, on && { backgroundColor: accent + '15', borderColor: accent }]}
+            onPress={() => set(o)} activeOpacity={0.7}>
+            <Text style={[styles.chipText, { color: c.textSecondary }, on && { color: accent, fontWeight: '700' }]}>{o}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
 
-function PickerField({ label, value, options, onSelect, colors }: { label: string; value: string; options: string[]; onSelect: (v: string) => void; colors: any }) {
+function FacilityPicker({ facilities, value, onChange, colors }: { facilities: Facility[]; value: string; onChange: (v: string) => void; colors: any }) {
+  const [visible, setVisible] = useState(false);
+  const [search, setSearch] = useState('');
+  const sel = facilities.find((fc: Facility) => String(fc.id) === value);
+  const filtered = search.trim()
+    ? facilities.filter((fc: Facility) => fc.name.toLowerCase().includes(search.toLowerCase()) || (fc.code || '').toLowerCase().includes(search.toLowerCase()))
+    : facilities;
   return (
-    <View>
-      <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <View style={styles.chipRow}>
-        {options.map((opt) => {
-          const on = value === opt;
-          return (
-            <TouchableOpacity key={opt} style={[styles.chip, { borderColor: colors.border, backgroundColor: colors.inputBg }, on && { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
-              onPress={() => onSelect(opt)} activeOpacity={0.7}>
-              <Text style={[styles.chipText, { color: colors.textSecondary }, on && { color: colors.primary, fontWeight: '700' }]}>{opt}</Text>
-            </TouchableOpacity>
-          );
-        })}
+    <>
+      <TouchableOpacity
+        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.inputBg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+        onPress={() => { setSearch(''); setVisible(true); }} activeOpacity={0.7}>
+        <Text style={{ color: sel ? colors.textPrimary : colors.textMuted, fontSize: 14, flex: 1 }}>{sel ? sel.name : 'Select Facility'}</Text>
+        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+      </TouchableOpacity>
+      <Modal visible={visible} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%', paddingBottom: 30 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary }}>Select Facility</Text>
+              <TouchableOpacity onPress={() => setVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.inputBg, borderWidth: 1, borderColor: colors.border }}>
+              <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+              <TextInput
+                style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: colors.textPrimary }}
+                placeholder="Search facilities..." placeholderTextColor={colors.textMuted}
+                value={search} onChangeText={setSearch} autoCapitalize="none"
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={filtered}
+              keyExtractor={(item: Facility) => String(item.id)}
+              renderItem={({ item }: { item: Facility }) => (
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                  onPress={() => { onChange(String(item.id)); setVisible(false); }}
+                >
+                  <Ionicons name={String(item.id) === value ? 'radio-button-on' : 'radio-button-off'} size={18} color={String(item.id) === value ? colors.primary : colors.textMuted} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '500', color: String(item.id) === value ? colors.primary : colors.textPrimary }}>{item.name}</Text>
+                    {item.code ? <Text style={{ fontSize: 12, color: colors.textMuted }}>{item.code}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20, color: colors.textMuted }}>No facilities found</Text>}
+            />
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+function MedRow({ label, dk, dosK, f, s, inp, c }: { label: string; dk: string; dosK: string; f: Record<string, string>; s: (k: string, v: string) => void; inp: any; c: any }) {
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: c.textPrimary, marginBottom: 6 }}>{label}</Text>
+      <DatePickerField label={label} value={f[dk]} onChange={(v: string) => s(dk, v)} colors={c} />
+      <View style={{ marginTop: 6 }}>
+        <TextInput style={[inp]} value={f[dosK]} onChangeText={(v: string) => s(dosK, v)} placeholder="Dosage" placeholderTextColor={c.textMuted} />
       </View>
     </View>
+  );
+}
+
+function PhotoPicker({ photoUri, onPick, colors }: { photoUri: string | null; onPick: (uri: string | null) => void; colors: any }) {
+  const pick = async (src: 'camera' | 'library') => {
+    const fn = src === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+    const r = await fn({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    if (!r.canceled && r.assets[0]) onPick(r.assets[0].uri);
+  };
+  return (
+    <TouchableOpacity style={[styles.photoBox, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
+      onPress={() => Alert.alert('Add Photo', 'Choose a source', [
+        { text: 'Camera', onPress: () => pick('camera') },
+        { text: 'Photo Library', onPress: () => pick('library') },
+        ...(photoUri ? [{ text: 'Remove', style: 'destructive' as const, onPress: () => onPick(null) }] : []),
+        { text: 'Cancel', style: 'cancel' as const },
+      ])} activeOpacity={0.7}>
+      {photoUri ? <Image source={{ uri: photoUri }} style={{ width: '100%', height: '100%' }} /> : (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 4 }}>
+          <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
+          <Text style={{ fontSize: 10, color: colors.textMuted, fontWeight: '600' }}>Tap to add photo</Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -617,15 +763,15 @@ const styles = StyleSheet.create({
   formCard: { marginHorizontal: 12, marginTop: 12, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
   cardHeader: { borderLeftWidth: 4, paddingLeft: 10, marginBottom: 12 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
-  card: { marginHorizontal: 12, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', marginTop: 14, marginBottom: 6 },
-  fieldInput: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
+  label: { fontSize: 13, fontWeight: '600', marginTop: 14, marginBottom: 6 },
+  input: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   textArea: { minHeight: 80, paddingTop: 12 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1.5 },
   chipText: { fontSize: 12, fontWeight: '500' },
-  pickerBtnText: { fontSize: 15, fontWeight: '500' },
   photoBox: { width: 110, height: 110, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed', overflow: 'hidden', marginTop: 4, marginBottom: 16 },
+  divider: { height: 1, marginVertical: 16 },
+  subHead: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 24, paddingVertical: 16, borderRadius: 14, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

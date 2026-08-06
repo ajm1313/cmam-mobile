@@ -10,6 +10,7 @@ interface DatePickerFieldProps {
   value: string; // YYYY-MM-DD
   onChange: (date: string) => void;
   colors: any;
+  accent?: string;
   maxDate?: string; // YYYY-MM-DD
   minDate?: string; // YYYY-MM-DD
 }
