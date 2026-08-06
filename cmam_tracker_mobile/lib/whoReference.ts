@@ -254,21 +254,60 @@ export function hfaCategory(z: number | null): string {
 }
 
 // ── Plot-position-based Z-score category detection ──
-// Uses the same chart calibration constants as AnthroGrowthCharts to determine
-// which Z-score band the measurement's plot position falls into on the chart image.
+// Uses multi-point calibration with linear regression for accurate mapping
+// of measurement values to chart pixel positions.
 
-interface CalSet {
-  xMin: number; xMax: number;
-  yMin: number; yMax: number;
-  pxLeft: number; pxRight: number;
-  pyTop: number; pyBottom: number;
+interface CalPoint { val: number; pct: number }
+interface CalRef {
+  x: CalPoint[];
+  y: CalPoint[];
 }
 
-const CAL: Record<string, CalSet> = {
-  wfh: { xMin: 45, xMax: 120, yMin: 2, yMax: 34, pxLeft: 8.05, pxRight: 91.50, pyTop: 9.80, pyBottom: 82.80 },
-  wfa: { xMin: 0, xMax: 60, yMin: 0, yMax: 30, pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0 },
-  hfa: { xMin: 0, xMax: 60, yMin: 45, yMax: 120, pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0 },
+const CAL_REF: Record<string, CalRef> = {
+  wfh: {
+    x: [{val:45, pct:8.05}, {val:120, pct:91.50}],
+    y: [{val:2, pct:82.80}, {val:34, pct:9.80}],
+  },
+  wfa: {
+    x: [{val:0, pct:10.5}, {val:60, pct:91.0}],
+    y: [{val:0, pct:85.0}, {val:30, pct:7.0}],
+  },
+  hfa: {
+    x: [{val:0, pct:10.5}, {val:60, pct:91.0}],
+    y: [{val:45, pct:85.0}, {val:120, pct:7.0}],
+  },
 };
+
+interface LinearFit { a: number; b: number }
+
+function linearFit(points: CalPoint[]): LinearFit {
+  const n = points.length;
+  if (n === 0) return { a: 0, b: 0 };
+  if (n === 1) return { a: 0, b: points[0].pct };
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += points[i].val;
+    sumY += points[i].pct;
+    sumXY += points[i].val * points[i].pct;
+    sumXX += points[i].val * points[i].val;
+  }
+  const denom = n * sumXX - sumX * sumX;
+  if (Math.abs(denom) < 1e-12) return { a: 0, b: sumY / n };
+  const a = (n * sumXY - sumX * sumY) / denom;
+  const b = (sumY - a * sumX) / n;
+  return { a, b };
+}
+
+const CAL_FIT: Record<string, { x: LinearFit; y: LinearFit }> = {};
+function getFit(type: string): { x: LinearFit; y: LinearFit } {
+  if (!CAL_FIT[type]) {
+    CAL_FIT[type] = {
+      x: linearFit(CAL_REF[type].x),
+      y: linearFit(CAL_REF[type].y),
+    };
+  }
+  return CAL_FIT[type];
+}
 
 // Inverse LMS: given z, compute the measurement value at that Z-score line
 function lmsInv(z: number, l: number, m: number, s: number): number {
@@ -278,8 +317,8 @@ function lmsInv(z: number, l: number, m: number, s: number): number {
 
 // Convert a y-value to percentage Y position on the chart image
 function yPct(type: string, yVal: number): number {
-  const c = CAL[type];
-  return c.pyBottom - (yVal - c.yMin) / (c.yMax - c.yMin) * (c.pyBottom - c.pyTop);
+  const fit = getFit(type);
+  return fit.y.a * yVal + fit.y.b;
 }
 
 function getLMSForChart(type: string, xVal: number, gender: string): LMS | null {

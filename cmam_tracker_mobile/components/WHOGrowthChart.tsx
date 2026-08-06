@@ -25,17 +25,40 @@ interface WHOGrowthChartProps {
   typeColor: string;
 }
 
-// Calibration: maps data coords to percentage positions on the WHO image
-const CAL = {
-  xMin: 45, xMax: 120,
-  yMin: 2, yMax: 34,
-  pxLeft: 8.05, pxRight: 91.50,
-  pyTop: 9.80, pyBottom: 82.80,
+// Multi-point calibration: maps data coords to percentage positions on the WHO image
+// Uses linear regression (least-squares) from reference points for better accuracy.
+interface CalPoint { val: number; pct: number }
+
+const CAL_REF = {
+  x: [{val:45, pct:8.05}, {val:120, pct:91.50}] as CalPoint[],
+  y: [{val:2, pct:82.80}, {val:34, pct:9.80}] as CalPoint[],
 };
 
+interface LinearFit { a: number; b: number }
+
+function linearFit(points: CalPoint[]): LinearFit {
+  const n = points.length;
+  if (n === 0) return { a: 0, b: 0 };
+  if (n === 1) return { a: 0, b: points[0].pct };
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += points[i].val;
+    sumY += points[i].pct;
+    sumXY += points[i].val * points[i].pct;
+    sumXX += points[i].val * points[i].val;
+  }
+  const denom = n * sumXX - sumX * sumX;
+  if (Math.abs(denom) < 1e-12) return { a: 0, b: sumY / n };
+  const a = (n * sumXY - sumX * sumY) / denom;
+  const b = (sumY - a * sumX) / n;
+  return { a, b };
+}
+
+const FIT = { x: linearFit(CAL_REF.x), y: linearFit(CAL_REF.y) };
+
 function dataToPercent(heightCm: number, weightKg: number) {
-  const xPct = CAL.pxLeft + (heightCm - CAL.xMin) / (CAL.xMax - CAL.xMin) * (CAL.pxRight - CAL.pxLeft);
-  const yPct = CAL.pyBottom - (weightKg - CAL.yMin) / (CAL.yMax - CAL.yMin) * (CAL.pyBottom - CAL.pyTop);
+  const xPct = FIT.x.a * heightCm + FIT.x.b;
+  const yPct = FIT.y.a * weightKg + FIT.y.b;
   return { x: Math.max(0, Math.min(100, xPct)), y: Math.max(0, Math.min(100, yPct)) };
 }
 

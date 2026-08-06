@@ -15,31 +15,57 @@ interface AnthroGrowthChartsProps {
   colors: any;
 }
 
-// Calibration per chart type: maps data coords to percentage positions on the WHO image
-interface CalSet {
-  xMin: number; xMax: number;
-  yMin: number; yMax: number;
-  pxLeft: number; pxRight: number;
-  pyTop: number; pyBottom: number;
-}
+// Multi-point calibration: maps data coords to percentage positions on the WHO image
+// Uses linear regression (least-squares) from reference points for better accuracy.
+// Add more reference points to improve calibration. Use the /calibrate/ webapp tool to derive values.
+interface CalPoint { val: number; pct: number }
+interface CalRef { x: CalPoint[]; y: CalPoint[] }
 
-const CAL: Record<ChartType, CalSet> = {
-  // Weight-for-Height: X=height 45-120cm, Y=weight 2-34kg
+const CAL_REF: Record<ChartType, CalRef> = {
   wfh: {
-    xMin: 45, xMax: 120, yMin: 2, yMax: 34,
-    pxLeft: 8.05, pxRight: 91.50, pyTop: 9.80, pyBottom: 82.80,
+    x: [{val:45, pct:8.05}, {val:120, pct:91.50}],
+    y: [{val:2, pct:82.80}, {val:34, pct:9.80}],
   },
-  // Weight-for-Age (0-5): X=age 0-60mo, Y=weight 0-30kg
   wfa: {
-    xMin: 0, xMax: 60, yMin: 0, yMax: 30,
-    pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0,
+    x: [{val:0, pct:10.5}, {val:60, pct:91.0}],
+    y: [{val:0, pct:85.0}, {val:30, pct:7.0}],
   },
-  // Height-for-Age (0-5): X=age 0-60mo, Y=height 45-120cm
   hfa: {
-    xMin: 0, xMax: 60, yMin: 45, yMax: 120,
-    pxLeft: 10.5, pxRight: 91.0, pyTop: 7.0, pyBottom: 85.0,
+    x: [{val:0, pct:10.5}, {val:60, pct:91.0}],
+    y: [{val:45, pct:85.0}, {val:120, pct:7.0}],
   },
 };
+
+interface LinearFit { a: number; b: number }
+
+function linearFit(points: CalPoint[]): LinearFit {
+  const n = points.length;
+  if (n === 0) return { a: 0, b: 0 };
+  if (n === 1) return { a: 0, b: points[0].pct };
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += points[i].val;
+    sumY += points[i].pct;
+    sumXY += points[i].val * points[i].pct;
+    sumXX += points[i].val * points[i].val;
+  }
+  const denom = n * sumXX - sumX * sumX;
+  if (Math.abs(denom) < 1e-12) return { a: 0, b: sumY / n };
+  const a = (n * sumXY - sumX * sumY) / denom;
+  const b = (sumY - a * sumX) / n;
+  return { a, b };
+}
+
+const CAL_FIT: Record<string, { x: LinearFit; y: LinearFit }> = {};
+function getFit(type: ChartType): { x: LinearFit; y: LinearFit } {
+  if (!CAL_FIT[type]) {
+    CAL_FIT[type] = {
+      x: linearFit(CAL_REF[type].x),
+      y: linearFit(CAL_REF[type].y),
+    };
+  }
+  return CAL_FIT[type];
+}
 
 const CHART_META: Record<ChartType, { title: string; shortLabel: string; xLabel: string; yLabel: string }> = {
   wfh: { title: 'Weight-for-Height', shortLabel: 'WFH', xLabel: 'Height', yLabel: 'Weight' },
@@ -65,9 +91,9 @@ function getChartImage(type: ChartType, isBoy: boolean) {
 }
 
 function dataToPercent(type: ChartType, xVal: number, yVal: number) {
-  const c = CAL[type];
-  const xPct = c.pxLeft + (xVal - c.xMin) / (c.xMax - c.xMin) * (c.pxRight - c.pxLeft);
-  const yPct = c.pyBottom - (yVal - c.yMin) / (c.yMax - c.yMin) * (c.pyBottom - c.pyTop);
+  const fit = getFit(type);
+  const xPct = fit.x.a * xVal + fit.x.b;
+  const yPct = fit.y.a * yVal + fit.y.b;
   return { x: Math.max(0, Math.min(100, xPct)), y: Math.max(0, Math.min(100, yPct)) };
 }
 
