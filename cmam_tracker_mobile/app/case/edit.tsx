@@ -24,7 +24,7 @@ const OEDEMA_OPTS = ['None', '+', '++', '+++'];
 const ADMISSION_CRITERIA = ['MUAC < 11.5cm', 'WFH < -3SD', 'Bilateral oedema', 'MUAC < 11.0cm infant', 'WFA < -3SD infant'];
 const ADMISSION_TYPES = ['New Admission', 'Readmission', 'Transfer In'];
 const WFH_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 to +2 SD', '> +2 SD'];
-const WFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 SD'];
+const WFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +2 SD', '> +2 SD'];
 const HFA_Z = ['< -3 SD', '-3 to < -2 SD', '-2 to +3 SD', '> +3 SD'];
 const STOOL_FREQ = ['1-3', '4-5', '>5'];
 const APPETITE_SAM = ['Pass', 'Fail'];
@@ -278,8 +278,8 @@ export default function CaseEditScreen() {
 
         {/* Child Information */}
         <Card title="Child Information" accent={accent} colors={colors}>
-          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Facility</Text>
-          <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg }]} onPress={() => {
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Facility</Text>
+          <TouchableOpacity style={[styles.fieldInput, { borderColor: colors.border, backgroundColor: colors.inputBg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]} onPress={() => {
             const opts = filteredFacilities.map(fac => `${fac.id}:${fac.name}`);
             Alert.alert('Select Facility', undefined, [
               ...filteredFacilities.map(fac => ({ text: fac.name, onPress: () => s('facility_id', String(fac.id)) })),
@@ -293,7 +293,7 @@ export default function CaseEditScreen() {
           </TouchableOpacity>
           <FormField label="Registration Number" value={form.registration_number} onChangeText={(_v: string) => {}} colors={colors} placeholder="Auto-generated" />
           <DatePickerField label="Admission Date" value={form.admission_date} onChange={(v: string) => s('admission_date', v)} colors={colors} />
-          <Text style={[styles.fieldLabel, { color: colors.textMuted, marginTop: 8 }]}>Child Photo</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Child Photo</Text>
           <TouchableOpacity style={[styles.photoBox, { borderColor: colors.border, backgroundColor: colors.inputBg }]}
             onPress={() => Alert.alert('Child Photo', 'Choose', [
               { text: 'Camera', onPress: async () => { const r = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 }); if (!r.canceled && r.assets[0]) { setChildPhotoUri(r.assets[0].uri); setChildPhotoChanged(true); } } },
@@ -573,40 +573,37 @@ function Card({ title, accent, colors, children }: { title: string; accent: stri
 
 function FormField({ label, value, onChangeText, placeholder, keyboardType, multiline, colors }: any) {
   return (
-    <View style={[styles.fieldWrap, { borderBottomColor: colors.border }]}>
-      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
+    <View>
+      <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
       <TextInput
-        style={[styles.fieldInput, { color: colors.textPrimary, backgroundColor: colors.inputBg }, multiline && { height: 80, textAlignVertical: 'top' }]}
+        style={[styles.fieldInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }, multiline && styles.textArea]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder || ''}
         placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType}
         multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'auto'}
       />
     </View>
   );
 }
 
 function PickerField({ label, value, options, onSelect, colors }: { label: string; value: string; options: string[]; onSelect: (v: string) => void; colors: any }) {
-  const [open, setOpen] = useState(false);
   return (
-    <View style={[styles.fieldWrap, { borderBottomColor: colors.border }]}>
-      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
-      <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: colors.inputBg }]} onPress={() => setOpen(!open)}>
-        <Text style={[styles.pickerBtnText, { color: value ? colors.textPrimary : colors.textMuted }]}>{value || 'Select...'}</Text>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
-      </TouchableOpacity>
-      {open && (
-        <View style={[styles.optionsList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {options.map((opt) => (
-            <TouchableOpacity key={opt} style={[styles.optionItem, value === opt && { backgroundColor: colors.primary + '15' }]} onPress={() => { onSelect(opt); setOpen(false); }}>
-              <Text style={[styles.optionText, { color: value === opt ? colors.primary : colors.textPrimary }]}>{opt}</Text>
-              {value === opt && <Ionicons name="checkmark" size={16} color={colors.primary} />}
+    <View>
+      <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <View style={styles.chipRow}>
+        {options.map((opt) => {
+          const on = value === opt;
+          return (
+            <TouchableOpacity key={opt} style={[styles.chip, { borderColor: colors.border, backgroundColor: colors.inputBg }, on && { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
+              onPress={() => onSelect(opt)} activeOpacity={0.7}>
+              <Text style={[styles.chipText, { color: colors.textSecondary }, on && { color: colors.primary, fontWeight: '700' }]}>{opt}</Text>
             </TouchableOpacity>
-          ))}
-        </View>
-      )}
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -621,15 +618,14 @@ const styles = StyleSheet.create({
   cardHeader: { borderLeftWidth: 4, paddingLeft: 10, marginBottom: 12 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
   card: { marginHorizontal: 12, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  fieldWrap: { marginBottom: 16, borderBottomWidth: 0 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldInput: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontWeight: '500' },
-  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginTop: 14, marginBottom: 6 },
+  fieldInput: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
+  textArea: { minHeight: 80, paddingTop: 12 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1.5 },
+  chipText: { fontSize: 12, fontWeight: '500' },
   pickerBtnText: { fontSize: 15, fontWeight: '500' },
   photoBox: { width: 110, height: 110, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed', overflow: 'hidden', marginTop: 4, marginBottom: 16 },
-  optionsList: { borderRadius: 10, borderWidth: 1, marginTop: 4, overflow: 'hidden' },
-  optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 11 },
-  optionText: { fontSize: 14, fontWeight: '500' },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 24, paddingVertical: 16, borderRadius: 14, shadowColor: '#1e3a8a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

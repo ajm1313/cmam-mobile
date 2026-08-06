@@ -241,8 +241,8 @@ export function wfaCategory(z: number | null): string {
   if (z === null) return '';
   if (z < -3) return '< -3 SD';
   if (z < -2) return '-3 to < -2 SD';
-  if (z <= 1) return '-2 to +1 SD';
-  return '> +1 SD';
+  if (z <= 2) return '-2 to +2 SD';
+  return '> +2 SD';
 }
 
 export function hfaCategory(z: number | null): string {
@@ -761,8 +761,8 @@ export function bandFromPlot(type: string, xVal: number, yVal: number, gender: s
   if (type === 'wfa') {
     if (actualY > lineY[0]) return '< -3 SD';
     if (actualY > lineY[1]) return '-3 to < -2 SD';
-    if (actualY >= lineY[4]) return '-2 to +1 SD';
-    return '> +1 SD';
+    if (actualY >= lineY[5]) return '-2 to +2 SD';
+    return '> +2 SD';
   }
   if (type === 'hfa') {
     if (actualY > lineY[0]) return '< -3 SD';
