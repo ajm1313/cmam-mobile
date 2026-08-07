@@ -192,7 +192,7 @@ export default function CaseRegisterScreen() {
   const onTypeChange = (t: CaseType) => { setCaseType(t); setStepIdx(0); s('malnutrition_type', t); };
 
   // ponytail: Check automation rules including infant-specific IPC criteria
-  const checkAutomation = () => {
+  const checkAutomation = useCallback(() => {
     if (caseType !== 'SAM') return;
     
     const ageMonths = parseInt(f.age_months, 10) || 0;
@@ -257,7 +257,14 @@ export default function CaseRegisterScreen() {
     }
     
     setAutomationAlert(result.needsAction ? result : null);
-  };
+  }, [caseType, f.age_months, f.weight_kg, f.oedema, f.appetite_test, f.temperature_celsius,
+    f.respiratory_rate, f.intractable_vomiting_sign, f.convulsions, f.lethargic_or_not_alert,
+    f.unconscious, f.chest_indrawing, f.severe_dehydration, f.very_pale_or_severe_palmar_pallor,
+    f.breastfeeding_prospect, f.effective_suckling, f.relactation_needed, f.visible_severe_wasting,
+    f.breastfeeding_status]);
+
+  // Run automation check whenever relevant fields change (fixes stale state bug)
+  useEffect(() => { checkAutomation(); }, [checkAutomation]);
 
   const getLocation = async () => {
     try {
@@ -641,7 +648,6 @@ export default function CaseRegisterScreen() {
                 const zs = autoZScores(v, f.height_cm, f.age_months, f.child_gender);
                 if (zs.wfh) s('z_score_wfh', zs.wfh);
                 if (zs.wfa) s('z_score_wfa', zs.wfa);
-                checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 7.5" placeholderTextColor={colors.textMuted} />
               <Lbl text="Length/Height (cm) *" c={colors} />
               <TextInput style={inp} value={f.height_cm} onChangeText={(v: string) => {
@@ -653,7 +659,7 @@ export default function CaseRegisterScreen() {
               <Lbl text="MUAC (cm) *" c={colors} />
               <TextInput style={inp} value={f.muac_cm} onChangeText={(v: string) => s('muac_cm', v)} keyboardType="decimal-pad" placeholder="< 11.5 cm for SAM" placeholderTextColor={colors.textMuted} />
               <Lbl text="Bilateral Oedema" c={colors} />
-              <Chips opts={OEDEMA_OPTS} val={f.oedema} set={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={OEDEMA_OPTS} val={f.oedema} set={(v: string) => { s('oedema', v); if (v === 'None') s('oedema_duration_days', ''); }} accent={accent} c={colors} />
 
               {/* WHO Growth Charts — gender-specific, clickable for zoom */}
               {f.child_gender && (parseFloat(f.weight_kg) > 0 || parseFloat(f.height_cm) > 0) && (
@@ -702,12 +708,12 @@ export default function CaseRegisterScreen() {
                 </>
               )}
               <Lbl text="Appetite (RUTF Test)" c={colors} />
-              <Chips opts={APPETITE_SAM} val={f.appetite_test} set={(v: string) => { s('appetite_test', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={APPETITE_SAM} val={f.appetite_test} set={(v: string) => s('appetite_test', v)} accent={accent} c={colors} />
               <Lbl text="Breastfeeding Status" c={colors} />
               <Chips opts={YES_NO} val={f.breastfeeding_status} set={(v: string) => s('breastfeeding_status', v)} accent={accent} c={colors} />
               {f.breastfeeding_status === 'Yes' && (
                 <><Lbl text="Prospect of Breastfeeding" c={colors} />
-                <Chips opts={BF_PROSPECT} val={f.breastfeeding_prospect} set={(v: string) => { s('breastfeeding_prospect', v); checkAutomation(); }} accent={accent} c={colors} /></>
+                <Chips opts={BF_PROSPECT} val={f.breastfeeding_prospect} set={(v: string) => s('breastfeeding_prospect', v)} accent={accent} c={colors} /></>
               )}
               
               {/* INFANT UNDER 6 MONTHS SPECIFIC FIELDS */}
@@ -719,11 +725,11 @@ export default function CaseRegisterScreen() {
                   <Lbl text="Age in Weeks" c={colors} />
                   <TextInput style={inp} value={f.age_weeks} onChangeText={(v: string) => s('age_weeks', v)} keyboardType="number-pad" placeholder="Required for infants <6 months" placeholderTextColor={colors.textMuted} />
                   <Lbl text="Effective Suckling" c={colors} />
-                  <Chips opts={['Yes', 'Poor', 'No']} val={f.effective_suckling} set={(v: string) => { s('effective_suckling', v); checkAutomation(); }} accent={accent} c={colors} />
+                  <Chips opts={['Yes', 'Poor', 'No']} val={f.effective_suckling} set={(v: string) => s('effective_suckling', v)} accent={accent} c={colors} />
                   <Lbl text="Relactation Needed" c={colors} />
-                  <Chips opts={YES_NO} val={f.relactation_needed} set={(v: string) => { s('relactation_needed', v); checkAutomation(); }} accent={accent} c={colors} />
+                  <Chips opts={YES_NO} val={f.relactation_needed} set={(v: string) => s('relactation_needed', v)} accent={accent} c={colors} />
                   <Lbl text="Visible Severe Wasting" c={colors} />
-                  <Chips opts={YES_NO} val={f.visible_severe_wasting} set={(v: string) => { s('visible_severe_wasting', v); checkAutomation(); }} accent={accent} c={colors} />
+                  <Chips opts={YES_NO} val={f.visible_severe_wasting} set={(v: string) => s('visible_severe_wasting', v)} accent={accent} c={colors} />
                 </>
               )}
               
@@ -743,19 +749,19 @@ export default function CaseRegisterScreen() {
               <Lbl text="Temperature (°C)" c={colors} />
               <TextInput style={inp} value={f.temperature_celsius} onChangeText={(v: string) => s('temperature_celsius', v)} keyboardType="decimal-pad" placeholder="e.g. 37.5" placeholderTextColor={colors.textMuted} />
               <Lbl text="Chest Indrawing" c={colors} />
-              <Chips opts={YES_NO} val={f.chest_indrawing} set={(v: string) => { s('chest_indrawing', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.chest_indrawing} set={(v: string) => s('chest_indrawing', v)} accent={accent} c={colors} />
               <Lbl text="Intractable Vomiting" c={colors} />
-              <Chips opts={YES_NO} val={f.intractable_vomiting_sign} set={(v: string) => { s('intractable_vomiting_sign', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.intractable_vomiting_sign} set={(v: string) => s('intractable_vomiting_sign', v)} accent={accent} c={colors} />
               <Lbl text="Convulsions" c={colors} />
-              <Chips opts={YES_NO} val={f.convulsions} set={(v: string) => { s('convulsions', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.convulsions} set={(v: string) => s('convulsions', v)} accent={accent} c={colors} />
               <Lbl text="Lethargic / Not Alert" c={colors} />
-              <Chips opts={YES_NO} val={f.lethargic_or_not_alert} set={(v: string) => { s('lethargic_or_not_alert', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.lethargic_or_not_alert} set={(v: string) => s('lethargic_or_not_alert', v)} accent={accent} c={colors} />
               <Lbl text="Unconscious" c={colors} />
-              <Chips opts={YES_NO} val={f.unconscious} set={(v: string) => { s('unconscious', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.unconscious} set={(v: string) => s('unconscious', v)} accent={accent} c={colors} />
               <Lbl text="Severe Dehydration" c={colors} />
-              <Chips opts={YES_NO} val={f.severe_dehydration} set={(v: string) => { s('severe_dehydration', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.severe_dehydration} set={(v: string) => s('severe_dehydration', v)} accent={accent} c={colors} />
               <Lbl text="Very Pale / Severe Palmar Pallor" c={colors} />
-              <Chips opts={YES_NO} val={f.very_pale_or_severe_palmar_pallor} set={(v: string) => { s('very_pale_or_severe_palmar_pallor', v); checkAutomation(); }} accent={accent} c={colors} />
+              <Chips opts={YES_NO} val={f.very_pale_or_severe_palmar_pallor} set={(v: string) => s('very_pale_or_severe_palmar_pallor', v)} accent={accent} c={colors} />
               <Lbl text="Eyes" c={colors} />
               <Chips opts={EYE_COND} val={f.eyes_condition} set={(v: string) => s('eyes_condition', v)} accent={accent} c={colors} />
               <Lbl text="Conjunctiva (Pallor)" c={colors} />
