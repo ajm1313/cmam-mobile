@@ -15,6 +15,7 @@ import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
 import AnthroGrowthCharts from '../../components/AnthroGrowthCharts';
 import { autoZScoresFromPlot } from '../../lib/whoReference';
+import { checkIpcReferral, getAlertColors, type AutomationResult } from '../../lib/samOpcAutomation';
 import type { Facility } from '../../lib/types';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
@@ -86,6 +87,7 @@ export default function CaseEditScreen() {
   const [childPhotoUri, setChildPhotoUri] = useState<string | null>(null);
   const [childPhotoChanged, setChildPhotoChanged] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
+  const [automationAlert, setAutomationAlert] = useState<AutomationResult | null>(null);
   const [form, setForm] = useState<Record<string, string>>({
     facility_id: '', admission_date: '', registration_number: '', malnutrition_type: '',
     child_name: '', child_gender: '', date_of_birth: '', age_months: '',
@@ -139,6 +141,75 @@ export default function CaseEditScreen() {
   const s = useCallback((k: string, v: string) => setForm((p) => ({ ...p, [k]: v })), []);
 
   useEffect(() => { api.get('/v1/facilities/').then((r: any) => setFacilities(r.data.data ?? [])).catch(() => {}); }, []);
+
+  const checkAutomation = useCallback(() => {
+    if (form.malnutrition_type !== 'SAM') return;
+
+    const ageMonths = parseInt(form.age_months, 10) || 0;
+
+    const data = {
+      age_months: ageMonths,
+      weight_kg: parseFloat(form.weight_kg),
+      oedema: form.oedema,
+      appetite_test: form.appetite_test,
+      temperature_c: parseFloat(form.temperature_celsius),
+      respiratory_rate: parseInt(form.respiratory_rate),
+      intractable_vomiting: form.intractable_vomiting === 'Yes',
+      convulsions: form.convulsions === 'Yes',
+      lethargic: form.lethargic_or_not_alert === 'Yes',
+      unconscious: form.unconscious === 'Yes',
+      chest_indrawing: form.chest_indrawing === 'Yes',
+      severe_dehydration: form.severe_dehydration === 'Yes',
+      severe_pallor: form.very_pale_or_severe_palmar_pallor === 'Yes',
+      breastfeeding_prospect: form.breastfeeding_prospect,
+      effective_suckling: form.effective_suckling,
+      relactation_needed: form.relactation_needed === 'Yes',
+      visible_severe_wasting: form.visible_severe_wasting === 'Yes',
+    };
+
+    const result = checkIpcReferral(data);
+
+    if (ageMonths < 6) {
+      const infantIpcReasons: string[] = [];
+      if (form.oedema && form.oedema !== 'None') {
+        infantIpcReasons.push(`Oedema present (${form.oedema}) - infants <6 months require IPC`);
+      }
+      if (form.visible_severe_wasting === 'Yes') {
+        infantIpcReasons.push('Visible severe wasting - requires inpatient care');
+      }
+      if (form.effective_suckling === 'No') {
+        infantIpcReasons.push('No effective suckling - cannot breastfeed');
+      }
+      if (form.breastfeeding_prospect === 'None' || form.breastfeeding_prospect === 'Poor' || form.breastfeeding_prospect === 'No') {
+        infantIpcReasons.push('No prospect of breastfeeding - IPC referral required');
+      }
+      if (form.relactation_needed === 'Yes') {
+        infantIpcReasons.push('Relactation needed - requires IPC support');
+      }
+      if (!form.breastfeeding_prospect && form.breastfeeding_status === 'Yes') {
+        infantIpcReasons.push('⚠️ Breastfeeding prospect assessment required for infants <6 months');
+      }
+      if (infantIpcReasons.length > 0) {
+        setAutomationAlert({
+          needsAction: true,
+          actionType: 'IPC_REFERRAL',
+          title: '🚨 IPC Referral Required (Infant <6 months)',
+          message: 'This infant should NOT be admitted to SAM OPC. Refer to IPC immediately.',
+          reasons: infantIpcReasons,
+          severity: 'critical',
+        });
+        return;
+      }
+    }
+
+    setAutomationAlert(result.needsAction ? result : null);
+  }, [form.malnutrition_type, form.age_months, form.weight_kg, form.oedema, form.appetite_test,
+    form.temperature_celsius, form.respiratory_rate, form.intractable_vomiting, form.convulsions,
+    form.lethargic_or_not_alert, form.unconscious, form.chest_indrawing, form.severe_dehydration,
+    form.very_pale_or_severe_palmar_pallor, form.breastfeeding_prospect, form.effective_suckling,
+    form.relactation_needed, form.visible_severe_wasting, form.breastfeeding_status]);
+
+  useEffect(() => { checkAutomation(); }, [checkAutomation]);
 
   const filteredFacilities = form.malnutrition_type === 'IPC'
     ? facilities.filter((f: Facility) => f.type === 'IPC')
@@ -303,6 +374,21 @@ export default function CaseEditScreen() {
 
         {/* Form Body */}
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 30 }} keyboardShouldPersistTaps="handled">
+
+        {/* IPC Referral Alert */}
+        {automationAlert && isSAM && (() => {
+          const ac = getAlertColors(automationAlert.priority ?? 'normal');
+          return (
+            <View style={{ marginHorizontal: 12, marginTop: 12, padding: 14, borderRadius: 12, borderLeftWidth: 4, backgroundColor: ac.bg, borderLeftColor: ac.border }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: ac.text, marginBottom: 6 }}>{automationAlert.title}</Text>
+              <Text style={{ fontSize: 13, color: ac.text, marginBottom: 8 }}>{automationAlert.message}</Text>
+              {automationAlert.reasons.map((reason, i) => (
+                <Text key={i} style={{ fontSize: 12, color: ac.text, marginLeft: 8, marginBottom: 2 }}>• {reason}</Text>
+              ))}
+              <Text style={{ fontSize: 13, fontWeight: '600', color: ac.text, marginTop: 8 }}>Suggested Action: {automationAlert.action}</Text>
+            </View>
+          );
+        })()}
 
         {/* Step 0: Child Information */}
         {stepIdx === 0 && (
