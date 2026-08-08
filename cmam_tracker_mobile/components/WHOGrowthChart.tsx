@@ -23,6 +23,8 @@ interface WHOGrowthChartProps {
   visits: any[];
   colors: any;
   typeColor: string;
+  liveWeight?: number;
+  liveHeight?: number;
 }
 
 // Multi-point calibration: maps data coords to percentage positions on the WHO image
@@ -31,7 +33,7 @@ interface CalPoint { val: number; pct: number }
 
 const CAL_REF = {
   x: [{val:45, pct:8.05}, {val:120, pct:91.50}] as CalPoint[],
-  y: [{val:2, pct:82.80}, {val:34, pct:9.80}] as CalPoint[],
+  y: [{val:0, pct:82.80}, {val:30, pct:9.80}] as CalPoint[],
 };
 
 interface LinearFit { a: number; b: number }
@@ -78,7 +80,7 @@ function computeContainSize(imgW: number, imgH: number, containerW: number, cont
   return { width: Math.round(w), height: Math.round(h) };
 }
 
-export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, visits, colors, typeColor }: WHOGrowthChartProps) {
+export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, visits, colors, typeColor, liveWeight, liveHeight }: WHOGrowthChartProps) {
   const [imgLayout, setImgLayout] = useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = useState(false);
   const [fsLayout, setFsLayout] = useState({ width: 0, height: 0 });
@@ -116,6 +118,18 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
         zScore: v.z_score_wfh || '',
       });
     }
+  }
+  // Live point from current form entry
+  if (liveWeight && liveHeight && liveWeight > 0 && liveHeight > 0) {
+    points.push({
+      height: liveHeight,
+      weight: liveWeight,
+      label: `Now (${liveHeight}cm, ${liveWeight}kg)`,
+      isAdmission: false,
+      visitNum: null,
+      date: 'Current',
+      zScore: '',
+    });
   }
 
   const hasData = points.length > 0;
@@ -161,10 +175,11 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
 
         {/* Data points */}
         {pixelPoints.map((pt, idx) => {
-          const dotColor = pt.isAdmission ? '#000000' : '#000000';
-          const ringColor = pt.isAdmission ? '#2563eb' : '#10b981';
+          const isLive = pt.date === 'Current';
+          const dotColor = '#000000';
+          const ringColor = isLive ? '#f59e0b' : pt.isAdmission ? '#2563eb' : '#10b981';
           const dotSize = 4;
-          const ringSize = 11;
+          const ringSize = isLive ? 13 : 11;
           return (
             <View key={`dot-${idx}`}>
               {/* Thin colored circle */}
@@ -203,15 +218,15 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
                   paddingVertical: 1,
                   borderRadius: 4,
                   borderWidth: 0.5,
-                  borderColor: pt.isAdmission ? 'rgba(37,99,235,0.3)' : 'rgba(16,185,129,0.3)',
+                  borderColor: isLive ? 'rgba(245,158,11,0.3)' : pt.isAdmission ? 'rgba(37,99,235,0.3)' : 'rgba(16,185,129,0.3)',
                 }}>
                   <Text style={{
                     fontSize: 8,
                     fontWeight: '700',
-                    color: pt.isAdmission ? '#1e40af' : '#047857',
+                    color: isLive ? '#b45309' : pt.isAdmission ? '#1e40af' : '#047857',
                     textAlign: 'center',
                   }}>
-                    {pt.isAdmission ? 'Adm' : `V${pt.visitNum}`}
+                    {isLive ? 'Now' : pt.isAdmission ? 'Adm' : `V${pt.visitNum}`}
                   </Text>
                 </View>
               </View>
@@ -301,6 +316,10 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
             <Text style={[styles.legendText, { color: colors.textMuted }]}>Visit</Text>
           </View>
           <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#f59e0b' }]} />
+            <Text style={[styles.legendText, { color: colors.textMuted }]}>Current</Text>
+          </View>
+          <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: 'rgba(59, 130, 246, 0.65)' }]} />
             <Text style={[styles.legendText, { color: colors.textMuted }]}>Trajectory</Text>
           </View>
@@ -308,7 +327,9 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
 
         {/* Data points table */}
         <View style={{ marginTop: 8 }}>
-          {points.map((pt, idx) => (
+          {points.map((pt, idx) => {
+            const isLive = pt.date === 'Current';
+            return (
             <View key={idx} style={[styles.tableRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.tableCell, { color: colors.textSecondary, fontWeight: '700', width: 24 }]}>
                 {idx + 1}
@@ -326,18 +347,19 @@ export default function WHOGrowthChart({ gender, regWeight, regHeight, regDate, 
                 {pt.zScore || '—'}
               </Text>
               <View style={[styles.badge, {
-                backgroundColor: pt.isAdmission ? 'rgba(37, 99, 235, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                backgroundColor: isLive ? 'rgba(245, 158, 11, 0.1)' : pt.isAdmission ? 'rgba(37, 99, 235, 0.1)' : 'rgba(16, 185, 129, 0.1)',
               }]}>
                 <Text style={{
                   fontSize: 9,
                   fontWeight: '700',
-                  color: pt.isAdmission ? '#1e40af' : '#047857',
+                  color: isLive ? '#b45309' : pt.isAdmission ? '#1e40af' : '#047857',
                 }}>
-                  {pt.isAdmission ? 'Adm' : `V${pt.visitNum}`}
+                  {isLive ? 'Now' : pt.isAdmission ? 'Adm' : `V${pt.visitNum}`}
                 </Text>
               </View>
             </View>
-          ))}
+            );
+          })}
         </View>
       </View>
 

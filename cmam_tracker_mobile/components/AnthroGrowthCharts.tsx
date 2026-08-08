@@ -24,7 +24,7 @@ interface CalRef { x: CalPoint[]; y: CalPoint[] }
 const CAL_REF: Record<ChartType, CalRef> = {
   wfh: {
     x: [{val:45, pct:8.05}, {val:120, pct:91.50}],
-    y: [{val:2, pct:82.80}, {val:34, pct:9.80}],
+    y: [{val:0, pct:82.80}, {val:30, pct:9.80}],
   },
   wfa: {
     x: [{val:0, pct:10.5}, {val:60, pct:91.0}],
@@ -32,7 +32,7 @@ const CAL_REF: Record<ChartType, CalRef> = {
   },
   hfa: {
     x: [{val:0, pct:10.5}, {val:60, pct:91.0}],
-    y: [{val:45, pct:85.0}, {val:120, pct:7.0}],
+    y: [{val:40, pct:85.0}, {val:140, pct:7.0}],
   },
 };
 

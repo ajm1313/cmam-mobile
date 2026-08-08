@@ -13,6 +13,7 @@ import { logger } from '../../lib/logger';
 import DatePickerField from '../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../lib/samOpcAutomation';
 import OfflineBanner from '../../components/OfflineBanner';
+import WHOGrowthChart from '../../components/WHOGrowthChart';
 
 type Step = 'anthropometry' | 'medical' | 'treatment' | 'outcome';
 const STEPS: { key: Step; label: string; icon: string }[] = [
@@ -66,6 +67,7 @@ export default function VisitFormScreen() {
   const [rutfStock, setRutfStock] = useState<number | null>(null);
   const [weeksInProgram, setWeeksInProgram] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
+  const [caseData, setCaseData] = useState<any>(null);
   const isSAM = caseType === 'SAM';
   const visitNum = parseInt(visitNumber || '1');
   const isAnthropometryVisit = ANTHROPOMETRY_VISITS.includes(visitNum);
@@ -77,6 +79,7 @@ export default function VisitFormScreen() {
       try {
         const caseRes = await api.get(`/v1/cases/${caseId}/`);
         const caseData = caseRes.data?.data;
+        setCaseData(caseData);
         const facilityId = caseData?.facility_id;
         // Calculate weeks in program from registration date
         if (caseData?.registration_date) {
@@ -430,8 +433,12 @@ export default function VisitFormScreen() {
                 checkAutomation();
               }} keyboardType="decimal-pad" placeholder="e.g. 8.5" placeholderTextColor={colors.textMuted} />
 
-              <Label styles={styles} text={isAnthropometryVisit ? 'Height (cm) *' : 'Height (cm)'} colors={colors} />
-              <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.height_cm} onChangeText={v => set('height_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 75.0" placeholderTextColor={colors.textMuted} />
+              {isAnthropometryVisit && (
+                <>
+                  <Label styles={styles} text="Height (cm) *" colors={colors} />
+                  <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.height_cm} onChangeText={v => set('height_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 75.0" placeholderTextColor={colors.textMuted} />
+                </>
+              )}
 
               <Label styles={styles} text="MUAC (cm) *" colors={colors} />
               <TextInput style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }]} value={form.muac_cm} onChangeText={v => set('muac_cm', v)} keyboardType="decimal-pad" placeholder="e.g. 11.5" placeholderTextColor={colors.textMuted} />
@@ -443,10 +450,31 @@ export default function VisitFormScreen() {
                 </>
               )}
 
-              <Label styles={styles} text={isAnthropometryVisit ? 'W/H Z-Score *' : 'W/H Z-Score'} colors={colors} />
-              <ChipRow styles={styles} options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
+              {isAnthropometryVisit && (
+                <>
+                  <Label styles={styles} text="W/H Z-Score *" colors={colors} />
+                  <ChipRow styles={styles} options={Z_SCORE_OPTIONS} selected={form.z_score_wfh} onSelect={v => set('z_score_wfh', v)} colors={colors} />
+                </>
+              )}
               {!isAnthropometryVisit && (
                 <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Height and Z-Score are measured at visits 4, 8, 12, and 16.</Text>
+              )}
+
+              {/* WHO WFH Growth Chart with trajectory + live point */}
+              {caseData && (
+                <View style={{ marginTop: 16 }}>
+                  <WHOGrowthChart
+                    gender={caseData.child_gender}
+                    regWeight={parseFloat(caseData.weight_kg) || 0}
+                    regHeight={parseFloat(caseData.height_cm) || 0}
+                    regDate={caseData.admission_date || caseData.registration_date || ''}
+                    visits={(caseData.visits || []).filter((v: any) => v.visit_number < visitNum)}
+                    colors={colors}
+                    typeColor={isSAM ? '#ef4444' : '#f59e0b'}
+                    liveWeight={parseFloat(form.weight_kg) || 0}
+                    liveHeight={parseFloat(form.height_cm) || 0}
+                  />
+                </View>
               )}
             </View>
           )}
