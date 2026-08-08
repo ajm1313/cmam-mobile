@@ -410,9 +410,11 @@ export default function ProfileScreen() {
       {/* App Info */}
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Application</Text>
-        <InfoRow icon="phone-portrait-outline" label="Version" value="1.0.0" colors={colors} />
+        <InfoRow icon="phone-portrait-outline" label="Version" value="1.3.0" colors={colors} />
         <InfoRow icon="server-outline" label="API" value="nutri.pharn.org" colors={colors} />
         <InfoRow icon="information-circle-outline" label="App" value="CMAM Tracker" colors={colors} />
+        <InfoRow icon="code-working-outline" label="Developer" value="AJM Solutions" colors={colors} />
+        <InfoRow icon="call-outline" label="Contact" value="+233 24 150 9312" colors={colors} />
       </View>
 
       {/* Actions */}
@@ -549,7 +551,7 @@ export default function ProfileScreen() {
         <Text style={[styles.logoutText, { color: colors.danger }]}>{loggingOut ? 'Signing out...' : 'Sign Out'}</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker • Community-based Management of Severe Acute Malnutrition</Text>
+      <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker v1.3.0 • Developed by AJM Solutions • +233 24 150 9312</Text>
     </ScrollView>
   );
 
