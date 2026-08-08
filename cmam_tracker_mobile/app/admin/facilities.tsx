@@ -50,8 +50,8 @@ export default function FacilitiesListScreen() {
 
   useEffect(() => { fetchFacilities(); }, [fetchFacilities]);
 
-  const handleDelete = (fac: FacilityItem) => {
-    Alert.alert('Delete Facility', `Deactivate ${fac.name}?`, [
+  const handleDeactivate = (fac: FacilityItem) => {
+    Alert.alert('Deactivate Facility', `Deactivate ${fac.name}? All cases and data are preserved.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Deactivate', style: 'destructive',
@@ -66,6 +66,29 @@ export default function FacilitiesListScreen() {
         },
       },
     ]);
+  };
+
+  const handleHardDelete = (fac: FacilityItem) => {
+    Alert.alert(
+      'Permanently Delete Facility',
+      `PERMANENTLY DELETE ${fac.name} and ALL its data (cases, visits, inventory)? This CANNOT be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/v1/facilities/${fac.id}/hard-delete/`);
+              Alert.alert('Success', 'Facility permanently deleted');
+              fetchFacilities();
+            } catch (err: any) {
+              const msg = err?.response?.data?.message || 'Failed to delete facility';
+              Alert.alert('Error', msg);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -167,7 +190,11 @@ export default function FacilitiesListScreen() {
                   <Ionicons name="create-outline" size={15} color={colors.primary} />
                   <Text style={[styles.actionText, { color: colors.primary }]}>Edit</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]} onPress={() => handleDelete(fac)}>
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]} onPress={() => handleDeactivate(fac)}>
+                  <Ionicons name="close-circle-outline" size={15} color={colors.danger} />
+                  <Text style={[styles.actionText, { color: colors.danger }]}>Deactivate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.danger + '20' }]} onPress={() => handleHardDelete(fac)}>
                   <Ionicons name="trash-outline" size={15} color={colors.danger} />
                   <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
                 </TouchableOpacity>
