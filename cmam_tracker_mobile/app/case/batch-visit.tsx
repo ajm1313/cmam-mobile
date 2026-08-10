@@ -112,6 +112,7 @@ export default function BatchVisitScreen() {
             let success = 0;
             let failed = 0;
             let queued = 0;
+            const stockWarnings: string[] = [];
             for (const entry of validEntries) {
               try {
                 const payload: Record<string, any> = { visit_date: entry.visitDate };
@@ -122,6 +123,10 @@ export default function BatchVisitScreen() {
                 const res = await sendOrQueue(`/v1/cases/${entry.caseId}/visits/record/`, 'post', payload, `Batch Visit #${entry.caseId}`);
                 if (res) {
                   success++;
+                  const sw: string[] = res.data?.stock_warnings || [];
+                  if (sw.length > 0) {
+                    stockWarnings.push(`Case #${entry.caseId}: ${sw.join('; ')}`);
+                  }
                 } else {
                   queued++;
                 }
@@ -131,9 +136,13 @@ export default function BatchVisitScreen() {
               }
             }
             setSubmitting(false);
+            let batchMsg = `${success} visit(s) recorded successfully.${queued > 0 ? `\n${queued} saved offline.` : ''}${failed > 0 ? `\n${failed} failed.` : ''}`;
+            if (stockWarnings.length > 0) {
+              batchMsg += `\n\nStock warnings:\n${stockWarnings.join('\n')}`;
+            }
             Alert.alert(
               'Batch Complete',
-              `${success} visit(s) recorded successfully.${queued > 0 ? `\n${queued} saved offline.` : ''}${failed > 0 ? `\n${failed} failed.` : ''}`,
+              batchMsg,
               [{ text: 'OK', onPress: () => router.back() }]
             );
           },

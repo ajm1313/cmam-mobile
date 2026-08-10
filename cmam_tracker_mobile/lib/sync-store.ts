@@ -85,17 +85,19 @@ export const useSyncStore = create<SyncState>()(
             get().removeItem(item.id);
           } catch (err: any) {
             const httpStatus = err?.response?.status;
-            // 409 Conflict — record was modified remotely; fetch server copy for merge UI
-            if (httpStatus === 409) {
+            if (httpStatus === 409 && (item.method === 'PATCH' || item.method === 'PUT')) {
+              // 409 on edit — record was modified remotely; fetch server copy for merge UI
               const msg = err?.response?.data?.message ?? 'Record was modified remotely.';
               let serverData: Record<string, any> | undefined;
               try {
-                // Derive a GET URL from the edit URL: strip trailing /edit/ or /edit
                 const getUrl = item.url.replace(/\/edit\/?$/, '/');
                 const serverRes = await api.get(getUrl);
                 serverData = serverRes.data?.data ?? serverRes.data;
               } catch { /* best-effort */ }
               failed.push({ ...item, conflict: true, conflictMessage: msg, serverData });
+            } else if (httpStatus === 409 && item.method === 'POST') {
+              // 409 on POST — duplicate creation (e.g. same case registered twice).
+              // Silently drop the duplicate; the original already exists on the server.
             } else if (httpStatus && httpStatus >= 400 && httpStatus < 500 && item.retries >= 3) {
               // Unrecoverable 4xx after max retries — drop it
             } else {

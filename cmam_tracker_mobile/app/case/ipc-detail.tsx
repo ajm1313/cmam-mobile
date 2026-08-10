@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert,
@@ -19,10 +19,42 @@ const STATUS_COLORS: Record<IpcCaseStatus, string> = {
   Transfer: '#8b5cf6',
 };
 
+const IPC_COLOR = '#7c3aed';
+
+const getStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    paddingBottom: 14, paddingHorizontal: 16,
+    borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
+    shadowColor: IPC_COLOR, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  card: {
+    borderRadius: 14, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 5, elevation: 2,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
+  statusText: { fontSize: 12, fontWeight: '700' },
+  section: { marginTop: 16 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+  rowLabel: { fontSize: 13, fontWeight: '500' },
+  rowValue: { fontSize: 13, fontWeight: '600' },
+});
+
 export default function IpcDetailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id?: string }>();
   const [loading, setLoading] = useState(true);
   const [caseData, setCaseData] = useState<IpcCase | null>(null);
@@ -43,16 +75,16 @@ export default function IpcDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#7c3aed" />
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={IPC_COLOR} />
       </View>
     );
   }
 
   if (!caseData) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: '#7c3aed', paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={styles.container}>
+        <View style={[styles.header, { backgroundColor: IPC_COLOR, paddingTop: Math.max(insets.top, 16) }]}>
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -68,6 +100,15 @@ export default function IpcDetailScreen() {
 
   const statusColor = STATUS_COLORS[caseData.status] || colors.textMuted;
 
+  const formatDate = (d: string) => {
+    if (!d) return '—';
+    try {
+      return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return d;
+    }
+  };
+
   const Row = ({ label, value }: { label: string; value: string | number | null }) => (
     <View style={styles.row}>
       <Text style={[styles.rowLabel, { color: colors.textMuted }]}>{label}</Text>
@@ -76,8 +117,8 @@ export default function IpcDetailScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: '#7c3aed', paddingTop: Math.max(insets.top, 16) }]}>
+    <View style={styles.container}>
+      <View style={[styles.header, { backgroundColor: IPC_COLOR, paddingTop: Math.max(insets.top, 16) }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
@@ -88,13 +129,14 @@ export default function IpcDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <View style={styles.cardHeader}>
             <Text style={{ fontSize: 18, fontWeight: '800', color: colors.textPrimary }}>
               {caseData.patient_name}
             </Text>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: statusColor }}>{caseData.status}</Text>
+            <View style={[styles.statusPill, { backgroundColor: statusColor + '15' }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusText, { color: statusColor }]}>{caseData.status}</Text>
             </View>
           </View>
 
@@ -103,7 +145,7 @@ export default function IpcDetailScreen() {
             <Row label="Age" value={`${caseData.patient_age} months`} />
             <Row label="Gender" value={caseData.gender} />
             <Row label="Facility" value={caseData.facility_name} />
-            <Row label="Admission Date" value={caseData.admission_date} />
+            <Row label="Admission Date" value={formatDate(caseData.admission_date)} />
           </View>
 
           <View style={styles.section}>
@@ -115,7 +157,7 @@ export default function IpcDetailScreen() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Metadata</Text>
-            <Row label="Created" value={caseData.created_at} />
+            <Row label="Created" value={formatDate(caseData.created_at)} />
           </View>
         </View>
       </ScrollView>
@@ -123,17 +165,4 @@ export default function IpcDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingBottom: 14, paddingHorizontal: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  card: { borderRadius: 14, padding: 16, borderWidth: 1 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12 },
-  section: { marginTop: 16 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  rowLabel: { fontSize: 13, fontWeight: '500' },
-  rowValue: { fontSize: 13, fontWeight: '600' },
-});
+const styles = StyleSheet.create({});

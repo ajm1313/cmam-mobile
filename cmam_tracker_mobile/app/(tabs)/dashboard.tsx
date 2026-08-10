@@ -447,12 +447,12 @@ export default function DashboardScreen() {
           <View style={styles.statsRow}>
             <StatCard icon="pulse-outline" label="Active SAM" value={data?.stats?.active_sam ?? 0} color={colors.sam} bg={colors.surface} mutedColor={colors.textMuted} />
             <StatCard icon="trending-up-outline" label="Active MAM" value={data?.stats?.active_mam ?? 0} color={colors.mam} bg={colors.surface} mutedColor={colors.textMuted} />
-            <StatCard icon="checkmark-done-outline" label="Discharged" value={data?.stats?.discharged_this_month ?? 0} color={colors.success} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="checkmark-done-outline" label="Discharged" value={data?.stats?.total_discharged ?? 0} color={colors.success} bg={colors.surface} mutedColor={colors.textMuted} />
           </View>
           <View style={styles.statsRow}>
             <StatCard icon="business-outline" label="Facilities" value={data?.stats?.facilities_count ?? 0} color={colors.primary} bg={colors.surface} mutedColor={colors.textMuted} />
             <StatCard icon="alert-circle-outline" label="Defaulters" value={data?.stats?.defaulters ?? 0} color={colors.danger} bg={colors.surface} mutedColor={colors.textMuted} />
-            <StatCard icon="documents-outline" label="Total Cases" value={data?.stats?.total_cases ?? 0} color={colors.secondary} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="documents-outline" label="Total Cases" value={data?.stats?.total_all_cases ?? 0} color={colors.secondary} bg={colors.surface} mutedColor={colors.textMuted} />
           </View>
 
           {/* Quick Actions — role-filtered */}

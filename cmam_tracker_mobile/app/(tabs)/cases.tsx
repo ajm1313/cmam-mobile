@@ -17,7 +17,8 @@ import { SyncStatusBanner } from '../../components/SyncStatus';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 import { useFocusEffect } from 'expo-router';
-import type { OpcCase } from '../../lib/types';
+import type { OpcCase, Region, District, SubDistrict, Facility } from '../../lib/types';
+import PickerSelect from '../../components/PickerSelect';
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -155,8 +156,19 @@ export default function CasesScreen() {
   const [caseType, setCaseType] = useState<CaseType>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const facilityId = user?.location?.facility_id;
+  const isSuperAdmin = !!(user?.is_superuser);
 
-  const cacheKey = `cases_${statusFilter}_${caseType}_${facilityId ?? 'all'}`;
+  // Location filter state
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [selRegion, setSelRegion] = useState('');
+  const [selDistrict, setSelDistrict] = useState('');
+  const [selSubDistrict, setSelSubDistrict] = useState('');
+  const [selFacility, setSelFacility] = useState('');
+
+  const cacheKey = `cases_${statusFilter}_${caseType}_${facilityId ?? 'all'}_${selRegion || '0'}_${selDistrict || '0'}_${selSubDistrict || '0'}_${selFacility || '0'}`;
 
   const fetchCases = useCallback(async (pageNum: number = 1) => {
     try {
@@ -168,7 +180,11 @@ export default function CasesScreen() {
         page_size: 50,
       };
       if (caseType !== 'ALL') params.case_type = caseType;
-      if (facilityId) params.facility_id = facilityId;
+      if (selFacility) params.facility_id = selFacility;
+      else if (selSubDistrict) params.sub_district_id = selSubDistrict;
+      else if (selDistrict) params.district_id = selDistrict;
+      else if (selRegion) params.region_id = selRegion;
+      else if (facilityId) params.facility_id = facilityId;
       const res = await api.get('/v1/cases/', { params });
       const fresh = res.data.data ?? [];
       const pagination = res.data.pagination;
@@ -195,7 +211,7 @@ export default function CasesScreen() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [statusFilter, caseType, facilityId, cacheKey]);
+  }, [statusFilter, caseType, facilityId, selRegion, selDistrict, selSubDistrict, selFacility, cacheKey]);
 
   useFocusEffect(useCallback(() => { fetchCases(); }, [fetchCases]));
 
@@ -207,7 +223,52 @@ export default function CasesScreen() {
   const [muacMax, setMuacMax] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const hasAdvanced = genderFilter !== 'all' || ageMin || ageMax || muacMax || dateFrom || dateTo;
+
+  // Fetch regions on mount (superadmin only sees all; facility users get scoped by API)
+  useFocusEffect(useCallback(() => {
+    if (!isSuperAdmin && facilityId) return; // facility users don't need location filters
+    api.get('/v1/locations/regions/').then(r => setRegions(r.data.data || [])).catch(() => {});
+  }, [isSuperAdmin, facilityId]));
+
+  // Cascading: fetch districts when region changes
+  const onRegionChange = useCallback((val: string) => {
+    setSelRegion(val);
+    setSelDistrict('');
+    setSelSubDistrict('');
+    setSelFacility('');
+    setDistricts([]);
+    setSubDistricts([]);
+    setFacilities([]);
+    if (val) {
+      api.get(`/v1/locations/districts/?region_id=${val}`).then(r => setDistricts(r.data.data || [])).catch(() => {});
+      api.get(`/v1/facilities/?region=${val}&page_size=500`).then(r => setFacilities(r.data.data || [])).catch(() => {});
+    }
+  }, []);
+
+  // Cascading: fetch sub-districts when district changes
+  const onDistrictChange = useCallback((val: string) => {
+    setSelDistrict(val);
+    setSelSubDistrict('');
+    setSelFacility('');
+    setSubDistricts([]);
+    setFacilities([]);
+    if (val) {
+      api.get(`/v1/locations/sub-districts/?district_id=${val}`).then(r => setSubDistricts(r.data.data || [])).catch(() => {});
+      api.get(`/v1/facilities/?district=${val}&page_size=500`).then(r => setFacilities(r.data.data || [])).catch(() => {});
+    }
+  }, []);
+
+  // Cascading: fetch facilities when sub-district changes
+  const onSubDistrictChange = useCallback((val: string) => {
+    setSelSubDistrict(val);
+    setSelFacility('');
+    if (val) {
+      api.get(`/v1/facilities/?sub_district=${val}&page_size=500`).then(r => setFacilities(r.data.data || [])).catch(() => {});
+    }
+  }, []);
+
+  const hasLocationFilter = !!selRegion || !!selDistrict || !!selSubDistrict || !!selFacility;
+  const hasAdvanced = genderFilter !== 'all' || ageMin || ageMax || muacMax || dateFrom || dateTo || hasLocationFilter;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -275,6 +336,8 @@ export default function CasesScreen() {
 
   const clearAdvanced = () => {
     setGenderFilter('all'); setAgeMin(''); setAgeMax(''); setMuacMax(''); setDateFrom(''); setDateTo('');
+    setSelRegion(''); setSelDistrict(''); setSelSubDistrict(''); setSelFacility('');
+    setDistricts([]); setSubDistricts([]); setFacilities([]);
   };
 
   return (
@@ -370,7 +433,7 @@ export default function CasesScreen() {
       >
         <Ionicons name="options-outline" size={14} color={hasAdvanced ? colors.primary : colors.textMuted} />
         <Text style={[styles.advToggleText, { color: hasAdvanced ? colors.primary : colors.textMuted }]}>
-          Advanced Filters {hasAdvanced ? '(Active)' : ''}
+          Advanced Filters {hasAdvanced ? `(Active${hasLocationFilter ? ' — Location' : ''})` : ''}
         </Text>
         {hasAdvanced && (
           <TouchableOpacity onPress={clearAdvanced} style={{ marginLeft: 'auto' }}>
@@ -478,6 +541,48 @@ export default function CasesScreen() {
             </View>
 
             <ScrollView>
+              {/* Location Filters */}
+              {(!facilityId || isSuperAdmin) && (
+                <View style={styles.advField}>
+                  <Text style={[styles.advLabel, { color: colors.textMuted }]}>Location Filters</Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>Filter cases by geographic hierarchy</Text>
+                  <PickerSelect
+                    placeholder={{ label: 'All Regions', value: '' }}
+                    value={selRegion}
+                    onValueChange={onRegionChange}
+                    items={regions.map(r => ({ label: r.name, value: String(r.id) }))}
+                    colors={colors}
+                  />
+                  <View style={{ height: 8 }} />
+                  <PickerSelect
+                    placeholder={{ label: 'All Districts', value: '' }}
+                    value={selDistrict}
+                    onValueChange={onDistrictChange}
+                    items={districts.map(d => ({ label: d.name, value: String(d.id) }))}
+                    colors={colors}
+                    disabled={!selRegion}
+                  />
+                  <View style={{ height: 8 }} />
+                  <PickerSelect
+                    placeholder={{ label: 'All Sub-Districts', value: '' }}
+                    value={selSubDistrict}
+                    onValueChange={onSubDistrictChange}
+                    items={subDistricts.map(s => ({ label: s.name, value: String(s.id) }))}
+                    colors={colors}
+                    disabled={!selDistrict}
+                  />
+                  <View style={{ height: 8 }} />
+                  <PickerSelect
+                    placeholder={{ label: 'All Facilities', value: '' }}
+                    value={selFacility}
+                    onValueChange={setSelFacility}
+                    items={facilities.map(f => ({ label: f.name, value: String(f.id) }))}
+                    colors={colors}
+                    disabled={!selRegion}
+                  />
+                </View>
+              )}
+
               <View style={styles.advField}>
                 <Text style={[styles.advLabel, { color: colors.textMuted }]}>Gender</Text>
                 <View style={styles.advChipRow}>

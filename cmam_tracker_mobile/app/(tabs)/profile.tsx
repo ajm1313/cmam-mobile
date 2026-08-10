@@ -411,7 +411,7 @@ export default function ProfileScreen() {
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Application</Text>
         <InfoRow icon="phone-portrait-outline" label="Version" value="1.3.0" colors={colors} />
-        <InfoRow icon="server-outline" label="API" value="nutri.pharn.org" colors={colors} />
+        <InfoRow icon="server-outline" label="API" value="cmam-tracker-django-production.up.railway.app" colors={colors} />
         <InfoRow icon="information-circle-outline" label="App" value="CMAM Tracker" colors={colors} />
         <InfoRow icon="code-working-outline" label="Developer" value="AJM Solutions" colors={colors} />
         <InfoRow icon="call-outline" label="Contact" value="+233 24 150 9312" colors={colors} />

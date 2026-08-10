@@ -42,6 +42,30 @@ export interface Facility {
   is_active: boolean;
 }
 
+export interface Region {
+  id: number;
+  name: string;
+  code?: string;
+  district_count?: number;
+}
+
+export interface District {
+  id: number;
+  name: string;
+  code?: string;
+  region_id: number;
+  region_name?: string;
+}
+
+export interface SubDistrict {
+  id: number;
+  name: string;
+  code?: string;
+  district_id: number;
+  district_name?: string;
+  region_name?: string;
+}
+
 export interface InventoryItem {
   id: number;
   name: string;
@@ -93,9 +117,11 @@ export interface DashboardStats {
   active_sam: number;
   active_mam: number;
   discharged_this_month: number;
+  total_discharged: number;
   defaulters: number;
   facilities_count: number;
   total_cases: number;
+  total_all_cases: number;
   active_cases: number;
 }
 

@@ -69,11 +69,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       } catch (e: any) {
         // The interceptor handles 401s (token refresh → retry, or logout).
         // Here we only handle non-401 errors (network errors, server errors).
-        // Keep cached user visible — don't wipe the session.
-        if (!cachedUser) {
-          set({ isLoading: false });
-        }
-        // Network error with cached user: state already set above — nothing to do.
+        // Keep cached user visible but always clear loading state.
+        set({ isLoading: false });
       }
     } catch {
       set({ isLoading: false });

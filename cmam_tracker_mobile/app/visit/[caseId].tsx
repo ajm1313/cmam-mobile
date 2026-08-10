@@ -304,7 +304,11 @@ export default function VisitFormScreen() {
 
       const res = await sendOrQueue(`/v1/cases/${caseId}/visits/record/`, 'post', payload, 'Visit Record');
       if (res) {
-        Alert.alert('Success', 'Visit recorded successfully.', [
+        const stockWarnings: string[] = res.data.stock_warnings || [];
+        const message = stockWarnings.length > 0
+          ? `Visit recorded successfully.\n\nStock warnings:\n${stockWarnings.join('\n')}`
+          : 'Visit recorded successfully.';
+        Alert.alert('Success', message, [
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {

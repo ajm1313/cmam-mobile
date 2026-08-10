@@ -208,7 +208,7 @@ export default function SettingsScreen() {
               <Ionicons name="server-outline" size={20} color={colors.primary} />
               <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>API Server</Text>
             </View>
-            <Text style={[styles.settingValue, { color: colors.textMuted }]} numberOfLines={1}>nutri.pharn.org</Text>
+            <Text style={[styles.settingValue, { color: colors.textMuted }]} numberOfLines={1}>cmam-tracker-django-production.up.railway.app</Text>
           </View>
         </View>
 

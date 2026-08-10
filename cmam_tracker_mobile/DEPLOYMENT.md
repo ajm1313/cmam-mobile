@@ -44,7 +44,7 @@ Edit `app.json` to set:
 Update `lib/config.ts` to point to your production API:
 
 ```typescript
-export const API_BASE_URL = 'https://nutri.pharn.org/api/v1';
+export const API_BASE_URL = 'https://cmam-tracker-django-production.up.railway.app/api/v1';
 ```
 
 ## Building

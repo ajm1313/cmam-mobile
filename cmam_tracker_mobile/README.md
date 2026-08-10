@@ -44,7 +44,7 @@ components/
 
 ## API
 Connects to the CMAM Tracker Django backend at:
-- **Production:** `https://nutri.pharn.org/api/v1`
+- **Production:** `https://cmam-tracker-django-production.up.railway.app/api/v1`
 - **Development:** configure `LOCAL_IP` in `lib/config.ts`
 
 ## Build

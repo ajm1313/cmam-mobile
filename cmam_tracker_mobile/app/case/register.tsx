@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
 import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
+import { useSyncStore } from '../../lib/sync-store';
 import type { Facility } from '../../lib/types';
 import { checkIpcReferral, getAlertColors, getAdmissionType, getReportingCategory, type AutomationResult } from '../../lib/samOpcAutomation';
 import DatePickerField from '../../components/DatePickerField';
@@ -318,6 +319,25 @@ export default function CaseRegisterScreen() {
     
     setSubmitting(true);
     try {
+      // Client-side duplicate check: scan offline queue for an identical pending registration
+      const pendingQueue = useSyncStore.getState().queue;
+      const dup = pendingQueue.find((q) => {
+        if (q.url !== '/v1/cases/create/' || q.method !== 'POST') return false;
+        const d = q.data || {};
+        return d.child_name?.toString().trim().toLowerCase() === f.child_name.trim().toLowerCase()
+          && String(d.facility_id) === String(f.facility_id)
+          && d.date_of_birth === f.date_of_birth
+          && d.admission_date === f.admission_date
+          && (d.caregiver_name ?? '').toString().trim().toLowerCase() === (f.caregiver_name ?? '').trim().toLowerCase();
+      });
+      if (dup) {
+        Alert.alert(
+          'Duplicate Registration',
+          `A case for "${f.child_name}" with the same caregiver, date of birth, and enrolment date is already pending sync for this facility. Please wait for it to sync before registering again.`,
+        );
+        return;
+      }
+
       const toInt = (v: string) => { const n = parseInt(v, 10); return Number.isNaN(n) ? undefined : n; };
       const toFloat = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
       const payload: Record<string, any> = {
@@ -463,11 +483,15 @@ export default function CaseRegisterScreen() {
       }
       if (res) {
         const newId = res.data.data?.id;
+        const stockWarnings: string[] = res.data.stock_warnings || [];
         const buttons = [{ text: 'Done', onPress: () => router.back() }];
         if (newId) {
           buttons.unshift({ text: 'View Case', onPress: () => router.replace({ pathname: '/case/[id]', params: { id: String(newId) } }) });
         }
-        Alert.alert('Success', 'Case registered successfully.', buttons);
+        const message = stockWarnings.length > 0
+          ? `Case registered successfully.\n\nStock warnings:\n${stockWarnings.join('\n')}`
+          : 'Case registered successfully.';
+        Alert.alert('Success', message, buttons);
       } else {
         Alert.alert('Saved Offline', 'Case registration saved and will sync when online.', [
           { text: 'OK', onPress: () => router.back() },
