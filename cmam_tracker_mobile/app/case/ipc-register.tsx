@@ -73,7 +73,7 @@ export default function IpcRegisterScreen() {
       };
       if (form.muac) { const n = toFloat(form.muac); if (n !== undefined) payload.muac = n; }
 
-      await sendOrQueue('/v1/ipc/cases/', 'post', payload, 'IPC Case Registration');
+      const res = await sendOrQueue('/v1/ipc/cases/', 'post', payload, 'IPC Case Registration');
 
       if (params.caseId) {
         await sendOrQueue(`/v1/cases/${params.caseId}/transfer/`, 'post', {
@@ -84,7 +84,11 @@ export default function IpcRegisterScreen() {
         }, 'IPC Transfer').catch(() => {});
       }
 
-      Alert.alert('Success', 'IPC case registered successfully.', [{ text: 'OK', onPress: () => router.back() }]);
+      if (res) {
+        Alert.alert('Success', 'IPC case registered successfully.', [{ text: 'OK', onPress: () => router.back() }]);
+      } else {
+        Alert.alert('Saved Offline', 'IPC case registration saved and will sync when online.', [{ text: 'OK', onPress: () => router.back() }]);
+      }
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message || e?.message || 'Could not register IPC case.');
     } finally {

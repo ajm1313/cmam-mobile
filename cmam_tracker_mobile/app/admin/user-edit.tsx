@@ -135,8 +135,10 @@ export default function UserEditScreen() {
         if (form.password) formData.append('password', form.password);
         if (form.password_confirm) formData.append('password_confirm', form.password_confirm);
         formData.append('avatar', { uri: avatarUri, type: 'image/jpeg', name: 'avatar.jpg' } as any);
-        await sendOrQueue(`/v1/users/${id}/edit/`, 'put', formData, 'User Edit');
-        Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
+        const res = await sendOrQueue(`/v1/users/${id}/edit/`, 'put', formData, 'User Edit');
+        if (res) {
+          Alert.alert('Success', 'User updated', [{ text: 'OK', onPress: () => router.back() }]);
+        }
       } else {
         const payload: Record<string, any> = {
           name: form.name, email: form.email, phone: form.phone, is_active: form.is_active,

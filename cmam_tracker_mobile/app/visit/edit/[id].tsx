@@ -384,7 +384,11 @@ export default function VisitEditScreen() {
       payload._updated_at = updatedAt ?? undefined;
       const res = await sendOrQueue(`/v1/cases/${caseId}/visits/${id}/edit/`, 'put', payload, 'Visit Edit');
       if (res) {
-        Alert.alert('Success', 'Visit updated.', [
+        const stockWarnings: string[] = res.data?.stock_warnings || [];
+        const message = stockWarnings.length > 0
+          ? `Visit updated.\n\nStock warnings:\n${stockWarnings.join('\n')}`
+          : 'Visit updated.';
+        Alert.alert('Success', message, [
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
