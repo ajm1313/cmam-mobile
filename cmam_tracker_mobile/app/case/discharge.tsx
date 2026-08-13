@@ -31,6 +31,8 @@ interface DischargeCaseItem {
   status?: string;
   outcome?: string;
   discharge_date?: string | null;
+  discharge_category?: string;
+  reasons?: string[];
 }
 
 export default function DischargeManagementScreen() {
@@ -67,6 +69,7 @@ export default function DischargeManagementScreen() {
     Alert.alert('Discharge', `Select outcome for ${caseItem.child_name}`, [
       { text: 'Cured', onPress: () => processDischarge(caseItem.id, 'Cured') },
       { text: 'Defaulted', onPress: () => processDischarge(caseItem.id, 'Defaulted') },
+      { text: 'Death', onPress: () => processDischarge(caseItem.id, 'Death') },
       { text: 'Non-Response', onPress: () => processDischarge(caseItem.id, 'Non-Response') },
       { text: 'Transfer', onPress: () => processDischarge(caseItem.id, 'Transfer') },
       { text: 'Cancel', style: 'cancel' },
@@ -204,6 +207,21 @@ export default function DischargeManagementScreen() {
                   </Text>
                 )}
               </View>
+              {tab === 'ready' && item.discharge_category && (
+                <View style={{ marginBottom: 6, marginTop: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.success }}>{item.discharge_category}</Text>
+                  </View>
+                  {item.reasons && item.reasons.length > 0 && (
+                    <View style={{ paddingLeft: 20 }}>
+                      {item.reasons.map((reason, idx) => (
+                        <Text key={idx} style={{ fontSize: 11, color: colors.textMuted, marginBottom: 2 }}>{reason}</Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
               {tab === 'ready' && (
                 <TouchableOpacity
                   style={[styles.dischargeBtn, { backgroundColor: colors.success }]}
