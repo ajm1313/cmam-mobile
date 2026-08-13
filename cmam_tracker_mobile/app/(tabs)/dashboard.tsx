@@ -454,6 +454,10 @@ export default function DashboardScreen() {
             <StatCard icon="alert-circle-outline" label="Defaulters" value={data?.stats?.defaulters ?? 0} color={colors.danger} bg={colors.surface} mutedColor={colors.textMuted} />
             <StatCard icon="documents-outline" label="Total Cases" value={data?.stats?.total_all_cases ?? 0} color={colors.secondary} bg={colors.surface} mutedColor={colors.textMuted} />
           </View>
+          <View style={styles.statsRow}>
+            <StatCard icon="people-outline" label="Other MAM" value={data?.stats?.other_mam ?? 0} color={colors.primary} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="medkit-outline" label="High-risk MAM" value={data?.stats?.high_risk_mam ?? 0} color={colors.mam} bg={colors.surface} mutedColor={colors.textMuted} />
+          </View>
 
           {/* Quick Actions — role-filtered */}
           <View style={[styles.section, { backgroundColor: colors.surface }]}>

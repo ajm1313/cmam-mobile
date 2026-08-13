@@ -123,6 +123,8 @@ export interface DashboardStats {
   total_cases: number;
   total_all_cases: number;
   active_cases: number;
+  other_mam: number;
+  high_risk_mam: number;
 }
 
 export interface OpcCase {
