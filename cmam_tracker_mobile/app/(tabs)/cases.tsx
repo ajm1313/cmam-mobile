@@ -136,7 +136,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   advBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5 },
   advBtnText: { fontSize: 14, fontWeight: '700' },
 });
-type CaseType = 'SAM' | 'MAM' | 'ALL';
+type CaseType = 'ALL' | 'SAM' | 'High-risk MAM' | 'Other MAM';
 type StatusFilter = 'active' | 'discharged' | 'defaulter' | 'all';
 
 export default function CasesScreen() {
@@ -152,8 +152,15 @@ export default function CasesScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [caseType, setCaseType] = useState<CaseType>('ALL');
+  const caseTypeLabel: Record<CaseType, string> = {
+    ALL: 'ALL',
+    SAM: 'SAM',
+    'High-risk MAM': 'High Risk MAM',
+    'Other MAM': 'Other MAM',
+  };
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const facilityId = user?.location?.facility_id;
   const isSuperAdmin = !!(user?.is_superuser);
@@ -179,7 +186,15 @@ export default function CasesScreen() {
         page: pageNum,
         page_size: 50,
       };
-      if (caseType !== 'ALL') params.case_type = caseType;
+      if (caseType === 'SAM') {
+        params.case_type = 'SAM';
+      } else if (caseType === 'High-risk MAM') {
+        params.case_type = 'MAM';
+        params.mam_type = 'High-risk MAM';
+      } else if (caseType === 'Other MAM') {
+        params.case_type = 'MAM';
+        params.mam_type = 'Other MAM';
+      }
       if (selFacility) params.facility_id = selFacility;
       else if (selSubDistrict) params.sub_district_id = selSubDistrict;
       else if (selDistrict) params.district_id = selDistrict;
@@ -195,6 +210,7 @@ export default function CasesScreen() {
         setCases(prev => [...prev, ...fresh]);
       }
       setHasMore(pagination?.has_next ?? false);
+      setTotalCount(pagination?.total ?? fresh.length);
       setPage(pageNum);
       setIsStale(false);
     } catch {
@@ -286,7 +302,9 @@ export default function CasesScreen() {
     setExporting(true);
     try {
       const params: Record<string, string> = { format };
-      if (caseType !== 'ALL') params.type = caseType;
+      if (caseType === 'SAM') params.type = 'SAM';
+      else if (caseType === 'High-risk MAM') { params.type = 'MAM'; params.mam_type = 'High-risk MAM'; }
+      else if (caseType === 'Other MAM') { params.type = 'MAM'; params.mam_type = 'Other MAM'; }
       if (statusFilter !== 'all') params.status = statusFilter;
 
       const res = await api.get('/v1/export/cases/', {
@@ -402,13 +420,13 @@ export default function CasesScreen() {
 
       {/* Type Filter */}
       <View style={styles.filterRow}>
-        {(['ALL', 'SAM', 'MAM'] as CaseType[]).map((t) => (
+        {(['ALL', 'SAM', 'High-risk MAM', 'Other MAM'] as CaseType[]).map((t) => (
           <TouchableOpacity
             key={t}
             style={[styles.chip, { backgroundColor: colors.surface, borderColor: colors.border }, caseType === t && { backgroundColor: colors.primary, borderColor: colors.primary }]}
             onPress={() => setCaseType(t)}
           >
-            <Text style={[styles.chipText, { color: colors.textSecondary }, caseType === t && { color: '#fff' }]}>{t}</Text>
+            <Text style={[styles.chipText, { color: colors.textSecondary }, caseType === t && { color: '#fff' }]}>{caseTypeLabel[t]}</Text>
           </TouchableOpacity>
         ))}
         <View style={{ flex: 1 }} />
@@ -445,7 +463,7 @@ export default function CasesScreen() {
       {/* Summary + Export */}
       <View style={styles.summaryRow}>
         <Text style={[styles.summaryText, { color: colors.textMuted }]}>
-          {filtered.length} case{filtered.length !== 1 ? 's' : ''}
+          {search || hasAdvanced ? `${filtered.length} of ${totalCount}` : `${totalCount}`} case{totalCount !== 1 ? 's' : ''}
         </Text>
         <View style={styles.legendRow}>
           <LegendDot color={colors.sam} label="SAM" mutedColor={colors.textMuted} />
