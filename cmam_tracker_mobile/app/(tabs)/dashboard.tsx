@@ -11,6 +11,7 @@ import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
 import { logger } from '../../lib/logger';
 import { setCache, getCacheFallback } from '../../lib/cache';
+import { primeFacilityCache } from '../../lib/facilities';
 import { useOfflineSync } from '../../lib/useOfflineSync';
 import OfflineBanner from '../../components/OfflineBanner';
 import { SyncStatusBanner } from '../../components/SyncStatus';
@@ -221,6 +222,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isStale, setIsStale] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [showAllFacilities, setShowAllFacilities] = useState(false);
   const { pendingCount, isSyncing } = useOfflineSync();
 
   // Filter state
@@ -265,7 +267,7 @@ export default function DashboardScreen() {
     try {
       const params = buildParams();
       const [facilitiesRes, statsRes, analyticsRes] = await Promise.all([
-        api.get('/v1/facilities/'),
+        api.get('/v1/facilities/', { params: { page_size: 500 } }),
         api.get('/v1/dashboard/stats/', { params }).catch(() => ({ data: { data: null } })),
         api.get('/v1/dashboard/analytics/', { params }).catch(() => ({ data: { data: null } })),
       ]);
@@ -274,6 +276,8 @@ export default function DashboardScreen() {
         stats: statsRes.data.data ?? null,
       };
       setData(freshData);
+      // Share the facility list with the registration forms so they work offline.
+      await primeFacilityCache(freshData.facilities as any);
       setAnalytics(analyticsRes.data.data ?? null);
       setIsStale(false);
       await setCache(CACHE_KEY, freshData, 15 * 60 * 1000); // 15 min TTL
@@ -553,7 +557,7 @@ export default function DashboardScreen() {
                   <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700' }}>{roleName}</Text>
                 </View>
               </View>
-              {data.facilities.slice(0, 5).map((f) => (
+              {(showAllFacilities ? data.facilities : data.facilities.slice(0, 5)).map((f) => (
                 <TouchableOpacity
                   key={f.id}
                   style={[styles.facilityRow, { borderBottomColor: colors.border }]}
@@ -571,7 +575,15 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               ))}
               {data.facilities.length > 5 && (
-                <Text style={[styles.moreText, { color: colors.textMuted }]}>+{data.facilities.length - 5} more facilities</Text>
+                <TouchableOpacity
+                  style={{ paddingVertical: 10, alignItems: 'center' }}
+                  onPress={() => setShowAllFacilities(v => !v)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.moreText, { color: colors.primary }]}>
+                    {showAllFacilities ? 'Show less' : `+${data.facilities.length - 5} more facilities`}
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           )}

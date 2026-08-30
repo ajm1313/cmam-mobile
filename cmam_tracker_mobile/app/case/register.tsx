@@ -15,6 +15,9 @@ import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import { useSyncStore } from '../../lib/sync-store';
 import type { Facility } from '../../lib/types';
+import { fetchFacilities } from '../../lib/facilities';
+import { ageMonthsFromDob, dobFromAgeMonths } from '../../lib/age';
+import { calcRutf, calcRutfPerDay, RUTF_GUIDE } from '../../lib/rutf';
 import { checkIpcReferral, getAlertColors, getAdmissionType, getReportingCategory, type AutomationResult } from '../../lib/samOpcAutomation';
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
@@ -24,39 +27,10 @@ import { autoZScoresFromPlot } from '../../lib/whoReference';
 // ── Constants ────────────────────────────────────────────────────────────────
 type CaseType = 'SAM' | 'MAM' | 'IPC';
 
-// ponytail: RUTF calculator - minimal lookup
-const calcRutf = (w: number): number | null => {
-  if (w < 4) return null;
-  if (w < 5) return 11;
-  if (w < 7) return 14;
-  if (w < 8.5) return 18;
-  if (w < 9.5) return 21;
-  if (w < 10.5) return 25;
-  if (w < 12) return 28;
-  return 32;
-};
-
-// ponytail: RUTF daily ration — sachets/day derived from weekly, rounded to nearest 0.5
-const calcRutfPerDay = (w: number): number | null => {
-  const weekly = calcRutf(w);
-  if (!weekly) return null;
-  return Math.round((weekly / 7) * 2) / 2;
-};
-
 // Auto-compute Z-score categories from plot position on chart
 const autoZScores = (weight: string, height: string, ageMonths: string, gender: string) => {
   return autoZScoresFromPlot(weight, height, ageMonths, gender);
 };
-
-const RUTF_GUIDE = [
-  { weight: '4.0 – 4.9', week: 11, day: '1½' },
-  { weight: '5.0 – 6.9', week: 14, day: '2' },
-  { weight: '7.0 – 8.4', week: 18, day: '2½' },
-  { weight: '8.5 – 9.4', week: 21, day: '3' },
-  { weight: '9.5 – 10.4', week: 25, day: '3½' },
-  { weight: '10.5 – 11.9', week: 28, day: '4' },
-  { weight: '12+', week: 32, day: '4½' },
-];
 const SAM_STEPS = ['Child Info','Photo & Location','Anthropometry','Medical History','Physical Exam','Medicines','RUTF & Other','Notes','Review'];
 const MAM_STEPS = ['Child Info','Photo & Location','Anthropometry','Medical','Medicines & Feeding','Review'];
 const IPC_STEPS = ['Child & Facility','Admission','Anthropometry','Clinical & Danger','Review'];
@@ -106,6 +80,7 @@ export default function CaseRegisterScreen() {
   const [stepIdx, setStepIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [facilitiesFromCache, setFacilitiesFromCache] = useState(false);
   const [childPhoto, setChildPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [dangerSigns, setDangerSigns] = useState<string[]>([]);
   const [automationAlert, setAutomationAlert] = useState<AutomationResult | null>(null);
@@ -172,22 +147,28 @@ export default function CaseRegisterScreen() {
   const inp: any = [styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.inputBg }];
 
   const facilityType = caseType === 'IPC' ? 'IPC' : 'OPC';
-  useEffect(() => { api.get(`/v1/facilities/?type=${facilityType}`).then((r: any) => setFacilities(r.data.data ?? [])).catch(() => {}); }, [facilityType]);
-
+  // Loads from network when online and falls back to the cached list offline,
+  // so non-facility-level users can still pick a facility without a connection.
   useEffect(() => {
-    if (f.date_of_birth && /^\d{4}-\d{2}-\d{2}$/.test(f.date_of_birth)) {
-      const dob = new Date(f.date_of_birth); const now = new Date();
-      let months = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
-      if (now.getDate() < dob.getDate()) months--;
-      if (months >= 0 && months < 120) s('age_months', String(months));
-    }
-  }, [f.date_of_birth, s]);
+    let cancelled = false;
+    fetchFacilities(facilityType).then(({ facilities: list, fromCache }) => {
+      if (cancelled) return;
+      setFacilities(list);
+      setFacilitiesFromCache(fromCache);
+    });
+    return () => { cancelled = true; };
+  }, [facilityType]);
+
+  // Age is derived from the enrolment date, not today, so back-dated
+  // registrations record the age the child was when actually enrolled.
+  useEffect(() => {
+    const months = ageMonthsFromDob(f.date_of_birth, f.admission_date);
+    if (months !== null && months < 120) s('age_months', String(months));
+  }, [f.date_of_birth, f.admission_date, s]);
 
   const ageToDoB = (v: string) => {
-    const m = parseInt(v, 10); if (Number.isNaN(m) || m < 0) return;
-    const now = new Date();
-    const dob = new Date(now.getFullYear(), now.getMonth() - m, now.getDate());
-    s('date_of_birth', dob.toISOString().split('T')[0]);
+    const dob = dobFromAgeMonths(v, f.admission_date);
+    if (dob) s('date_of_birth', dob);
   };
 
   const onTypeChange = (t: CaseType) => { setCaseType(t); setStepIdx(0); s('malnutrition_type', t); };
@@ -574,7 +555,7 @@ export default function CaseRegisterScreen() {
           {caseType === 'SAM' && stepIdx === 0 && (
             <Card c={colors} title="1. Child's Information" accent={accent}>
               <Lbl text="Facility *" c={colors} />
-              <FacilityPicker facilities={facilities} value={f.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} />
+              <FacilityPicker facilities={facilities} value={f.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} fromCache={facilitiesFromCache} />
               {regNumberPreview ? (
                 <View style={{ marginBottom: 10, padding: 12, backgroundColor: accent + '12', borderRadius: 10, borderLeftWidth: 3, borderLeftColor: accent }}>
                   <Text style={{ fontSize: 11, color: accent, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Auto-Generated Registration #</Text>
@@ -870,7 +851,7 @@ export default function CaseRegisterScreen() {
           {caseType === 'MAM' && stepIdx === 0 && (
             <Card c={colors} title="Child Information" accent={accent}>
               <Lbl text="Name of Outpatient Care Site *" c={colors} />
-              <FacilityPicker facilities={facilities} value={f.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} />
+              <FacilityPicker facilities={facilities} value={f.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} fromCache={facilitiesFromCache} />
               {regNumberPreview ? (
                 <View style={{ marginBottom: 10, padding: 12, backgroundColor: accent + '12', borderRadius: 10, borderLeftWidth: 3, borderLeftColor: accent }}>
                   <Text style={{ fontSize: 11, color: accent, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Auto-Generated Registration #</Text>
@@ -1040,7 +1021,7 @@ export default function CaseRegisterScreen() {
           {caseType === 'IPC' && stepIdx === 0 && (
             <Card c={colors} title="Facility & Child Information" accent={accent}>
               <Lbl text="IPC Facility *" c={colors} />
-              <FacilityPicker facilities={facilities} value={f.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} />
+              <FacilityPicker facilities={facilities} value={f.facility_id} onChange={(v: string) => s('facility_id', v)} colors={colors} fromCache={facilitiesFromCache} />
               <Lbl text="Child Name *" c={colors} />
               <TextInput style={inp} value={f.child_name} onChangeText={(v: string) => s('child_name', v)} placeholder="Enter child's name" placeholderTextColor={colors.textMuted} />
               <Lbl text="Date of Birth *" c={colors} />
@@ -1211,7 +1192,7 @@ function Chips({ opts, val, set, accent, c }: { opts: string[]; val: string; set
   );
 }
 
-function FacilityPicker({ facilities, value, onChange, colors }: { facilities: Facility[]; value: string; onChange: (v: string) => void; colors: any }) {
+function FacilityPicker({ facilities, value, onChange, colors, fromCache }: { facilities: Facility[]; value: string; onChange: (v: string) => void; colors: any; fromCache?: boolean }) {
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState('');
   const sel = facilities.find((fc: Facility) => String(fc.id) === value);
@@ -1226,6 +1207,12 @@ function FacilityPicker({ facilities, value, onChange, colors }: { facilities: F
         <Text style={{ color: sel ? colors.textPrimary : colors.textMuted, fontSize: 14, flex: 1 }}>{sel ? sel.name : 'Select Facility'}</Text>
         <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
       </TouchableOpacity>
+      {fromCache && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -6, marginBottom: 10 }}>
+          <Ionicons name="cloud-offline-outline" size={12} color={colors.textMuted} />
+          <Text style={{ fontSize: 11, color: colors.textMuted }}>Offline — using saved facility list</Text>
+        </View>
+      )}
       <Modal visible={visible} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%', paddingBottom: 30 }}>
@@ -1263,7 +1250,13 @@ function FacilityPicker({ facilities, value, onChange, colors }: { facilities: F
                   </View>
                 </TouchableOpacity>
               )}
-              ListEmptyComponent={<Text style={{ textAlign: 'center', padding: 20, color: colors.textMuted }}>No facilities found</Text>}
+              ListEmptyComponent={
+                <Text style={{ textAlign: 'center', padding: 20, color: colors.textMuted }}>
+                  {facilities.length === 0
+                    ? 'No facilities available offline yet. Connect to the internet once to download your facility list.'
+                    : 'No facilities found'}
+                </Text>
+              }
             />
           </View>
         </View>

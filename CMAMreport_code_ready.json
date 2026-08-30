@@ -1,0 +1,1239 @@
+{
+  "schema": "cmam-report-code-ready",
+  "schema_version": "1.0",
+  "encoding": "UTF-8",
+  "source_file": "CMAMreport.xlsx",
+  "description": "Code-editor-readable representation of the CMAM Excel report. Cell positions and data types are preserved; blank cells are represented as null in the grid and omitted from sparse cell maps.",
+  "workbook": {
+    "sheet_count": 1,
+    "sheets": [
+      {
+        "name": "Sheet1",
+        "used_range": "A1:Q40",
+        "row_count": 40,
+        "column_count": 17,
+        "columns": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q"
+        ],
+        "grid": [
+          [
+            "COMMUNITY-BASED MANAGEMENT OF ACUTE MALNUTRITION (CMAM)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Severe Acute Malnutrition – Outpatient Management",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Cases Enrolled (Enrollment)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Exits (For the reporting period)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Age Group",
+            null,
+            "New Enrollment",
+            null,
+            "Old Enrollments",
+            "Other Enrollments",
+            "Age Group",
+            "Male",
+            null,
+            null,
+            null,
+            "Female",
+            null,
+            null,
+            null,
+            "Referred out",
+            "≥5 years"
+          ],
+          [
+            null,
+            null,
+            "(New+Re-enrollments)",
+            null,
+            "(Returned Defaulter + Referred In)",
+            "(≥5 years)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            "Male",
+            "Female",
+            null,
+            null,
+            null,
+            "Cured",
+            "Died",
+            "Defaulted",
+            "Non‑recovered",
+            "Cured",
+            "Died",
+            "Defaulted",
+            "Non‑recovered",
+            null,
+            null
+          ],
+          [
+            "<6 months at risk",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "<6 months at risk (WFL <-2SD/WFA<-2SD)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "(WFL <-2SD/WFA<-2SD)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "6–59 months",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "6–59 months (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "(MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "6–59 months",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "6–59 months (oedema)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "(oedema)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Severe Acute Malnutrition – Inpatient Management (Stabilization Centre)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Cases Admitted (Admissions)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Exits (For the reporting period)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Age Group",
+            null,
+            "New Admissions",
+            null,
+            "Old Admissions",
+            "Other Admissions",
+            "Age Group",
+            "Male",
+            null,
+            null,
+            null,
+            "Female",
+            null,
+            null,
+            null,
+            "Referred out",
+            "Other Admissions"
+          ],
+          [
+            null,
+            null,
+            "(New+Re-admissions)",
+            null,
+            "(Returned Defaulter+ Referred In)",
+            "(≥5 years)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "(≥5 years)"
+          ],
+          [
+            null,
+            null,
+            "Male",
+            "Female",
+            null,
+            null,
+            null,
+            "Cured",
+            "Died",
+            "Defaulted",
+            "Non‑recovered",
+            "Cured",
+            "Died",
+            "Defaulted",
+            "Non‑recovered",
+            null,
+            null
+          ],
+          [
+            "New SAM cases <6 months admitted (WFL <-3 SD or MUAC <11.0cm or oedema",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "New SAM cases <6 months admitted (WFL <-3 SD or MUAC <11.0cm or oedema",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "New SAM Cases <6 months admitted (WFL <-2 SD or WAZ <-2 SD or MUAC 11.0cm-11.5cm) or oedema",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "New SAM Cases <6 months admitted (WFL <-2 SD or WAZ <-2 SD or MUAC 11.0cm-11.5cm) or oedema",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "New SAM Cases 6-59 months admitted (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "New SAM Cases 6-59 months admitted (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "New SAM Cases 6-59 months admitted (oedema /Marasmic kwashiorkor)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "New SAM Cases 6-59 months admitted (oedema /Marasmic kwashiorkor)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Moderate Acute Malnutrition — Outpatient Management (Supplementary Feeding)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Cases Enrolled (Enrollment)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Exits (For the reporting period)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Age Group",
+            null,
+            "New Admissions",
+            null,
+            "Old Enrollments",
+            null,
+            "Age Group",
+            "Male",
+            null,
+            null,
+            null,
+            "Female",
+            null,
+            null,
+            null,
+            "Referred out",
+            null
+          ],
+          [
+            null,
+            null,
+            "(New+Re-admissions)",
+            null,
+            "(Returned Defaulter+Referred in)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            "Male",
+            "Female",
+            null,
+            null,
+            null,
+            "Cured",
+            "Died",
+            "Defaulted",
+            "Non‑recovered",
+            "Cured",
+            "Died",
+            "Defaulted",
+            "Non‑recovered",
+            null,
+            null
+          ],
+          [
+            "High Risk MAM 6-59 months",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "High Risk MAM 6-59 months",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Other MAM cases 6–59 months",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Other MAM cases 6–59 months",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Nutrition Commodities",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Commodity",
+            null,
+            null,
+            "Opening Balance (A)",
+            null,
+            "Quantity Received (B)",
+            "Quantity used (C)",
+            "Quantity Issued to other facilities (D)",
+            null,
+            null,
+            "Wastage (E)",
+            null,
+            "Expired (F)",
+            null,
+            "Closing Balance (G) (A+B) - (C+D+E+F)",
+            null,
+            null
+          ],
+          [
+            "RUTF (sachets)",
+            null,
+            null,
+            1086,
+            null,
+            1446,
+            null,
+            1417,
+            null,
+            null,
+            7,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "F‑75 (sachets)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "F‑100 (sachets)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Resomal (sachets)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Super Cereal Plus (sachets)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "RUSF / BP‑100",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Vitamin A (100,000 IU)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Vitamin A (200,000 IU)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Iron-Folic Acid (IFA) — GIFTS",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "Multiple Micronutrient Supplement (MMS)",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        ],
+        "sparse_rows": [
+          {
+            "row_number": 1,
+            "cells": {
+              "A": "COMMUNITY-BASED MANAGEMENT OF ACUTE MALNUTRITION (CMAM)"
+            }
+          },
+          {
+            "row_number": 2,
+            "cells": {
+              "A": "Severe Acute Malnutrition – Outpatient Management"
+            }
+          },
+          {
+            "row_number": 3,
+            "cells": {
+              "A": "Cases Enrolled (Enrollment)",
+              "G": "Exits (For the reporting period)"
+            }
+          },
+          {
+            "row_number": 4,
+            "cells": {
+              "A": "Age Group",
+              "C": "New Enrollment",
+              "E": "Old Enrollments",
+              "F": "Other Enrollments",
+              "G": "Age Group",
+              "H": "Male",
+              "L": "Female",
+              "P": "Referred out",
+              "Q": "≥5 years"
+            }
+          },
+          {
+            "row_number": 5,
+            "cells": {
+              "C": "(New+Re-enrollments)",
+              "E": "(Returned Defaulter + Referred In)",
+              "F": "(≥5 years)"
+            }
+          },
+          {
+            "row_number": 6,
+            "cells": {
+              "C": "Male",
+              "D": "Female",
+              "H": "Cured",
+              "I": "Died",
+              "J": "Defaulted",
+              "K": "Non‑recovered",
+              "L": "Cured",
+              "M": "Died",
+              "N": "Defaulted",
+              "O": "Non‑recovered"
+            }
+          },
+          {
+            "row_number": 7,
+            "cells": {
+              "A": "<6 months at risk",
+              "G": "<6 months at risk (WFL <-2SD/WFA<-2SD)"
+            }
+          },
+          {
+            "row_number": 8,
+            "cells": {
+              "A": "(WFL <-2SD/WFA<-2SD)"
+            }
+          },
+          {
+            "row_number": 9,
+            "cells": {
+              "A": "6–59 months",
+              "G": "6–59 months (MUAC < 11.5 cm or WFL/WFH <-3 SD)"
+            }
+          },
+          {
+            "row_number": 10,
+            "cells": {
+              "A": "(MUAC < 11.5 cm or WFL/WFH <-3 SD)"
+            }
+          },
+          {
+            "row_number": 11,
+            "cells": {
+              "A": "6–59 months",
+              "G": "6–59 months (oedema)"
+            }
+          },
+          {
+            "row_number": 12,
+            "cells": {
+              "A": "(oedema)"
+            }
+          },
+          {
+            "row_number": 13,
+            "cells": {
+              "A": "Severe Acute Malnutrition – Inpatient Management (Stabilization Centre)"
+            }
+          },
+          {
+            "row_number": 14,
+            "cells": {
+              "A": "Cases Admitted (Admissions)",
+              "G": "Exits (For the reporting period)"
+            }
+          },
+          {
+            "row_number": 15,
+            "cells": {
+              "A": "Age Group",
+              "C": "New Admissions",
+              "E": "Old Admissions",
+              "F": "Other Admissions",
+              "G": "Age Group",
+              "H": "Male",
+              "L": "Female",
+              "P": "Referred out",
+              "Q": "Other Admissions"
+            }
+          },
+          {
+            "row_number": 16,
+            "cells": {
+              "C": "(New+Re-admissions)",
+              "E": "(Returned Defaulter+ Referred In)",
+              "F": "(≥5 years)",
+              "Q": "(≥5 years)"
+            }
+          },
+          {
+            "row_number": 17,
+            "cells": {
+              "C": "Male",
+              "D": "Female",
+              "H": "Cured",
+              "I": "Died",
+              "J": "Defaulted",
+              "K": "Non‑recovered",
+              "L": "Cured",
+              "M": "Died",
+              "N": "Defaulted",
+              "O": "Non‑recovered"
+            }
+          },
+          {
+            "row_number": 18,
+            "cells": {
+              "A": "New SAM cases <6 months admitted (WFL <-3 SD or MUAC <11.0cm or oedema",
+              "G": "New SAM cases <6 months admitted (WFL <-3 SD or MUAC <11.0cm or oedema"
+            }
+          },
+          {
+            "row_number": 19,
+            "cells": {
+              "A": "New SAM Cases <6 months admitted (WFL <-2 SD or WAZ <-2 SD or MUAC 11.0cm-11.5cm) or oedema",
+              "G": "New SAM Cases <6 months admitted (WFL <-2 SD or WAZ <-2 SD or MUAC 11.0cm-11.5cm) or oedema"
+            }
+          },
+          {
+            "row_number": 20,
+            "cells": {
+              "A": "New SAM Cases 6-59 months admitted (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+              "G": "New SAM Cases 6-59 months admitted (MUAC < 11.5 cm or WFL/WFH <-3 SD)"
+            }
+          },
+          {
+            "row_number": 21,
+            "cells": {
+              "A": "New SAM Cases 6-59 months admitted (oedema /Marasmic kwashiorkor)",
+              "G": "New SAM Cases 6-59 months admitted (oedema /Marasmic kwashiorkor)"
+            }
+          },
+          {
+            "row_number": 22,
+            "cells": {
+              "A": "Moderate Acute Malnutrition — Outpatient Management (Supplementary Feeding)"
+            }
+          },
+          {
+            "row_number": 23,
+            "cells": {
+              "A": "Cases Enrolled (Enrollment)",
+              "G": "Exits (For the reporting period)"
+            }
+          },
+          {
+            "row_number": 24,
+            "cells": {
+              "A": "Age Group",
+              "C": "New Admissions",
+              "E": "Old Enrollments",
+              "G": "Age Group",
+              "H": "Male",
+              "L": "Female",
+              "P": "Referred out"
+            }
+          },
+          {
+            "row_number": 25,
+            "cells": {
+              "C": "(New+Re-admissions)",
+              "E": "(Returned Defaulter+Referred in)"
+            }
+          },
+          {
+            "row_number": 26,
+            "cells": {
+              "C": "Male",
+              "D": "Female",
+              "H": "Cured",
+              "I": "Died",
+              "J": "Defaulted",
+              "K": "Non‑recovered",
+              "L": "Cured",
+              "M": "Died",
+              "N": "Defaulted",
+              "O": "Non‑recovered"
+            }
+          },
+          {
+            "row_number": 27,
+            "cells": {
+              "A": "High Risk MAM 6-59 months",
+              "G": "High Risk MAM 6-59 months"
+            }
+          },
+          {
+            "row_number": 28,
+            "cells": {
+              "A": "Other MAM cases 6–59 months",
+              "G": "Other MAM cases 6–59 months"
+            }
+          },
+          {
+            "row_number": 29,
+            "cells": {
+              "A": "Nutrition Commodities"
+            }
+          },
+          {
+            "row_number": 30,
+            "cells": {
+              "A": "Commodity",
+              "D": "Opening Balance (A)",
+              "F": "Quantity Received (B)",
+              "G": "Quantity used (C)",
+              "H": "Quantity Issued to other facilities (D)",
+              "K": "Wastage (E)",
+              "M": "Expired (F)",
+              "O": "Closing Balance (G) (A+B) - (C+D+E+F)"
+            }
+          },
+          {
+            "row_number": 31,
+            "cells": {
+              "A": "RUTF (sachets)",
+              "D": 1086,
+              "F": 1446,
+              "H": 1417,
+              "K": 7
+            }
+          },
+          {
+            "row_number": 32,
+            "cells": {
+              "A": "F‑75 (sachets)"
+            }
+          },
+          {
+            "row_number": 33,
+            "cells": {
+              "A": "F‑100 (sachets)"
+            }
+          },
+          {
+            "row_number": 34,
+            "cells": {
+              "A": "Resomal (sachets)"
+            }
+          },
+          {
+            "row_number": 35,
+            "cells": {
+              "A": "Super Cereal Plus (sachets)"
+            }
+          },
+          {
+            "row_number": 36,
+            "cells": {
+              "A": "RUSF / BP‑100"
+            }
+          },
+          {
+            "row_number": 37,
+            "cells": {
+              "A": "Vitamin A (100,000 IU)"
+            }
+          },
+          {
+            "row_number": 38,
+            "cells": {
+              "A": "Vitamin A (200,000 IU)"
+            }
+          },
+          {
+            "row_number": 39,
+            "cells": {
+              "A": "Iron-Folic Acid (IFA) — GIFTS"
+            }
+          },
+          {
+            "row_number": 40,
+            "cells": {
+              "A": "Multiple Micronutrient Supplement (MMS)"
+            }
+          }
+        ],
+        "non_empty_cells": {
+          "A1": "COMMUNITY-BASED MANAGEMENT OF ACUTE MALNUTRITION (CMAM)",
+          "A2": "Severe Acute Malnutrition – Outpatient Management",
+          "A3": "Cases Enrolled (Enrollment)",
+          "G3": "Exits (For the reporting period)",
+          "A4": "Age Group",
+          "C4": "New Enrollment",
+          "E4": "Old Enrollments",
+          "F4": "Other Enrollments",
+          "G4": "Age Group",
+          "H4": "Male",
+          "L4": "Female",
+          "P4": "Referred out",
+          "Q4": "≥5 years",
+          "C5": "(New+Re-enrollments)",
+          "E5": "(Returned Defaulter + Referred In)",
+          "F5": "(≥5 years)",
+          "C6": "Male",
+          "D6": "Female",
+          "H6": "Cured",
+          "I6": "Died",
+          "J6": "Defaulted",
+          "K6": "Non‑recovered",
+          "L6": "Cured",
+          "M6": "Died",
+          "N6": "Defaulted",
+          "O6": "Non‑recovered",
+          "A7": "<6 months at risk",
+          "G7": "<6 months at risk (WFL <-2SD/WFA<-2SD)",
+          "A8": "(WFL <-2SD/WFA<-2SD)",
+          "A9": "6–59 months",
+          "G9": "6–59 months (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+          "A10": "(MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+          "A11": "6–59 months",
+          "G11": "6–59 months (oedema)",
+          "A12": "(oedema)",
+          "A13": "Severe Acute Malnutrition – Inpatient Management (Stabilization Centre)",
+          "A14": "Cases Admitted (Admissions)",
+          "G14": "Exits (For the reporting period)",
+          "A15": "Age Group",
+          "C15": "New Admissions",
+          "E15": "Old Admissions",
+          "F15": "Other Admissions",
+          "G15": "Age Group",
+          "H15": "Male",
+          "L15": "Female",
+          "P15": "Referred out",
+          "Q15": "Other Admissions",
+          "C16": "(New+Re-admissions)",
+          "E16": "(Returned Defaulter+ Referred In)",
+          "F16": "(≥5 years)",
+          "Q16": "(≥5 years)",
+          "C17": "Male",
+          "D17": "Female",
+          "H17": "Cured",
+          "I17": "Died",
+          "J17": "Defaulted",
+          "K17": "Non‑recovered",
+          "L17": "Cured",
+          "M17": "Died",
+          "N17": "Defaulted",
+          "O17": "Non‑recovered",
+          "A18": "New SAM cases <6 months admitted (WFL <-3 SD or MUAC <11.0cm or oedema",
+          "G18": "New SAM cases <6 months admitted (WFL <-3 SD or MUAC <11.0cm or oedema",
+          "A19": "New SAM Cases <6 months admitted (WFL <-2 SD or WAZ <-2 SD or MUAC 11.0cm-11.5cm) or oedema",
+          "G19": "New SAM Cases <6 months admitted (WFL <-2 SD or WAZ <-2 SD or MUAC 11.0cm-11.5cm) or oedema",
+          "A20": "New SAM Cases 6-59 months admitted (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+          "G20": "New SAM Cases 6-59 months admitted (MUAC < 11.5 cm or WFL/WFH <-3 SD)",
+          "A21": "New SAM Cases 6-59 months admitted (oedema /Marasmic kwashiorkor)",
+          "G21": "New SAM Cases 6-59 months admitted (oedema /Marasmic kwashiorkor)",
+          "A22": "Moderate Acute Malnutrition — Outpatient Management (Supplementary Feeding)",
+          "A23": "Cases Enrolled (Enrollment)",
+          "G23": "Exits (For the reporting period)",
+          "A24": "Age Group",
+          "C24": "New Admissions",
+          "E24": "Old Enrollments",
+          "G24": "Age Group",
+          "H24": "Male",
+          "L24": "Female",
+          "P24": "Referred out",
+          "C25": "(New+Re-admissions)",
+          "E25": "(Returned Defaulter+Referred in)",
+          "C26": "Male",
+          "D26": "Female",
+          "H26": "Cured",
+          "I26": "Died",
+          "J26": "Defaulted",
+          "K26": "Non‑recovered",
+          "L26": "Cured",
+          "M26": "Died",
+          "N26": "Defaulted",
+          "O26": "Non‑recovered",
+          "A27": "High Risk MAM 6-59 months",
+          "G27": "High Risk MAM 6-59 months",
+          "A28": "Other MAM cases 6–59 months",
+          "G28": "Other MAM cases 6–59 months",
+          "A29": "Nutrition Commodities",
+          "A30": "Commodity",
+          "D30": "Opening Balance (A)",
+          "F30": "Quantity Received (B)",
+          "G30": "Quantity used (C)",
+          "H30": "Quantity Issued to other facilities (D)",
+          "K30": "Wastage (E)",
+          "M30": "Expired (F)",
+          "O30": "Closing Balance (G) (A+B) - (C+D+E+F)",
+          "A31": "RUTF (sachets)",
+          "D31": 1086,
+          "F31": 1446,
+          "H31": 1417,
+          "K31": 7,
+          "A32": "F‑75 (sachets)",
+          "A33": "F‑100 (sachets)",
+          "A34": "Resomal (sachets)",
+          "A35": "Super Cereal Plus (sachets)",
+          "A36": "RUSF / BP‑100",
+          "A37": "Vitamin A (100,000 IU)",
+          "A38": "Vitamin A (200,000 IU)",
+          "A39": "Iron-Folic Acid (IFA) — GIFTS",
+          "A40": "Multiple Micronutrient Supplement (MMS)"
+        }
+      }
+    ]
+  }
+}

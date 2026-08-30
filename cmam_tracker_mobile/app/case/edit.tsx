@@ -17,6 +17,7 @@ import AnthroGrowthCharts from '../../components/AnthroGrowthCharts';
 import { autoZScoresFromPlot } from '../../lib/whoReference';
 import { checkIpcReferral, getAlertColors, type AutomationResult } from '../../lib/samOpcAutomation';
 import type { Facility } from '../../lib/types';
+import { calcRutf, RUTF_GUIDE } from '../../lib/rutf';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
 const YES_NO = ['Yes', 'No'];
@@ -49,29 +50,9 @@ const CAREGIVER_REL = ['Mother', 'Father', 'Grandmother', 'Grandfather', 'Aunt',
 const SAM_REFERRAL = ['Direct from community', 'Referred from health facility', 'Referred from IPC', 'Re-enrolment/relapse'];
 const HIV_TB_OPTS = ['None', 'HIV Positive', 'TB Positive', 'HIV+TB', 'Suspected'];
 const VULN_OPTS = ['None', 'Low', 'Moderate', 'High', 'Severe'];
-const calcRutf = (w: number): number | null => {
-  if (w < 4) return null;
-  if (w < 5) return 11;
-  if (w < 7) return 14;
-  if (w < 8.5) return 18;
-  if (w < 9.5) return 21;
-  if (w < 10.5) return 25;
-  if (w < 12) return 28;
-  return 32;
-};
-
 const autoZScores = (weight: string, height: string, ageMonths: string, gender: string) => {
   return autoZScoresFromPlot(weight, height, ageMonths, gender);
 };
-const RUTF_GUIDE = [
-  { weight: '4.0 – 4.9', week: 11, day: '1½' },
-  { weight: '5.0 – 6.9', week: 14, day: '2' },
-  { weight: '7.0 – 8.4', week: 18, day: '2½' },
-  { weight: '8.5 – 9.4', week: 21, day: '3' },
-  { weight: '9.5 – 10.4', week: 25, day: '3½' },
-  { weight: '10.5 – 11.9', week: 28, day: '4' },
-  { weight: '12+', week: 32, day: '4½' },
-];
 const SAM_EDIT_STEPS = ['Child Info', 'Photo & Location', 'Anthropometry', 'Admission', 'Medical History', 'Physical Exam', 'Medicines', 'RUTF & Other', 'Notes'];
 const MAM_EDIT_STEPS = ['Child Info', 'Photo & Location', 'Anthropometry', 'MAM Details', 'Aggravating Factors', 'Medical', 'Medicines & Feeding'];
 

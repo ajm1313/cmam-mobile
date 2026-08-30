@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform, Image as RNImage, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform, Image as RNImage, ActivityIndicator, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,6 +12,7 @@ import { useTheme, type ThemeMode } from '../../lib/theme';
 import { useSyncStore } from '../../lib/sync-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../lib/api';
+import { appConfig } from '../../lib/config';
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -435,6 +436,30 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
+
+      {/* DHIMS2 Integration */}
+      {!user?.is_facility_level_only && (
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Integrations</Text>
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => {
+              const baseUrl = appConfig.apiBaseUrl.replace('/api', '');
+              Linking.openURL(`${baseUrl}/manage/dhis2/`);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIconWrap, { backgroundColor: colors.primary + '10' }]}>
+              <Ionicons name="cloud-upload-outline" size={16} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>DHIMS2 Integration</Text>
+              <Text style={[styles.actionHint, { color: colors.textMuted }]}>Configure DHIMS2 mappings & push reports</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Appearance */}
       <View style={[styles.section, { backgroundColor: colors.surface }]}>

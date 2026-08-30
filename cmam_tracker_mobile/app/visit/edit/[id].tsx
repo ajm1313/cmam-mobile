@@ -14,6 +14,7 @@ import DatePickerField from '../../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../../lib/samOpcAutomation';
 import OfflineBanner from '../../../components/OfflineBanner';
 import WHOGrowthChart from '../../../components/WHOGrowthChart';
+import { calcRutf, RUTF_GUIDE } from '../../../lib/rutf';
 
 type Step = 'anthropometry' | 'medical' | 'treatment' | 'outcome';
 const STEPS: { key: Step; label: string; icon: string }[] = [
@@ -32,28 +33,6 @@ const BREASTFEEDING_OPTIONS = ['BFW', 'BFC', 'NBF'];
 const Z_SCORE_OPTIONS = ['< -3 SD', '-3 to < -2 SD', '-2 to +1 SD', '> +1 to +2 SD', '> +2 SD'];
 const FOOD_PRODUCT_OPTIONS = ['RUSF', 'CSB++', 'CSB+', 'Fortified Oil', 'Other'];
 const ANTHROPOMETRY_VISITS = [4, 8, 12, 16];
-
-// ponytail: RUTF calculator - same as register
-const calcRutf = (w: number): number | null => {
-  if (w < 4) return null;
-  if (w < 5) return 11;
-  if (w < 7) return 14;
-  if (w < 8.5) return 18;
-  if (w < 9.5) return 21;
-  if (w < 10.5) return 25;
-  if (w < 12) return 28;
-  return 32;
-};
-
-const RUTF_GUIDE = [
-  { weight: '4.0 – 4.9', week: 11, day: '1½' },
-  { weight: '5.0 – 6.9', week: 14, day: '2' },
-  { weight: '7.0 – 8.4', week: 18, day: '2½' },
-  { weight: '8.5 – 9.4', week: 21, day: '3' },
-  { weight: '9.5 – 10.4', week: 25, day: '3½' },
-  { weight: '10.5 – 11.9', week: 28, day: '4' },
-  { weight: '12+', week: 32, day: '4½' },
-];
 
 export default function VisitEditScreen() {
   const { id, caseId } = useLocalSearchParams<{ id: string; caseId: string }>();

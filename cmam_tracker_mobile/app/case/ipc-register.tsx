@@ -12,6 +12,7 @@ import api from '../../lib/api';
 import { sendOrQueue } from '../../lib/offlineQueue';
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
+import { fetchFacilities } from '../../lib/facilities';
 
 interface Facility { id: number; name: string; }
 
@@ -23,6 +24,7 @@ export default function IpcRegisterScreen() {
   const params = useLocalSearchParams<{ caseId?: string; caseName?: string }>();
 
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [facilitiesLoading, setFacilitiesLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     patient_name: params.caseName || '',
@@ -38,11 +40,19 @@ export default function IpcRegisterScreen() {
     notes: '',
   });
 
+  const [facilitiesFromCache, setFacilitiesFromCache] = useState(false);
+
+  // Falls back to the cached facility list when offline so IPC registration
+  // remains possible for users who must choose a facility.
   useEffect(() => {
-    api.get('/v1/facilities/?type=IPC').then(r => {
-      const list = (r.data.data ?? []).map((f: any) => ({ id: f.id, name: f.name }));
-      setFacilities(list);
-    }).catch((e: any) => { Alert.alert('Error', 'Could not load facilities.'); });
+    let cancelled = false;
+    fetchFacilities('IPC').then(({ facilities: list, fromCache }) => {
+      if (cancelled) return;
+      setFacilities(list.map((f) => ({ id: f.id, name: f.name })));
+      setFacilitiesFromCache(fromCache);
+      setFacilitiesLoading(false);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const s = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -158,8 +168,12 @@ export default function IpcRegisterScreen() {
         <Text style={[lbl, { color: colors.textPrimary, fontSize: 14, marginBottom: 12, marginTop: 16 }]}>Facility</Text>
         <Text style={lbl}>IPC Facility *</Text>
         <View style={[inp, { paddingVertical: 0 }]}>
-          {facilities.length === 0 ? (
+          {facilitiesLoading ? (
             <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: 12 }} />
+          ) : facilities.length === 0 ? (
+            <Text style={{ fontSize: 12, color: colors.textMuted, paddingVertical: 14 }}>
+              No IPC facilities available offline yet. Connect to the internet once to download your facility list.
+            </Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 8 }}>
               <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -172,6 +186,12 @@ export default function IpcRegisterScreen() {
             </ScrollView>
           )}
         </View>
+        {facilitiesFromCache && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+            <Ionicons name="cloud-offline-outline" size={12} color={colors.textMuted} />
+            <Text style={{ fontSize: 11, color: colors.textMuted }}>Offline — using saved facility list</Text>
+          </View>
+        )}
 
         {params.caseId && (
           <>
