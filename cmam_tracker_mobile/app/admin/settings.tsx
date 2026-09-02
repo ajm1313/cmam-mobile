@@ -11,12 +11,14 @@ import { useAuthStore } from '../../lib/store';
 import { useTheme } from '../../lib/theme';
 import { useSyncStore } from '../../lib/sync-store';
 import { logger } from '../../lib/logger';
+import { clearAllCache } from '../../lib/cache';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, mode: themeMode, setMode: setThemeMode } = useTheme();
-  const { logout } = useAuthStore();
-  const { queue } = useSyncStore();
+  const { logout, user } = useAuthStore();
+  const allQueue = useSyncStore((state) => state.queue);
+  const queue = allQueue.filter((item) => !item.ownerId || item.ownerId === String(user?.id || ''));
   const insets = useSafeAreaInsets();
 
   const [apiUrl, setApiUrl] = useState('');
@@ -57,10 +59,8 @@ export default function SettingsScreen() {
       {
         text: 'Clear', style: 'destructive',
         onPress: async () => {
-          const keys = await AsyncStorage.getAllKeys();
-          const cacheKeys = keys.filter(k => k.startsWith('cache_') || k.startsWith('cases_') || k.startsWith('reports_') || k.startsWith('inventory_') || k.startsWith('dashboard_'));
-          await AsyncStorage.multiRemove(cacheKeys as string[]);
-          Alert.alert('Done', `Cleared ${cacheKeys.length} cache entries.`);
+          await clearAllCache();
+          Alert.alert('Done', 'Cached online data was cleared. Pending offline submissions were kept.');
         },
       },
     ]);

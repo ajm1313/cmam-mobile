@@ -11,13 +11,16 @@ import { useTheme } from '../../lib/theme';
 import { useSyncStore, type SyncQueueItem } from '../../lib/sync-store';
 import EmptyState from '../../components/EmptyState';
 import ConflictResolutionModal from '../../components/ConflictResolutionModal';
+import { useAuthStore } from '../../lib/store';
 
 export default function OfflineSyncScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const { queue, isSyncing, lastSyncAt, sync, removeItem, clear, resolveConflict } = useSyncStore();
+  const ownerId = String(useAuthStore((state) => state.user?.id) || '');
+  const { queue: allQueue, isSyncing, lastSyncAt, sync, removeItem, retryItem, clear, resolveConflict } = useSyncStore();
+  const queue = allQueue.filter((item) => !item.ownerId || item.ownerId === ownerId);
   const [refreshing, setRefreshing] = useState(false);
   const [conflictItem, setConflictItem] = useState<SyncQueueItem | null>(null);
 
@@ -26,14 +29,13 @@ export default function OfflineSyncScreen() {
       Alert.alert('Nothing to Sync', 'The queue is empty.');
       return;
     }
-    await sync();
-    const remaining = useSyncStore.getState().queue.length;
-    const synced = queue.length - remaining;
+    const result = await sync(ownerId);
+    const remaining = useSyncStore.getState().queue.filter((item) => !item.ownerId || item.ownerId === ownerId).length;
     Alert.alert(
       'Sync Complete',
-      `${synced} item(s) synced successfully.${remaining > 0 ? `\n${remaining} item(s) failed — will retry.` : ''}`
+      `${result.synced} item(s) synced successfully.${remaining > 0 ? `\n${remaining} remain. Items marked “needs attention” require correction or a manual retry.` : ''}`
     );
-  }, [queue, sync]);
+  }, [queue, sync, ownerId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -93,7 +95,7 @@ export default function OfflineSyncScreen() {
                 style={[styles.clearBtn, { borderColor: colors.danger + '40' }]}
                 onPress={() => Alert.alert('Clear Queue', 'Remove all pending items?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Clear', style: 'destructive', onPress: clear },
+                  { text: 'Clear', style: 'destructive', onPress: () => clear(ownerId) },
                 ])}
                 activeOpacity={0.7}
               >
@@ -136,12 +138,25 @@ export default function OfflineSyncScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.queueLabel, { color: colors.textPrimary }]}>{item.label}</Text>
-                {!item.conflict && item.retries > 0 && (
+              {!item.conflict && item.retries > 0 && (
                   <View style={[styles.retryBadge, { backgroundColor: colors.danger + '15' }]}>
                     <Text style={[styles.retryText, { color: colors.danger }]}>{item.retries} retries</Text>
                   </View>
                 )}
               </View>
+              {!!item.lastError && (
+                <Text style={{ color: item.state === 'failed' ? colors.danger : colors.warning, fontSize: 11, marginBottom: 8 }}>
+                  {item.lastError}
+                </Text>
+              )}
+              {item.state === 'failed' && (
+                <TouchableOpacity
+                  style={[styles.removeBtn, { borderColor: colors.primary + '50', marginBottom: 8 }]}
+                  onPress={async () => { retryItem(item.id); await sync(ownerId); }}
+                >
+                  <Text style={[styles.removeBtnText, { color: colors.primary }]}>Retry</Text>
+                </TouchableOpacity>
+              )}
               <View style={styles.queueFooter}>
                 <Text style={[styles.queueUrl, { color: colors.textMuted }]}>{item.url}</Text>
                 <Text style={[styles.queueTime, { color: colors.textMuted }]}>{formatTime(item.timestamp)}</Text>

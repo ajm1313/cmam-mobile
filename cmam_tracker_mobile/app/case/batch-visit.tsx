@@ -9,11 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
-import { sendOrQueue } from '../../lib/offlineQueue';
+import { createClientUid, sendOrQueue } from '../../lib/offlineQueue';
 import { logger } from '../../lib/logger';
 import OfflineBanner from '../../components/OfflineBanner';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
+import { getCacheFallback, setCache } from '../../lib/cache';
 
 interface DueVisit {
   id: number;
@@ -22,6 +23,7 @@ interface DueVisit {
   malnutrition_type: string;
   facility_name: string;
   days_overdue: number;
+  visit_count: number;
 }
 
 interface VisitEntry {
@@ -30,6 +32,9 @@ interface VisitEntry {
   weight: string;
   height: string;
   muac: string;
+  appetite: string;
+  zScoreWfh: string;
+  visitNumber: number;
   notes: string;
   selected: boolean;
 }
@@ -44,6 +49,7 @@ export default function BatchVisitScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isStale, setIsStale] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
   const fetchData = useCallback(async () => {
@@ -56,13 +62,23 @@ export default function BatchVisitScreen() {
       const mamVisits: DueVisit[] = mamRes.data.data?.due_visits ?? [];
       const visits = [...samVisits, ...mamVisits];
       setDueVisits(visits);
+      await setCache('batch_due_visits', visits, 10 * 60 * 1000);
+      setIsStale(false);
       const init: Record<number, VisitEntry> = {};
       visits.forEach((v: DueVisit) => {
-        init[v.id] = { caseId: v.id, visitDate: today, weight: '', height: '', muac: '', notes: '', selected: true };
+        init[v.id] = { caseId: v.id, visitDate: today, weight: '', height: '', muac: '', appetite: '', zScoreWfh: '', visitNumber: v.visit_count + 1, notes: '', selected: true };
       });
       setEntries(init);
     } catch {
-      setDueVisits([]);
+      const cached = await getCacheFallback<DueVisit[]>('batch_due_visits');
+      const visits = cached?.data || [];
+      setDueVisits(visits);
+      setIsStale(!!cached);
+      const init: Record<number, VisitEntry> = {};
+      visits.forEach((v) => {
+        init[v.id] = { caseId: v.id, visitDate: today, weight: '', height: '', muac: '', appetite: '', zScoreWfh: '', visitNumber: v.visit_count + 1, notes: '', selected: true };
+      });
+      setEntries(init);
     } finally {
       setLoading(false);
     }
@@ -91,12 +107,18 @@ export default function BatchVisitScreen() {
   };
 
   const selectedEntries = Object.values(entries).filter(e => e.selected);
-  const validEntries = selectedEntries.filter(e => e.weight || e.muac || e.height);
+  const isComplete = (entry: VisitEntry) => !!entry.weight && !!entry.muac && ['Pass', 'Fail'].includes(entry.appetite)
+    && (![4, 8, 12, 16].includes(entry.visitNumber) || (!!entry.height && !!entry.zScoreWfh));
+  const validEntries = selectedEntries.filter(isComplete);
 
   const handleSubmit = async () => {
     if (submitting) return;
-    if (validEntries.length === 0) {
-      Alert.alert('No Data', 'Please enter at least weight or MUAC for selected cases.');
+    if (selectedEntries.length === 0) {
+      Alert.alert('No Cases Selected', 'Select at least one case.');
+      return;
+    }
+    if (validEntries.length !== selectedEntries.length) {
+      Alert.alert('Incomplete Visits', 'Each selected case needs weight, MUAC, and appetite. Visits 4, 8, 12, and 16 also need height and W/H Z-score.');
       return;
     }
 
@@ -115,10 +137,11 @@ export default function BatchVisitScreen() {
             const stockWarnings: string[] = [];
             for (const entry of validEntries) {
               try {
-                const payload: Record<string, any> = { visit_date: entry.visitDate };
+                const payload: Record<string, any> = { visit_date: entry.visitDate, client_uid: createClientUid(), appetite: entry.appetite };
                 if (entry.weight) payload.weight_kg = parseFloat(entry.weight);
                 if (entry.height) payload.height_cm = parseFloat(entry.height);
                 if (entry.muac) payload.muac_cm = parseFloat(entry.muac);
+                if (entry.zScoreWfh) payload.z_score_wfh = entry.zScoreWfh;
                 if (entry.notes) payload.medical_notes = entry.notes;
                 const res = await sendOrQueue(`/v1/cases/${entry.caseId}/visits/record/`, 'post', payload, `Batch Visit #${entry.caseId}`);
                 if (res) {
@@ -156,7 +179,7 @@ export default function BatchVisitScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <OfflineBanner isStale={false} />
+      <OfflineBanner isStale={isStale} />
       <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: Math.max(insets.top, 16) }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
@@ -174,7 +197,7 @@ export default function BatchVisitScreen() {
         <View style={[styles.infoBanner, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
           <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            Fill in visit date, weight, height, and/or MUAC for due cases. Only selected cases with data will be submitted.
+            Enter weight, MUAC, and appetite for every selected case. Height and W/H Z-score are also required at visits 4, 8, 12, and 16.
           </Text>
         </View>
 
@@ -219,6 +242,26 @@ export default function BatchVisitScreen() {
                       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MUAC (cm)</Text>
                       <TextInput style={inp} value={entry.muac} onChangeText={(val: string) => updateEntry(v.id, 'muac', val)} keyboardType="decimal-pad" placeholder="0.0" placeholderTextColor={colors.textMuted} />
                     </View>
+                    <View style={styles.fieldGroup}>
+                      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Appetite</Text>
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        {['Pass', 'Fail'].map((option) => (
+                          <TouchableOpacity
+                            key={option}
+                            onPress={() => updateEntry(v.id, 'appetite', option)}
+                            style={{ paddingHorizontal: 8, paddingVertical: 8, borderRadius: 7, borderWidth: 1, borderColor: entry.appetite === option ? colors.primary : colors.border, backgroundColor: entry.appetite === option ? colors.primary + '15' : 'transparent' }}
+                          >
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: entry.appetite === option ? colors.primary : colors.textMuted }}>{option}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                    {[4, 8, 12, 16].includes(entry.visitNumber) && (
+                      <View style={styles.fieldGroup}>
+                        <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>W/H Z-score</Text>
+                        <TextInput style={[inp, { width: 100 }]} value={entry.zScoreWfh} onChangeText={(val: string) => updateEntry(v.id, 'zScoreWfh', val)} placeholder="e.g. -2.5" placeholderTextColor={colors.textMuted} />
+                      </View>
+                    )}
                     <View style={[styles.fieldGroup, { flex: 2 }]}>
                       <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Notes</Text>
                       <TextInput style={[inp, { width: '100%' }]} value={entry.notes} onChangeText={(val: string) => updateEntry(v.id, 'notes', val)} placeholder="Optional" placeholderTextColor={colors.textMuted} />
@@ -232,10 +275,10 @@ export default function BatchVisitScreen() {
       </ScrollView>
 
       {/* Submit Bar */}
-      {validEntries.length > 0 && (
+      {selectedEntries.length > 0 && (
         <View style={[styles.submitBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <Text style={[styles.submitBarText, { color: colors.textSecondary }]}>
-            {validEntries.length} ready to submit
+            {validEntries.length} of {selectedEntries.length} ready
           </Text>
           <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary, opacity: submitting ? 0.6 : 1 }]} onPress={handleSubmit} disabled={submitting} activeOpacity={0.7}>
             {submitting ? <ActivityIndicator size={18} color="#fff" /> : <Text style={styles.submitBtnText}>Submit All</Text>}

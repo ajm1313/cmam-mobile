@@ -4,10 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
 import { useTheme } from '../lib/theme';
 import { useSyncStore } from '../lib/sync-store';
+import { useAuthStore } from '../lib/store';
 
 export function SyncStatusBanner() {
   const { colors } = useTheme();
-  const { queue, isSyncing, lastSyncAt, sync } = useSyncStore();
+  const ownerId = String(useAuthStore((state) => state.user?.id) || '');
+  const { queue: allQueue, isSyncing, lastSyncAt, sync } = useSyncStore();
+  const queue = allQueue.filter((item) => !item.ownerId || item.ownerId === ownerId);
   const [online, setOnline] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -24,8 +27,8 @@ export function SyncStatusBanner() {
     setLastError(null);
     try {
       const before = queue.length;
-      await sync();
-      const after = useSyncStore.getState().queue.length;
+      await sync(ownerId);
+      const after = useSyncStore.getState().queue.filter((item) => !item.ownerId || item.ownerId === ownerId).length;
       if (after > 0) setLastError(`${after} of ${before} requests failed`);
     } catch (e: any) {
       setLastError(e.message || 'Sync failed');

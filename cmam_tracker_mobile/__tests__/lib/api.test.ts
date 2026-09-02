@@ -1,8 +1,6 @@
-import axios from 'axios';
 import api from '../../lib/api';
 import * as SecureStore from 'expo-secure-store';
 
-jest.mock('axios');
 jest.mock('expo-secure-store');
 
 describe('API Client', () => {

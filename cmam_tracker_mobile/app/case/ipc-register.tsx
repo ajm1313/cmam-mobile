@@ -9,7 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
-import { sendOrQueue } from '../../lib/offlineQueue';
+import { createClientUid, sendOrQueue } from '../../lib/offlineQueue';
+import { useSyncStore } from '../../lib/sync-store';
 import DatePickerField from '../../components/DatePickerField';
 import OfflineBanner from '../../components/OfflineBanner';
 import { fetchFacilities } from '../../lib/facilities';
@@ -71,7 +72,9 @@ export default function IpcRegisterScreen() {
     try {
       const toInt = (v: string) => { const n = parseInt(v, 10); return Number.isNaN(n) ? undefined : n; };
       const toFloat = (v: string) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
+      const clientUid = createClientUid();
       const payload: Record<string, any> = {
+        client_uid: clientUid,
         patient_name: form.patient_name,
         patient_age: toInt(form.patient_age) ?? 0,
         gender: form.gender,
@@ -83,16 +86,31 @@ export default function IpcRegisterScreen() {
       };
       if (form.muac) { const n = toFloat(form.muac); if (n !== undefined) payload.muac = n; }
 
-      const res = await sendOrQueue('/v1/ipc/cases/', 'post', payload, 'IPC Case Registration');
+      const owner = String(user?.id || '');
+      const duplicate = useSyncStore.getState().queue.find((item) => {
+        const expectedUrl = params.caseId ? `/v1/cases/${params.caseId}/transfer/` : '/v1/ipc/cases/';
+        if (item.url !== expectedUrl || item.method !== 'POST' || (item.ownerId && item.ownerId !== owner)) return false;
+        const data = item.data || {};
+        if (params.caseId) return data.transfer_type === 'ipc' && String(data.target_facility_id) === String(payload.facility_id);
+        return String(data.facility_id) === String(payload.facility_id)
+          && data.admission_date === payload.admission_date
+          && data.gender === payload.gender
+          && String(data.patient_name || '').trim().toLowerCase() === payload.patient_name.trim().toLowerCase();
+      });
+      if (duplicate) {
+        Alert.alert('Duplicate Registration', 'An identical IPC registration is already waiting to sync.');
+        return;
+      }
 
-      if (params.caseId) {
-        await sendOrQueue(`/v1/cases/${params.caseId}/transfer/`, 'post', {
+      const res = params.caseId
+        ? await sendOrQueue(`/v1/cases/${params.caseId}/transfer/`, 'post', {
+          client_uid: clientUid,
           transfer_type: 'ipc',
           target_facility_id: toInt(form.facility_id),
           reason: form.reason,
           notes: form.notes,
-        }, 'IPC Transfer').catch(() => {});
-      }
+        }, 'IPC Transfer')
+        : await sendOrQueue('/v1/ipc/cases/', 'post', payload, 'IPC Case Registration');
 
       if (res) {
         Alert.alert('Success', 'IPC case registered successfully.', [{ text: 'OK', onPress: () => router.back() }]);

@@ -50,7 +50,7 @@ export default function DueVisitsScreen() {
       setVisits(d.due_visits || []);
       setStats(d.stats || null);
       setIsStale(false);
-      setCache(cacheKey, d, 300);
+      setCache(cacheKey, d, 10 * 60 * 1000);
     } catch {
       const cached = await getCacheFallback(cacheKey);
       if (cached) { const d = cached.data as any; setVisits(d?.due_visits || []); setStats(d?.stats || null); setIsStale(true); }
@@ -178,7 +178,7 @@ export default function DueVisitsScreen() {
                 </View>
                 <TouchableOpacity
                   style={[styles.recordBtn, { backgroundColor: colors.primary }]}
-                  onPress={() => router.push({ pathname: '/visit/[caseId]', params: { caseId: String(item.id), caseName: item.child_name, caseType: item.malnutrition_type } })}
+                  onPress={() => router.push({ pathname: '/visit/[caseId]', params: { caseId: String(item.id), caseName: item.child_name, caseType: item.malnutrition_type, visitNumber: String(item.visit_count + 1) } })}
                 >
                   <Ionicons name="add-circle-outline" size={16} color="#fff" />
                   <Text style={styles.recordBtnText}>Record Visit</Text>

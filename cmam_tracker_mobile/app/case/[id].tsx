@@ -13,6 +13,7 @@ import { useAuthStore } from '../../lib/store';
 import type { OpcCaseDetail, OpcVisit } from '../../lib/types';
 import WHOGrowthChart from '../../components/WHOGrowthChart';
 import OfflineBanner from '../../components/OfflineBanner';
+import { getCacheFallback, setCache } from '../../lib/cache';
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -149,13 +150,23 @@ export default function CaseDetailScreen() {
   const [caseData, setCaseData] = useState<OpcCaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isStale, setIsStale] = useState(false);
 
   const fetchCase = useCallback(async () => {
+    const cacheKey = `case_detail_${id}`;
     try {
       const res = await api.get(`/v1/cases/${id}/`);
       setCaseData(res.data.data);
+      setIsStale(false);
+      await setCache(cacheKey, res.data.data, 10 * 60 * 1000);
     } catch {
-      Alert.alert('Error', 'Failed to load case details.');
+      const cached = await getCacheFallback<OpcCaseDetail>(cacheKey);
+      if (cached) {
+        setCaseData(cached.data);
+        setIsStale(true);
+      } else {
+        Alert.alert('Error', 'This case has not been saved on this device yet. Connect once to load it.');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -285,7 +296,7 @@ export default function CaseDetailScreen() {
 
   return (
     <>
-      <OfflineBanner isStale={false} />
+      <OfflineBanner isStale={isStale} />
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{ paddingBottom: 100 }}
@@ -793,5 +804,4 @@ function MiniMetric({ label, value, color, textColor, mutedColor }: { label: str
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────────
-
 

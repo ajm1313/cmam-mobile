@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, type ThemeColors } from '../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../lib/api';
-import { sendOrQueue } from '../../lib/offlineQueue';
+import { createClientUid, sendOrQueue } from '../../lib/offlineQueue';
+import { getCacheFallback, setCache } from '../../lib/cache';
 import { logger } from '../../lib/logger';
 import DatePickerField from '../../components/DatePickerField';
 import { checkVisitActions, getAlertColors, type AutomationResult } from '../../lib/samOpcAutomation';
@@ -35,7 +36,7 @@ const FOOD_PRODUCT_OPTIONS = ['RUSF', 'CSB++', 'CSB+', 'Fortified Oil', 'Other']
 const ANTHROPOMETRY_VISITS = [4, 8, 12, 16];
 
 export default function VisitFormScreen() {
-  const { caseId, caseName, caseType, caseAge, admissionWeight, visitNumber } = useLocalSearchParams<{ caseId: string; caseName: string; caseType: string; caseAge?: string; admissionWeight?: string; visitNumber?: string }>();
+  const { caseId, caseClientUid, caseName, caseType, caseAge, admissionWeight, visitNumber, facilityId } = useLocalSearchParams<{ caseId: string; caseClientUid?: string; caseName: string; caseType: string; caseAge?: string; admissionWeight?: string; visitNumber?: string; facilityId?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -55,10 +56,15 @@ export default function VisitFormScreen() {
   // Fetch RUTF stock level and case info for weeks calculation
   useEffect(() => {
     const fetchStock = async () => {
+      if (caseClientUid) {
+        setPreviousWeight(admissionWeight ? parseFloat(admissionWeight) : null);
+        return;
+      }
       try {
         const caseRes = await api.get(`/v1/cases/${caseId}/`);
         const caseData = caseRes.data?.data;
         setCaseData(caseData);
+        await setCache(`case_detail_${caseId}`, caseData, 10 * 60 * 1000);
         const facilityId = caseData?.facility_id;
         // Calculate weeks in program from registration date
         if (caseData?.registration_date) {
@@ -85,10 +91,18 @@ export default function VisitFormScreen() {
           );
           if (rutfItem) setRutfStock(rutfItem.available_stock ?? rutfItem.current_stock ?? 0);
         }
-      } catch (e: any) { logger.warn('Stock check failed', e?.message); }
+      } catch (e: any) {
+        const cached = await getCacheFallback<any>(`case_detail_${caseId}`);
+        if (cached) {
+          setCaseData(cached.data);
+          const cachedVisits = cached.data?.visits || [];
+          setPreviousWeight(parseFloat(cachedVisits[cachedVisits.length - 1]?.weight_kg || cached.data?.weight_kg || admissionWeight || '0'));
+        }
+        logger.warn('Stock check failed', e?.message);
+      }
     };
     fetchStock();
-  }, [caseId]);
+  }, [caseId, caseClientUid, admissionWeight, facilityId]);
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
@@ -227,6 +241,7 @@ export default function VisitFormScreen() {
     setSubmitting(true);
     try {
       const payload: Record<string, string | number | boolean | undefined> = {
+        client_uid: createClientUid(),
         visit_date: form.visit_date,
         visit_type: form.visit_type,
         weight_lost: form.weight_lost,
@@ -281,7 +296,10 @@ export default function VisitFormScreen() {
       if (form.community_volunteer) payload.community_volunteer = form.community_volunteer;
       if (form.home_visit_notes) payload.home_visit_notes = form.home_visit_notes;
 
-      const res = await sendOrQueue(`/v1/cases/${caseId}/visits/record/`, 'post', payload, 'Visit Record');
+      const targetUrl = caseClientUid
+        ? `/v1/cases/client/${caseClientUid}/visits/record/`
+        : `/v1/cases/${caseId}/visits/record/`;
+      const res = await sendOrQueue(targetUrl, 'post', payload, 'Visit Record');
       if (res) {
         const stockWarnings: string[] = res.data.stock_warnings || [];
         const message = stockWarnings.length > 0

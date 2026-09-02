@@ -12,7 +12,7 @@ import { useTheme } from '../../lib/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../lib/store';
 import api from '../../lib/api';
-import { sendOrQueue } from '../../lib/offlineQueue';
+import { createClientUid, sendOrQueue } from '../../lib/offlineQueue';
 import { useSyncStore } from '../../lib/sync-store';
 import type { Facility } from '../../lib/types';
 import { fetchFacilities } from '../../lib/facilities';
@@ -301,15 +301,21 @@ export default function CaseRegisterScreen() {
     setSubmitting(true);
     try {
       // Client-side duplicate check: scan offline queue for an identical pending registration
-      const pendingQueue = useSyncStore.getState().queue;
+      const currentOwner = String(user?.id || '');
+      const pendingQueue = useSyncStore.getState().queue.filter((q) => !q.ownerId || q.ownerId === currentOwner);
       const dup = pendingQueue.find((q) => {
-        if (q.url !== '/v1/cases/create/' || q.method !== 'POST') return false;
+        const expectedUrl = caseType === 'IPC' ? '/v1/ipc/cases/' : '/v1/cases/create/';
+        if (q.url !== expectedUrl || q.method !== 'POST') return false;
         const d = q.data || {};
-        return d.child_name?.toString().trim().toLowerCase() === f.child_name.trim().toLowerCase()
+        const queuedName = d.child_name ?? d.patient_name;
+        const queuedGender = d.child_gender ?? d.gender;
+        return queuedName?.toString().trim().toLowerCase() === f.child_name.trim().toLowerCase()
           && String(d.facility_id) === String(f.facility_id)
-          && d.date_of_birth === f.date_of_birth
           && d.admission_date === f.admission_date
-          && (d.caregiver_name ?? '').toString().trim().toLowerCase() === (f.caregiver_name ?? '').trim().toLowerCase();
+          && (caseType === 'IPC'
+            ? queuedGender === f.child_gender
+            : d.date_of_birth === f.date_of_birth
+              && (d.caregiver_name ?? '').toString().trim().toLowerCase() === (f.caregiver_name ?? '').trim().toLowerCase());
       });
       if (dup) {
         Alert.alert(
@@ -330,6 +336,8 @@ export default function CaseRegisterScreen() {
         caregiver_relationship: f.caregiver_relationship, address: f.community,
         admission_type: f.admission_type || 'New Admission',
       };
+      const clientUid = createClientUid();
+      payload.client_uid = clientUid;
       payload.total_household_members = toInt(f.total_household_members);
       payload.muac_cm = toFloat(f.muac_cm);
       if (f.oedema) payload.oedema = f.oedema;
@@ -453,14 +461,27 @@ export default function CaseRegisterScreen() {
           if (f.disability_details) payload.disability_details = f.disability_details;
         }
       }
+      const endpoint = caseType === 'IPC' ? '/v1/ipc/cases/' : '/v1/cases/create/';
+      const submissionPayload = caseType === 'IPC' ? {
+        client_uid: clientUid,
+        patient_name: f.child_name,
+        patient_age: toInt(f.age_months) ?? 0,
+        gender: f.child_gender,
+        admission_date: f.admission_date,
+        weight: toFloat(f.weight_kg),
+        height: toFloat(f.height_cm),
+        muac: toFloat(f.muac_cm),
+        facility_id: toInt(f.facility_id),
+        status: 'Admitted',
+      } : payload;
       let res;
-      if (childPhoto) {
+      if (childPhoto && caseType !== 'IPC') {
         const fd = new FormData();
-        Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); });
+        Object.entries(submissionPayload).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); });
         fd.append('child_photo', { uri: childPhoto.uri, name: 'child_photo.jpg', type: childPhoto.mimeType || 'image/jpeg' } as any);
-        res = await sendOrQueue('/v1/cases/create/', 'post', fd, 'Case Registration');
+        res = await sendOrQueue(endpoint, 'post', fd, 'Case Registration');
       } else {
-        res = await sendOrQueue('/v1/cases/create/', 'post', payload, 'Case Registration');
+        res = await sendOrQueue(endpoint, 'post', submissionPayload, `${caseType} Case Registration`);
       }
       if (res) {
         const newId = res.data.data?.id;
@@ -474,9 +495,26 @@ export default function CaseRegisterScreen() {
           : 'Case registered successfully.';
         Alert.alert('Success', message, buttons);
       } else {
-        Alert.alert('Saved Offline', 'Case registration saved and will sync when online.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        const buttons: any[] = [{ text: 'Done', onPress: () => router.back() }];
+        if (caseType !== 'IPC') {
+          buttons.unshift({
+            text: 'Record First Visit',
+            onPress: () => router.replace({
+              pathname: '/visit/[caseId]',
+              params: {
+                caseId: clientUid,
+                caseClientUid: clientUid,
+                caseName: f.child_name,
+                caseType,
+                caseAge: f.age_months,
+                admissionWeight: f.weight_kg,
+                facilityId: f.facility_id,
+                visitNumber: '1',
+              },
+            }),
+          });
+        }
+        Alert.alert('Saved Offline', 'The registration is safely stored and will sync automatically.', buttons);
       }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Failed to register case.');

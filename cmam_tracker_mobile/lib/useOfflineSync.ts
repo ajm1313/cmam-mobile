@@ -1,31 +1,37 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { useSyncStore } from './sync-store';
+import { useAuthStore } from './store';
 
-/**
- * Hook that auto-syncs the unified offline queue when connectivity returns.
- * Returns { pendingCount, isSyncing, syncNow } — backed by sync-store.
- */
+/** Automatically synchronize the signed-in user's outbox at startup and reconnect. */
 export function useOfflineSync() {
-  const { queue, isSyncing, sync } = useSyncStore();
-  const wasOffline = useRef(false);
+  const userId = useAuthStore((state) => state.user?.id);
+  const queue = useSyncStore((state) => state.queue);
+  const isSyncing = useSyncStore((state) => state.isSyncing);
+  const ownerId = String(userId || '');
+
+  const syncNow = useCallback(
+    () => useSyncStore.getState().sync(ownerId),
+    [ownerId],
+  );
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(async (state) => {
-      if (state.isConnected && wasOffline.current) {
-        const { queue: q } = useSyncStore.getState();
-        if (q.length > 0) {
-          await useSyncStore.getState().sync();
-        }
+    if (!ownerId) return;
+    const synchronizeIfOnline = async (providedState?: Awaited<ReturnType<typeof NetInfo.fetch>>) => {
+      const state = providedState || await NetInfo.fetch();
+      if (state.isConnected && state.isInternetReachable !== false) {
+        const pending = useSyncStore.getState().queue.some((item) => !item.ownerId || item.ownerId === ownerId);
+        if (pending) await useSyncStore.getState().sync(ownerId);
       }
-      wasOffline.current = !state.isConnected;
-    });
-    return () => unsubscribe();
-  }, []);
+    };
+    synchronizeIfOnline();
+    const unsubscribe = NetInfo.addEventListener(synchronizeIfOnline);
+    return unsubscribe;
+  }, [ownerId]);
 
   return {
-    pendingCount: queue.length,
+    pendingCount: queue.filter((item) => !item.ownerId || item.ownerId === ownerId).length,
     isSyncing,
-    syncNow: sync,
+    syncNow,
   };
 }

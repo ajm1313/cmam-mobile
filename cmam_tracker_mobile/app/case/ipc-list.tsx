@@ -16,6 +16,8 @@ import { SyncStatusBanner } from '../../components/SyncStatus';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
 import type { IpcCase, IpcCaseStatus } from '../../lib/types';
+import { useSyncStore } from '../../lib/sync-store';
+import { useAuthStore } from '../../lib/store';
 
 const STATUS_COLORS: Record<IpcCaseStatus, string> = {
   Admitted: '#10b981',
@@ -101,6 +103,8 @@ export default function IpcListScreen() {
   const [isStale, setIsStale] = useState(false);
   const [cases, setCases] = useState<IpcCase[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const ownerId = String(useAuthStore((state) => state.user?.id) || '');
+  const syncQueue = useSyncStore((state) => state.queue);
   useOfflineSync();
 
   const CACHE_KEY = `ipc_cases_${statusFilter}`;
@@ -135,6 +139,11 @@ export default function IpcListScreen() {
   const onRefresh = () => { setRefreshing(true); fetchCases(); };
 
   const filtered = cases;
+  const pendingCases = syncQueue.filter((item) =>
+    item.url === '/v1/ipc/cases/'
+    && (!item.ownerId || item.ownerId === ownerId)
+    && (statusFilter === 'all' || statusFilter === 'Admitted')
+  );
 
   return (
     <View style={styles.container}>
@@ -176,7 +185,7 @@ export default function IpcListScreen() {
 
       <View style={styles.summaryRow}>
         <Text style={[styles.summaryText, { color: colors.textMuted }]}>
-          {filtered.length} case{filtered.length !== 1 ? 's' : ''}
+          {filtered.length + pendingCases.length} case{filtered.length + pendingCases.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
@@ -186,18 +195,21 @@ export default function IpcListScreen() {
         keyExtractor={(item) => String(item.id)}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={IPC_COLOR} />}
         contentContainerStyle={{ paddingBottom: 80 }}
-        ListHeaderComponent={loading ? (
+        ListHeaderComponent={<>
+          {pendingCases.map((item) => <PendingIpcCard key={item.id} item={item} colors={colors} />)}
+          {loading ? (
           <View style={{ paddingTop: 4 }}>
             {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
           </View>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && pendingCases.length === 0 ? (
           <EmptyState
             icon="medkit-outline"
             title="No IPC Cases"
             subtitle="No inpatient care cases found for this filter."
           />
         ) : null}
-        ListEmptyComponent={!loading ? (
+        </>}
+        ListEmptyComponent={!loading && pendingCases.length === 0 ? (
           <EmptyState
             icon="medkit-outline"
             title="No IPC Cases"
@@ -273,6 +285,29 @@ function IpcCard({ item, colors }: { item: IpcCase; colors: any }) {
         <View style={{ flex: 1 }} />
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </View>
+    </View>
+  );
+}
+
+function PendingIpcCard({ item, colors }: { item: any; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+  const data = item.data || {};
+  const hasError = item.state === 'failed';
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: hasError ? colors.danger : colors.warning }]}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.statusPill, { backgroundColor: (hasError ? colors.danger : colors.warning) + '15' }]}>
+          <View style={[styles.statusDot, { backgroundColor: hasError ? colors.danger : colors.warning }]} />
+          <Text style={[styles.statusText, { color: hasError ? colors.danger : colors.warning }]}>
+            {hasError ? 'Sync needs attention' : 'Pending sync'}
+          </Text>
+        </View>
+        <Ionicons name="cloud-upload-outline" size={16} color={IPC_COLOR} />
+      </View>
+      <Text style={[styles.patientName, { color: colors.textPrimary }]}>{data.patient_name || 'Unnamed patient'}</Text>
+      <Text style={[styles.patientMeta, { color: hasError ? colors.danger : colors.textMuted }]}>
+        {hasError ? item.lastError || 'Open Offline Sync to retry.' : `${data.gender || '—'}, ${data.patient_age || 0}m`}
+      </Text>
     </View>
   );
 }

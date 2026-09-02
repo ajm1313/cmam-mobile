@@ -19,6 +19,7 @@ import { CardSkeleton } from '../../components/LoadingSkeleton';
 import { useFocusEffect } from 'expo-router';
 import type { OpcCase, Region, District, SubDistrict, Facility } from '../../lib/types';
 import PickerSelect from '../../components/PickerSelect';
+import { useSyncStore } from '../../lib/sync-store';
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -142,6 +143,7 @@ type StatusFilter = 'active' | 'discharged' | 'defaulter' | 'all';
 export default function CasesScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const syncQueue = useSyncStore((state) => state.queue);
   const canRegisterCase = !!(user?.is_superuser || user?.is_staff || user?.location?.facility_id);
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
@@ -351,6 +353,17 @@ export default function CasesScreen() {
     }
     return match;
   });
+  const currentOwner = String(user?.id || '');
+  const pendingCases = syncQueue.filter((item) => {
+    if (item.url !== '/v1/cases/create/' || item.method !== 'POST') return false;
+    if (item.ownerId && item.ownerId !== currentOwner) return false;
+    const data = item.data || {};
+    const nameMatches = String(data.child_name || '').toLowerCase().includes(search.toLowerCase());
+    const typeMatches = caseType === 'ALL'
+      || (caseType === 'SAM' && data.malnutrition_type === 'SAM')
+      || (caseType !== 'SAM' && data.malnutrition_type === 'MAM' && (!data.mam_type || data.mam_type === caseType));
+    return nameMatches && typeMatches && (statusFilter === 'active' || statusFilter === 'all');
+  });
 
   const clearAdvanced = () => {
     setGenderFilter('all'); setAgeMin(''); setAgeMax(''); setMuacMax(''); setDateFrom(''); setDateTo('');
@@ -463,7 +476,7 @@ export default function CasesScreen() {
       {/* Summary + Export */}
       <View style={styles.summaryRow}>
         <Text style={[styles.summaryText, { color: colors.textMuted }]}>
-          {search || hasAdvanced ? `${filtered.length} of ${totalCount}` : `${totalCount}`} case{totalCount !== 1 ? 's' : ''}
+          {search || hasAdvanced ? `${filtered.length + pendingCases.length} of ${totalCount + pendingCases.length}` : `${totalCount + pendingCases.length}`} case{totalCount + pendingCases.length !== 1 ? 's' : ''}
         </Text>
         <View style={styles.legendRow}>
           <LegendDot color={colors.sam} label="SAM" mutedColor={colors.textMuted} />
@@ -503,18 +516,44 @@ export default function CasesScreen() {
         contentContainerStyle={{ paddingBottom: 20 }}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
-        ListHeaderComponent={loading ? (
+        ListHeaderComponent={<>
+          {pendingCases.map((item) => {
+            const data = item.data || {};
+            return (
+              <TouchableOpacity
+                key={item.id}
+                activeOpacity={0.7}
+                onPress={() => router.push({
+                  pathname: '/visit/[caseId]',
+                  params: {
+                    caseId: item.clientUid || data.client_uid,
+                    caseClientUid: item.clientUid || data.client_uid,
+                    caseName: data.child_name,
+                    caseType: data.malnutrition_type,
+                    caseAge: String(data.age_months || ''),
+                    admissionWeight: String(data.weight_kg || ''),
+                    facilityId: String(data.facility_id || ''),
+                    visitNumber: '1',
+                  },
+                })}
+              >
+                <PendingCaseCard item={item} colors={colors} />
+              </TouchableOpacity>
+            );
+          })}
+          {loading ? (
           <View style={{ paddingTop: 8 }}>
             {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
           </View>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && pendingCases.length === 0 ? (
           <EmptyState
             icon="people-outline"
             title="No cases found"
             subtitle={search ? 'Try a different search term' : 'No cases match the selected filters'}
           />
         ) : null}
-        ListEmptyComponent={!loading ? (
+        </>}
+        ListEmptyComponent={!loading && pendingCases.length === 0 ? (
           <EmptyState
             icon="people-outline"
             title="No cases found"
@@ -706,6 +745,34 @@ function CaseCard({ item, colors }: { item: OpcCase; colors: any }) {
   );
 }
 
+function PendingCaseCard({ item, colors }: { item: any; colors: any }) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+  const data = item.data || {};
+  const typeColor = data.malnutrition_type === 'SAM' ? colors.sam : colors.mam;
+  const hasError = item.state === 'failed';
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: hasError ? colors.danger : colors.warning }]}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.typeBadge, { backgroundColor: typeColor + '18', borderColor: typeColor + '40' }]}>
+          <Text style={[styles.typeBadgeText, { color: typeColor }]}>{data.malnutrition_type || 'CASE'}</Text>
+        </View>
+        <Text style={{ color: hasError ? colors.danger : colors.warning, fontSize: 11, fontWeight: '800' }}>
+          {hasError ? 'SYNC NEEDS ATTENTION' : 'PENDING SYNC'}
+        </Text>
+      </View>
+      <Text style={[styles.childName, { color: colors.textPrimary }]}>{data.child_name || 'Unnamed child'}</Text>
+      <Text style={[styles.childId, { color: colors.textMuted }]}>
+        {hasError ? item.lastError || 'Open Offline Sync to retry.' : 'Tap to record the first visit offline'}
+      </Text>
+      <View style={styles.cardMeta}>
+        <MetaItem icon="calendar-outline" label={data.admission_date || '—'} color={colors.textMuted} />
+        <MetaItem icon="time-outline" label={`${data.age_months || 0}m`} color={colors.textMuted} />
+        <MetaItem icon="documents-outline" label="0 visits synced" color={colors.textMuted} />
+      </View>
+    </View>
+  );
+}
+
 function MetaItem({ icon, label, color }: { icon: any; label: string; color: string }) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
@@ -729,5 +796,3 @@ function LegendDot({ color, label, mutedColor }: { color: string; label: string;
     </View>
   );
 }
-
-
