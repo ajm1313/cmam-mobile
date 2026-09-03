@@ -25,6 +25,9 @@ export default function LocationsScreen() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
+  const [canManage, setCanManage] = useState<Record<Tab, boolean>>({
+    regions: false, districts: false, sub_districts: false,
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [formName, setFormName] = useState('');
@@ -42,6 +45,11 @@ export default function LocationsScreen() {
       setRegions(regRes.data.data || []);
       setDistricts(distRes.data.data || []);
       setSubDistricts(subRes.data.data || []);
+      setCanManage({
+        regions: !!regRes.data.can_create,
+        districts: !!distRes.data.can_create,
+        sub_districts: !!subRes.data.can_create,
+      });
     } catch {
       Alert.alert('Error', 'Failed to load locations');
     } finally {
@@ -69,7 +77,14 @@ export default function LocationsScreen() {
   };
 
   const handleSave = async () => {
-    if (!formName.trim()) { Alert.alert('Validation', 'Name is required'); return; }
+    if (!formName.trim() || !formCode.trim()) {
+      Alert.alert('Validation', 'Name and code are required');
+      return;
+    }
+    if (tab !== 'regions' && !formParentId) {
+      Alert.alert('Validation', `Please select a ${tab === 'districts' ? 'region' : 'district'}`);
+      return;
+    }
     setSaving(true);
     try {
       const body: any = { name: formName, code: formCode };
@@ -136,9 +151,11 @@ export default function LocationsScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Location Management</Text>
-        <TouchableOpacity onPress={openCreate} style={styles.addBtn}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        {canManage[tab] ? (
+          <TouchableOpacity onPress={openCreate} style={styles.addBtn}>
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        ) : <View style={{ width: 40 }} />}
       </View>
 
       {/* Stats Summary */}
@@ -202,7 +219,7 @@ export default function LocationsScreen() {
                   </Text>
                 </View>
               </View>
-              <View style={styles.itemActions}>
+              {canManage[tab] && <View style={styles.itemActions}>
                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary + '10' }]} onPress={() => openEdit(item)}>
                   <Ionicons name="create-outline" size={15} color={colors.primary} />
                   <Text style={[styles.actionText, { color: colors.primary }]}>Edit</Text>
@@ -211,7 +228,7 @@ export default function LocationsScreen() {
                   <Ionicons name="trash-outline" size={15} color={colors.danger} />
                   <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
                 </TouchableOpacity>
-              </View>
+              </View>}
             </View>
           ))
         )}
