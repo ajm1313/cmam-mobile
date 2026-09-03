@@ -68,7 +68,7 @@ interface Stats {
 }
 
 interface Analytics {
-  monthly_trends: { month: string; sam: number; mam: number }[];
+  monthly_trends: { month: string; sam: number; mam: number; high_risk_mam?: number; other_mam?: number }[];
   outcomes: { cured: number; defaulted: number; died: number; transferred: number; active: number };
   stock_levels: { facility: string; total_items: number; low_stock: number }[];
 }
@@ -119,7 +119,7 @@ export default function CaseManagementDashboard() {
   const defaulterGood = defaulterRate < 15;
   const deathGood = deathRate < 10;
 
-  const maxTrend = Math.max(...(analytics?.monthly_trends?.map(t => t.sam + t.mam) ?? [1]), 1);
+  const maxTrend = Math.max(...(analytics?.monthly_trends?.map(t => t.sam + (t.high_risk_mam ?? 0) + (t.other_mam ?? t.mam)) ?? [1]), 1);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -211,19 +211,23 @@ export default function CaseManagementDashboard() {
             {/* Admission Trends (6 months) */}
             {analytics?.monthly_trends && analytics.monthly_trends.length > 0 && (
               <View style={[styles.section, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Admission Trends (6 Months)</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Monthly Case Trends</Text>
                 <View style={styles.trendChart}>
                   {analytics.monthly_trends.map((t, i) => {
-                    const total = t.sam + t.mam;
+                    const highRiskMam = t.high_risk_mam ?? 0;
+                    const otherMam = t.other_mam ?? t.mam;
+                    const total = t.sam + highRiskMam + otherMam;
                     const barH = (total / maxTrend) * 120;
                     const samH = total > 0 ? (t.sam / total) * barH : 0;
-                    const mamH = barH - samH;
+                    const highRiskMamH = total > 0 ? (highRiskMam / total) * barH : 0;
+                    const otherMamH = barH - samH - highRiskMamH;
                     return (
                       <View key={i} style={styles.trendBar}>
                         <Text style={styles.trendValue}>{total}</Text>
                         <View style={{ height: barH, justifyContent: 'flex-end' }}>
                           <View style={{ height: samH, backgroundColor: colors.danger + '80', width: 24, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
-                          <View style={{ height: mamH, backgroundColor: colors.warning + '80', width: 24 }} />
+                          <View style={{ height: highRiskMamH, backgroundColor: colors.warning + '80', width: 24 }} />
+                          <View style={{ height: otherMamH, backgroundColor: colors.info + '80', width: 24 }} />
                         </View>
                         <Text style={styles.trendLabel}>{t.month.split(' ')[0]}</Text>
                       </View>
@@ -237,7 +241,11 @@ export default function CaseManagementDashboard() {
                   </View>
                   <View style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
-                    <Text style={[styles.legendText, { color: colors.textMuted }]}>MAM</Text>
+                    <Text style={[styles.legendText, { color: colors.textMuted }]}>High-Risk MAM</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: colors.info }]} />
+                    <Text style={[styles.legendText, { color: colors.textMuted }]}>Other MAM</Text>
                   </View>
                 </View>
               </View>
@@ -309,5 +317,3 @@ function OutcomeDot({ label, value, color }: { label: string; value: number; col
     </View>
   );
 }
-
-

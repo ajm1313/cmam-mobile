@@ -205,7 +205,13 @@ interface DashboardData {
   stats: DashboardStats | null;
 }
 
-interface MonthlyTrend { month: string; sam: number; mam: number; }
+interface MonthlyTrend {
+  month: string;
+  sam: number;
+  mam: number;
+  high_risk_mam?: number;
+  other_mam?: number;
+}
 interface Outcomes { cured: number; defaulted: number; died: number; transferred: number; active: number; }
 interface AnalyticsData {
   monthly_trends: MonthlyTrend[];
@@ -480,17 +486,19 @@ export default function DashboardScreen() {
               {/* Monthly Admission Trends */}
               {analytics.monthly_trends.length > 0 && (
                 <View style={[styles.section, { backgroundColor: colors.surface }]}>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Admission Trends (6 months)</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Monthly Case Trends</Text>
                   <View style={styles.chartRow}>
                     {analytics.monthly_trends.map((t, i) => {
-                      const maxVal = Math.max(...analytics.monthly_trends.map(x => Math.max(x.sam, x.mam)), 1);
+                      const maxVal = Math.max(...analytics.monthly_trends.map(x => Math.max(x.sam, x.high_risk_mam ?? 0, x.other_mam ?? x.mam)), 1);
                       const samH = Math.max((t.sam / maxVal) * 100, 2);
-                      const mamH = Math.max((t.mam / maxVal) * 100, 2);
+                      const highRiskMamH = Math.max(((t.high_risk_mam ?? 0) / maxVal) * 100, 2);
+                      const otherMamH = Math.max(((t.other_mam ?? t.mam) / maxVal) * 100, 2);
                       return (
                         <View key={i} style={styles.chartBar}>
                           <View style={styles.barGroup}>
                             <View style={[styles.barSam, { height: samH, backgroundColor: colors.sam }]} />
-                            <View style={[styles.barMam, { height: mamH, backgroundColor: colors.mam }]} />
+                            <View style={[styles.barMam, { height: highRiskMamH, backgroundColor: colors.mam }]} />
+                            <View style={[styles.barMam, { height: otherMamH, backgroundColor: colors.info }]} />
                           </View>
                           <Text style={[styles.chartLabel, { color: colors.textMuted }]}>{t.month.split(' ')[0]}</Text>
                         </View>
@@ -504,7 +512,11 @@ export default function DashboardScreen() {
                     </View>
                     <View style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: colors.mam }]} />
-                      <Text style={[styles.legendText, { color: colors.textMuted }]}>MAM</Text>
+                      <Text style={[styles.legendText, { color: colors.textMuted }]}>High-Risk MAM</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: colors.info }]} />
+                      <Text style={[styles.legendText, { color: colors.textMuted }]}>Other MAM</Text>
                     </View>
                   </View>
                 </View>
@@ -769,5 +781,3 @@ function ActionButton({ icon, label, color, onPress, bg, borderColor, textColor 
     </TouchableOpacity>
   );
 }
-
-
