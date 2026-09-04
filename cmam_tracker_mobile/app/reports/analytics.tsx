@@ -57,7 +57,7 @@ export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const user = useAuthStore(state => state.user);
-  const allowed = !!user && (user.is_superuser || user.is_staff || (user.role?.level ?? 99) <= 2);
+  const allowed = !!user && (user.is_superuser || user.is_staff || (user.role?.level ?? 99) <= 3);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +105,7 @@ export default function AnalyticsScreen() {
   if (!allowed) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <EmptyState icon="lock-closed-outline" title="Restricted dashboard" subtitle="This dashboard is available to regional, national and super administrator users." />
+        <EmptyState icon="lock-closed-outline" title="Restricted dashboard" subtitle="This dashboard is available to district, regional, national and super administrator users." />
         <TouchableOpacity onPress={() => router.back()} style={[styles.backLink, { backgroundColor: colors.primary }]}>
           <Text style={styles.backLinkText}>Back to reports</Text>
         </TouchableOpacity>

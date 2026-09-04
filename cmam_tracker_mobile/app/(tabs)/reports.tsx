@@ -35,7 +35,7 @@ export default function ReportsScreen() {
   const { colors } = useTheme();
   const user = useAuthStore(state => state.user);
   const canViewStrategicReports = !!user && (
-    user.is_superuser || user.is_staff || (user.role?.level ?? 99) <= 2
+    user.is_superuser || user.is_staff || (user.role?.level ?? 99) <= 3
   );
   const now = new Date();
 
