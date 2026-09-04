@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform, Image as RNImage, ActivityIndicator, Linking,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -11,8 +12,9 @@ import { useAuthStore } from '../../lib/store';
 import { useTheme, type ThemeMode } from '../../lib/theme';
 import { useSyncStore } from '../../lib/sync-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../lib/api';
+import api, { storage } from '../../lib/api';
 import { appConfig } from '../../lib/config';
+import { getNotificationPermissionStatus, syncPushToken } from '../../lib/notifications';
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -146,7 +148,7 @@ const THEME_OPTIONS: { key: ThemeMode; label: string; icon: string }[] = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const canImportExport = !!user?.can_import_export;
   const { mode, setMode } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -154,11 +156,47 @@ export default function ProfileScreen() {
   const [cacheSize, setCacheSize] = useState('0 KB');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState('undetermined');
+  const [savingPreference, setSavingPreference] = useState<string | null>(null);
 
   useEffect(() => {
     calculateCacheSize();
     loadAvatar();
+    getNotificationPermissionStatus().then(setNotificationStatus).catch(() => {});
   }, []);
+
+  const enableDeviceNotifications = async () => {
+    try {
+      const enabled = await syncPushToken();
+      const status = await getNotificationPermissionStatus();
+      setNotificationStatus(status);
+      if (enabled) Alert.alert('Notifications enabled', 'This device is registered for CMAM alerts.');
+      else Alert.alert('Permission required', 'Allow notifications in your device settings, then try again.');
+    } catch {
+      Alert.alert('Could not enable notifications', 'Check your connection and try again.');
+    }
+  };
+
+  const updateNotificationPreference = async (
+    field: 'notify_visits' | 'notify_discharge' | 'notify_stock',
+    value: boolean,
+  ) => {
+    if (!user || savingPreference) return;
+    const previous = user;
+    setSavingPreference(field);
+    setUser({ ...user, [field]: value });
+    try {
+      const response = await api.patch('/v1/profile/update/', { [field]: value });
+      const updated = response.data.data;
+      setUser(updated);
+      await storage.setItem('auth_user', JSON.stringify(updated));
+    } catch {
+      setUser(previous);
+      Alert.alert('Update failed', 'Your notification preference was not saved.');
+    } finally {
+      setSavingPreference(null);
+    }
+  };
 
   const loadAvatar = async () => {
     try {
@@ -411,7 +449,7 @@ export default function ProfileScreen() {
       {/* App Info */}
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Application</Text>
-        <InfoRow icon="phone-portrait-outline" label="Version" value="1.3.0" colors={colors} />
+        <InfoRow icon="phone-portrait-outline" label="Version" value="1.4.0" colors={colors} />
         <InfoRow icon="server-outline" label="API" value="cmam-tracker-django-production.up.railway.app" colors={colors} />
         <InfoRow icon="information-circle-outline" label="App" value="CMAM Tracker" colors={colors} />
         <InfoRow icon="code-working-outline" label="Developer" value="AJM Solutions" colors={colors} />
@@ -460,6 +498,53 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Notifications */}
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Notifications</Text>
+          <TouchableOpacity
+            onPress={enableDeviceNotifications}
+            style={[styles.editPill, {
+              backgroundColor: notificationStatus === 'granted' ? colors.success + '12' : colors.primary + '12',
+              borderColor: notificationStatus === 'granted' ? colors.success + '30' : colors.primary + '30',
+            }]}
+          >
+            <Ionicons
+              name={notificationStatus === 'granted' ? 'checkmark-circle-outline' : 'notifications-outline'}
+              size={13}
+              color={notificationStatus === 'granted' ? colors.success : colors.primary}
+            />
+            <Text style={[styles.editPillText, { color: notificationStatus === 'granted' ? colors.success : colors.primary }]}>
+              {notificationStatus === 'granted' ? 'Device enabled' : 'Enable device'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <NotificationPreferenceRow
+          icon="calendar-outline" label="Visit reminders"
+          hint="Due, overdue and programme transition alerts"
+          value={user?.notify_visits ?? true}
+          disabled={savingPreference !== null}
+          onValueChange={value => updateNotificationPreference('notify_visits', value)}
+          colors={colors}
+        />
+        <NotificationPreferenceRow
+          icon="checkmark-done-outline" label="Discharge alerts"
+          hint="Children who become eligible for discharge"
+          value={user?.notify_discharge ?? true}
+          disabled={savingPreference !== null}
+          onValueChange={value => updateNotificationPreference('notify_discharge', value)}
+          colors={colors}
+        />
+        <NotificationPreferenceRow
+          icon="cube-outline" label="Stock alerts"
+          hint="Critical, low-stock and reorder warnings"
+          value={user?.notify_stock ?? false}
+          disabled={savingPreference !== null}
+          onValueChange={value => updateNotificationPreference('notify_stock', value)}
+          colors={colors}
+        />
+      </View>
 
       {/* Appearance */}
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
@@ -576,7 +661,7 @@ export default function ProfileScreen() {
         <Text style={[styles.logoutText, { color: colors.danger }]}>{loggingOut ? 'Signing out...' : 'Sign Out'}</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker v1.3.0 • Developed by AJM Solutions • +233 24 150 9312</Text>
+      <Text style={[styles.footer, { color: colors.textMuted }]}>CMAM Tracker v1.4.0 • Developed by AJM Solutions • +233 24 150 9312</Text>
     </ScrollView>
   );
 
@@ -599,4 +684,27 @@ function InfoRow({ icon, label, value, colors }: { icon: any; label: string; val
   );
 }
 
-
+function NotificationPreferenceRow({ icon, label, hint, value, disabled, onValueChange, colors }: {
+  icon: any; label: string; hint: string; value: boolean; disabled: boolean;
+  onValueChange: (value: boolean) => void; colors: any;
+}) {
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+  return (
+    <View style={styles.actionRow}>
+      <View style={[styles.actionIconWrap, { backgroundColor: colors.primary + '10' }]}>
+        <Ionicons name={icon} size={16} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>{label}</Text>
+        <Text style={[styles.actionHint, { color: colors.textMuted }]}>{hint}</Text>
+      </View>
+      <Switch
+        value={value}
+        disabled={disabled}
+        onValueChange={onValueChange}
+        trackColor={{ false: colors.border, true: colors.primary + '80' }}
+        thumbColor={value ? colors.primary : '#f8fafc'}
+      />
+    </View>
+  );
+}

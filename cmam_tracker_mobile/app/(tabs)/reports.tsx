@@ -14,6 +14,7 @@ import { setCache, getCacheFallback } from '../../lib/cache';
 import OfflineBanner from '../../components/OfflineBanner';
 import { SyncStatusBanner } from '../../components/SyncStatus';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
+import { useAuthStore } from '../../lib/store';
 
 interface Loc { id: number; name: string; }
 interface CaseBreakdown { total: number; active: number; cured: number; defaulted: number; deaths: number; transferred: number; new_admissions: number; }
@@ -32,6 +33,10 @@ const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 export default function ReportsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const user = useAuthStore(state => state.user);
+  const canViewStrategicReports = !!user && (
+    user.is_superuser || user.is_staff || (user.role?.level ?? 99) <= 2
+  );
   const now = new Date();
 
   // Filters
@@ -347,6 +352,32 @@ export default function ReportsScreen() {
                 <DetailRow label="MAM Visits" value={String(vis?.mam_visits ?? 0)} colors={colors} valueColor="#d97706" last />
               </View>
             </View>
+
+            {/* Detailed Report Links */}
+            {canViewStrategicReports && (
+              <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
+                  <View style={[styles.sectionDot, { backgroundColor: '#0f766e' }]} />
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>STRATEGIC INTELLIGENCE</Text>
+                </View>
+                <View style={{ padding: 14, gap: 10 }}>
+                  <ReportLink
+                    title="Longitudinal Case Line List"
+                    subtitle="Every child, visit and discharge • CSV export"
+                    color="#0f766e" bg="#0f766e10" borderColor="#0f766e25"
+                    icon="list-outline"
+                    onPress={() => router.push('/reports/case-linelist')}
+                  />
+                  <ReportLink
+                    title="Annual Analytics Dashboard"
+                    subtitle="Jan–Dec programme, outcome and commodity trends"
+                    color="#4338ca" bg="#4338ca10" borderColor="#4338ca25"
+                    icon="analytics-outline"
+                    onPress={() => router.push('/reports/analytics')}
+                  />
+                </View>
+              </View>
+            )}
 
             {/* Detailed Report Links */}
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>

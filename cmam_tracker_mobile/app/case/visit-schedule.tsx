@@ -6,11 +6,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 
 import { useTheme } from '../../lib/theme';
 import api from '../../lib/api';
+import {
+  getNotificationPermissionStatus,
+  getPendingRemindersCount,
+  scheduleDueVisitReminders,
+  syncPushToken,
+} from '../../lib/notifications';
 import OfflineBanner from '../../components/OfflineBanner';
 import EmptyState from '../../components/EmptyState';
 import { CardSkeleton } from '../../components/LoadingSkeleton';
@@ -74,14 +78,24 @@ export default function VisitScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const [reminderCount, setReminderCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
       const [visitsRes] = await Promise.all([
-        api.get('/v1/cases/due-visits/').catch(() => ({ data: { data: { due_visits: [] } } })),
+        api.get('/v1/cases/due-visits/'),
       ]);
       const visits: DueVisit[] = visitsRes.data.data?.due_visits ?? [];
       setDueVisits(visits);
+
+      try {
+        if (await getNotificationPermissionStatus() === 'granted') {
+          setNotifEnabled(true);
+          setReminderCount(await scheduleDueVisitReminders(visits));
+        }
+      } catch {
+        // Due visits remain usable even if the device notification service fails.
+      }
 
       // Fetch tasks for each due visit case
       if (visits.length > 0) {
@@ -105,43 +119,25 @@ export default function VisitScheduleScreen() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const requestNotifications = async () => {
-    if (!Device.isDevice) {
-      Alert.alert('Not Available', 'Notifications only work on physical devices.');
-      return;
-    }
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    let finalStatus = existing;
-    if (existing !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      Alert.alert('Denied', 'Notification permissions were denied.');
-      return;
-    }
-    setNotifEnabled(true);
-    scheduleVisitReminders(dueVisits);
-    Alert.alert('Enabled', `Visit reminders scheduled for ${dueVisits.length} due cases.`);
-  };
+  useEffect(() => {
+    getNotificationPermissionStatus().then(async status => {
+      setNotifEnabled(status === 'granted');
+      if (status === 'granted') setReminderCount(await getPendingRemindersCount());
+    }).catch(() => {});
+  }, []);
 
-  const scheduleVisitReminders = async (visits: DueVisit[]) => {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    for (const v of visits) {
-      if (v.next_due_date) {
-        const dueDate = new Date(v.next_due_date);
-        const trigger = new Date(dueDate.getTime() - 9 * 60 * 60 * 1000); // 9am on due date
-        if (trigger > new Date()) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Visit Due',
-              body: `${v.child_name} (${v.malnutrition_type}) — visit due today at ${v.facility_name}`,
-              data: { caseId: v.id },
-            },
-            trigger: trigger as any,
-          });
-        }
+  const requestNotifications = async () => {
+    try {
+      if (!await syncPushToken()) {
+        Alert.alert('Notifications unavailable', 'Allow notifications in your device settings and try again on a physical device.');
+        return;
       }
+      const count = await scheduleDueVisitReminders(dueVisits);
+      setNotifEnabled(true);
+      setReminderCount(count);
+      Alert.alert('Reminders enabled', `${count} day-before and same-day reminder${count === 1 ? '' : 's'} scheduled.`);
+    } catch {
+      Alert.alert('Could not enable notifications', 'Check your internet connection and notification settings, then try again.');
     }
   };
 
@@ -186,7 +182,7 @@ export default function VisitScheduleScreen() {
               {notifEnabled ? 'Reminders Active' : 'Enable Visit Reminders'}
             </Text>
             <Text style={[styles.notifSub, { color: colors.textMuted }]}>
-              {notifEnabled ? `${dueVisits.length} reminders scheduled` : 'Get notified when visits are due'}
+              {notifEnabled ? `${reminderCount} local reminders scheduled` : 'Get local and server visit alerts'}
             </Text>
           </View>
           <Ionicons name="chevron-forward-outline" size={18} color={colors.textMuted} />
@@ -299,5 +295,3 @@ function VisitCard({ visit, colors, taskCount, onPress }: { visit: DueVisit; col
     </TouchableOpacity>
   );
 }
-
-

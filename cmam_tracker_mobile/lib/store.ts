@@ -39,6 +39,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
+      const { unregisterPushToken } = await import('./notifications');
+      await unregisterPushToken();
+    } catch {
+      // Best effort: a disconnected logout must still clear the local session.
+    }
+    try {
       await api.post('/v1/logout/');
     } catch {
       // ignore

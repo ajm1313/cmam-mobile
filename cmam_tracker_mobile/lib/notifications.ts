@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { logger } from './logger';
+import api, { storage } from './api';
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
@@ -25,6 +26,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
+  await configureNotificationChannels();
+
   const { status: existing } = await Notifications.getPermissionsAsync();
   let finalStatus = existing;
 
@@ -37,16 +40,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('visit-reminders', {
-      name: 'Visit Reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#1e3a8a',
-      sound: 'default',
-    });
-  }
-
   try {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
     const tokenData = await Notifications.getExpoPushTokenAsync({
@@ -57,6 +50,47 @@ export async function registerForPushNotifications(): Promise<string | null> {
     logger.warn('Push token registration failed (expected in Expo Go)', e);
     return null;
   }
+}
+
+export async function configureNotificationChannels(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  const channels = [
+    ['case-updates', 'Case Updates', '#1e3a8a'],
+    ['visit-reminders', 'Visit Reminders', '#2563eb'],
+    ['inventory-alerts', 'Inventory Alerts', '#dc2626'],
+  ] as const;
+  await Promise.all(channels.map(([id, name, lightColor]) =>
+    Notifications.setNotificationChannelAsync(id, {
+      name,
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor,
+      sound: 'default',
+    })
+  ));
+}
+
+/** Register the current device only after an authenticated session exists. */
+export async function syncPushToken(): Promise<boolean> {
+  const token = await registerForPushNotifications();
+  if (!token) return false;
+  await api.post('/v1/push-token/', { push_token: token });
+  await storage.setItem('notification_push_token', token);
+  return true;
+}
+
+/** Remove this device's token during sign-out without clearing another device. */
+export async function unregisterPushToken(): Promise<void> {
+  const token = await storage.getItem('notification_push_token');
+  if (token) {
+    await api.delete('/v1/push-token/', { data: { push_token: token } });
+    await storage.deleteItem('notification_push_token');
+  }
+}
+
+export async function getNotificationPermissionStatus(): Promise<string> {
+  const permissions = await Notifications.getPermissionsAsync();
+  return permissions.status;
 }
 
 /**
@@ -129,6 +163,43 @@ export async function scheduleSameDayReminder(
   return id;
 }
 
+export interface SchedulableVisit {
+  id: number;
+  child_name: string;
+  facility_name?: string;
+  next_due_date: string | null;
+}
+
+function localDate(value: string): Date | null {
+  const parts = value.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  const [year, month, day] = parts;
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
+export async function clearVisitReminders(): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const ids = scheduled
+    .filter(item => ['visit_reminder', 'visit_today'].includes(String(item.content.data?.type ?? '')))
+    .map(item => item.identifier);
+  await Promise.all(ids.map(id => Notifications.cancelScheduledNotificationAsync(id)));
+}
+
+/** Replace only visit reminders, preserving every unrelated scheduled notification. */
+export async function scheduleDueVisitReminders(visits: SchedulableVisit[]): Promise<number> {
+  await configureNotificationChannels();
+  await clearVisitReminders();
+  let count = 0;
+  for (const visit of visits) {
+    if (!visit.next_due_date) continue;
+    const dueDate = localDate(visit.next_due_date);
+    if (!dueDate) continue;
+    if (await scheduleVisitReminder(visit.id, visit.child_name, dueDate, visit.facility_name)) count += 1;
+    if (await scheduleSameDayReminder(visit.id, visit.child_name, dueDate)) count += 1;
+  }
+  return count;
+}
+
 /**
  * Cancel all scheduled notifications.
  */
@@ -141,5 +212,7 @@ export async function cancelAllReminders(): Promise<void> {
  */
 export async function getPendingRemindersCount(): Promise<number> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  return scheduled.length;
+  return scheduled.filter(item =>
+    ['visit_reminder', 'visit_today'].includes(String(item.content.data?.type ?? ''))
+  ).length;
 }

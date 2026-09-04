@@ -10,6 +10,7 @@ import { setOnUnauthorized } from '../lib/api';
 import { ThemeProvider, useTheme } from '../lib/theme';
 import { useOfflineSync } from '../lib/useOfflineSync';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { logger } from '../lib/logger';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
@@ -28,11 +29,13 @@ function RootLayoutInner() {
   const loadToken = useAuthStore((s) => s.loadToken);
   const logout = useAuthStore((s) => s.logout);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const token = useAuthStore((s) => s.token);
   const isLoading = useAuthStore((s) => s.isLoading);
   const router = useRouter();
   const { isDark, colors } = useTheme();
-  const notificationListener = useRef<{ remove(): void } | null>(null);
   const responseListener = useRef<{ remove(): void } | null>(null);
+  const lastNotificationId = useRef<string | null>(null);
+  const lastPushSync = useRef(0);
   const wasAuthenticated = useRef(false);
 
   useOfflineSync();
@@ -81,39 +84,67 @@ function RootLayoutInner() {
       }
     });
 
-    // Register for push notifications (skip in Expo Go — not supported since SDK 53)
+    // Route both warm and cold-start notification taps.
     if (!isExpoGo) {
-      import('../lib/notifications').then(({ registerForPushNotifications }) => {
-        registerForPushNotifications().then((token) => {
-          if (token) {
-            import('../lib/api').then(({ default: api }) => {
-              api.post('/v1/push-token/', { push_token: token }).catch(() => {});
-            });
-          }
-        });
-      });
       import('expo-notifications').then((Notifications) => {
-        responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+        const routeResponse = (response: any) => {
+          if (!response || response.notification.request.identifier === lastNotificationId.current) return;
+          lastNotificationId.current = response.notification.request.identifier;
           const data = response.notification.request.content.data;
-          if (data?.caseId && (
+          const caseId = data?.caseId ?? data?.case_id;
+          const ipcCaseId = data?.ipcCaseId ?? data?.ipc_case_id;
+          if (caseId && (
             data.type === 'visit_reminder' || data.type === 'visit_today' ||
             data.type === 'new_case' || data.type === 'discharge_eligible' ||
             data.type === 'sam_transition' || data.type === 'visit_overdue'
           )) {
-            router.push({ pathname: '/case/[id]', params: { id: String(data.caseId) } });
-          } else if (data?.type === 'stock_critical' || data?.type === 'stock_low') {
+            router.push({ pathname: '/case/[id]', params: { id: String(caseId) } });
+          } else if (ipcCaseId) {
+            router.push({ pathname: '/case/ipc-detail', params: { id: String(ipcCaseId) } });
+          } else if (
+            data?.type === 'stock_critical' || data?.type === 'stock_low' ||
+            data?.type === 'reorder_recommended'
+          ) {
             router.push('/admin/inventory-reports');
           }
-        });
+          Notifications.setBadgeCountAsync(0).catch(() => {});
+        };
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(routeResponse);
+        Notifications.getLastNotificationResponseAsync().then(routeResponse).catch(() => {});
       });
     }
 
     return () => {
-      if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
       if (appStateSub) appStateSub.remove();
     };
   }, []);
+
+  // Push registration must wait for restored/login auth; otherwise the first POST is
+  // rejected with 401 and the device never receives remote notifications.
+  useEffect(() => {
+    if (isExpoGo || !isAuthenticated || !token) return;
+    let active = true;
+
+    const syncNotifications = async (force = false) => {
+      if (!active || (!force && Date.now() - lastPushSync.current < 10 * 60 * 1000)) return;
+      try {
+        const { syncPushToken } = await import('../lib/notifications');
+        if (await syncPushToken()) lastPushSync.current = Date.now();
+      } catch (error) {
+        logger.warn('Push notification registration failed', error);
+      }
+    };
+
+    syncNotifications(true);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncNotifications();
+    });
+    return () => {
+      active = false;
+      appStateSub.remove();
+    };
+  }, [isAuthenticated, token]);
 
   return (
     <ErrorBoundary>
@@ -164,6 +195,8 @@ function RootLayoutInner() {
           <Stack.Screen name="admin/reports" options={{ title: 'Reports', headerShown: false }} />
           <Stack.Screen name="admin/weekly-report" options={{ title: 'Weekly Report', headerShown: false }} />
           <Stack.Screen name="admin/monthly-report" options={{ title: 'Monthly Report', headerShown: false }} />
+          <Stack.Screen name="reports/case-linelist" options={{ title: 'Case Line List', headerShown: false }} />
+          <Stack.Screen name="reports/analytics" options={{ title: 'Analytics', headerShown: false }} />
         </Stack>
       </View>
     </ErrorBoundary>
