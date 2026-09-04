@@ -314,13 +314,12 @@ export default function CaseRegisterScreen() {
           && d.admission_date === f.admission_date
           && (caseType === 'IPC'
             ? queuedGender === f.child_gender
-            : d.date_of_birth === f.date_of_birth
-              && (d.caregiver_name ?? '').toString().trim().toLowerCase() === (f.caregiver_name ?? '').trim().toLowerCase());
+            : d.date_of_birth === f.date_of_birth);
       });
       if (dup) {
         Alert.alert(
           'Duplicate Registration',
-          `A case for "${f.child_name}" with the same caregiver, date of birth, and enrolment date is already pending sync for this facility. Please wait for it to sync before registering again.`,
+          `A case for "${f.child_name}" with the same date of birth and enrolment date is already pending sync for this facility. Please wait for it to sync before registering again.`,
         );
         return;
       }
