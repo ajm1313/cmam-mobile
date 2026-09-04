@@ -456,8 +456,8 @@ export default function DashboardScreen() {
         <>
           <View style={styles.statsRow}>
             <StatCard icon="pulse-outline" label="Active SAM" value={data?.stats?.active_sam ?? 0} color={colors.sam} bg={colors.surface} mutedColor={colors.textMuted} />
-            <StatCard icon="trending-up-outline" label="Active MAM" value={data?.stats?.active_mam ?? 0} color={colors.mam} bg={colors.surface} mutedColor={colors.textMuted} />
-            <StatCard icon="checkmark-done-outline" label="Discharged" value={data?.stats?.total_discharged ?? 0} color={colors.success} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="medkit-outline" label="Active High-Risk MAM" value={data?.stats?.active_high_risk_mam ?? '—'} color={colors.mam} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="people-outline" label="Active Other MAM" value={data?.stats?.active_other_mam ?? '—'} color={colors.info} bg={colors.surface} mutedColor={colors.textMuted} />
           </View>
           <View style={styles.statsRow}>
             <StatCard icon="business-outline" label="Facilities" value={data?.stats?.facilities_count ?? 0} color={colors.primary} bg={colors.surface} mutedColor={colors.textMuted} />
@@ -465,8 +465,9 @@ export default function DashboardScreen() {
             <StatCard icon="documents-outline" label="Total Cases" value={data?.stats?.total_all_cases ?? 0} color={colors.secondary} bg={colors.surface} mutedColor={colors.textMuted} />
           </View>
           <View style={styles.statsRow}>
-            <StatCard icon="people-outline" label="Other MAM" value={data?.stats?.other_mam ?? 0} color={colors.primary} bg={colors.surface} mutedColor={colors.textMuted} />
-            <StatCard icon="medkit-outline" label="High-risk MAM" value={data?.stats?.high_risk_mam ?? 0} color={colors.mam} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="medkit-outline" label="High-Risk MAM (all time)" value={data?.stats?.high_risk_mam ?? 0} color={colors.mam} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="people-outline" label="Other MAM (all time)" value={data?.stats?.other_mam ?? 0} color={colors.info} bg={colors.surface} mutedColor={colors.textMuted} />
+            <StatCard icon="checkmark-done-outline" label="Discharged" value={data?.stats?.total_discharged ?? 0} color={colors.success} bg={colors.surface} mutedColor={colors.textMuted} />
           </View>
 
           {/* Quick Actions — role-filtered */}
@@ -755,7 +756,7 @@ export default function DashboardScreen() {
   );
 }
 
-function StatCard({ icon, label, value, color, bg, mutedColor }: { icon: any; label: string; value: number; color: string; bg: string; mutedColor: string }) {
+function StatCard({ icon, label, value, color, bg, mutedColor }: { icon: any; label: string; value: number | string; color: string; bg: string; mutedColor: string }) {
   const { colors } = useTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 

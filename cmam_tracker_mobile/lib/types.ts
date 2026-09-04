@@ -119,6 +119,8 @@ export interface DashboardStats {
   total_mam: number;
   active_sam: number;
   active_mam: number;
+  active_high_risk_mam?: number;
+  active_other_mam?: number;
   discharged_this_month: number;
   total_discharged: number;
   defaulters: number;
