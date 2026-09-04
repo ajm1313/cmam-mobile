@@ -51,6 +51,7 @@ interface CaseRow {
 
 interface Totals { total: number; active: number; discharged: number; visits: number }
 interface Pagination { page: number; total_pages: number; has_next: boolean }
+type ExportLayout = 'panel' | 'long';
 
 const EMPTY_FILTERS: StrategicFilters = {
   region: '', district: '', sub_district: '', facility: '', year: '', month: '',
@@ -107,16 +108,16 @@ export default function CaseLineListScreen() {
     load(1);
   }, [load]);
 
-  const exportCsv = async () => {
+  const exportCsv = async (layout: ExportLayout) => {
     if (!allowed || exporting) return;
     setExporting(true);
     try {
       const response = await api.get('/v1/reports/strategic/linelist/', {
-        params: { ...queryParams(1), export: 'csv' },
+        params: { ...queryParams(1), export: 'csv', layout },
         responseType: 'text',
         timeout: 60000,
       });
-      const name = `cmam-case-linelist-${new Date().toISOString().slice(0, 10)}.csv`;
+      const name = `cmam-case-linelist-${layout}-${new Date().toISOString().slice(0, 10)}.csv`;
       if (Platform.OS === 'web') {
         const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -141,6 +142,18 @@ export default function CaseLineListScreen() {
     }
   };
 
+  const chooseExportLayout = () => {
+    Alert.alert(
+      'Export line list',
+      'Choose how visits should be arranged in the CSV file.',
+      [
+        { text: 'Panel format', onPress: () => exportCsv('panel') },
+        { text: 'Long format', onPress: () => exportCsv('long') },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const toggleExpanded = (id: number) => {
     setExpanded(current => {
       const next = new Set(current);
@@ -161,7 +174,7 @@ export default function CaseLineListScreen() {
             <Text style={styles.heroTitle}>Case Line List</Text>
             <Text style={styles.heroSub}>Registration through every visit and discharge</Text>
           </View>
-          <TouchableOpacity style={styles.headerButton} onPress={exportCsv} disabled={exporting}>
+          <TouchableOpacity style={styles.headerButton} onPress={chooseExportLayout} disabled={exporting}>
             {exporting ? <ActivityIndicator size={18} color="#fff" /> : <Ionicons name="download-outline" size={21} color="#fff" />}
           </TouchableOpacity>
         </View>

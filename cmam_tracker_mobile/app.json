@@ -2,7 +2,7 @@
   "expo": {
     "name": "CMAM Tracker",
     "slug": "cmam-tracker",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -29,7 +29,7 @@
         "backgroundColor": "#1e3a8a"
       },
       "package": "org.pharn.cmamtracker",
-      "versionCode": 14,
+      "versionCode": 15,
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]
