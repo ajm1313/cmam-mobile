@@ -192,7 +192,7 @@ export default function StrategicReportFilters({ value, mode, colors, onApply }:
           ) : (
             <View style={styles.grid}>
               <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Registered from</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Admitted from</Text>
                 <TextInput
                   value={draft.date_from} onChangeText={date_from => setDraft(current => ({ ...current, date_from }))}
                   placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted}
@@ -201,7 +201,7 @@ export default function StrategicReportFilters({ value, mode, colors, onApply }:
                 />
               </View>
               <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Registered to</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Admitted to</Text>
                 <TextInput
                   value={draft.date_to} onChangeText={date_to => setDraft(current => ({ ...current, date_to }))}
                   placeholder="YYYY-MM-DD" placeholderTextColor={colors.textMuted}

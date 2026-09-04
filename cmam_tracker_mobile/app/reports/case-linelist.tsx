@@ -37,7 +37,6 @@ interface CaseRow {
   caregiver_phone: string | null;
   programme: 'SAM' | 'High-Risk MAM' | 'Other MAM';
   admission_date: string;
-  registration_date: string;
   weight_kg: string | number | null;
   muac_cm: string | number | null;
   status: string;
@@ -283,7 +282,7 @@ function CaseCard({ item, expanded, onToggle, onOpen, colors }: {
         </View>
         <View style={[styles.caseMeta, { borderTopColor: colors.border }]}>
           <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.facility.name}</Text>
-          <Text style={[styles.metaText, { color: colors.textMuted }]}>{item.registration_date}</Text>
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>Admitted {item.admission_date}</Text>
         </View>
       </TouchableOpacity>
 
